@@ -436,6 +436,12 @@ class CameraWidget(QWidget):
                 self.gain_input.setEnabled(True)
                 self.auto_exposure_check.setEnabled(True)
                 self.auto_gain_check.setEnabled(True)
+
+                # Initialize info displays with current slider values
+                exp_value = self.exposure_slider.value()
+                self.exposure_info.setText(f"Exposure: {exp_value} µs")
+                gain_value = self.gain_slider.value() / 10.0
+                self.gain_info.setText(f"Gain: {gain_value:.1f} dB")
                 self.auto_wb_check.setEnabled(True)
 
     def _on_exposure_changed(self, value: int) -> None:

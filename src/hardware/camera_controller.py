@@ -58,6 +58,7 @@ class CameraStreamThread(QThread):
         self.running = True
         self.frame_count = 0
         self.start_time = time.time()
+        self.last_gui_frame_time = 0.0  # Reset to ensure first frame passes
 
         def frame_callback(cam: Any, stream: Any, frame: Any) -> None:
             """Callback for each frame."""
