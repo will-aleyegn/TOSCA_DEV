@@ -16,15 +16,30 @@ This module provides isolated camera testing and exploration scripts to fully un
 
 ```
 camera_module/
-├── README.md              # This file
-├── examples/              # Test scripts
-│   ├── 01_list_cameras.py
+├── README.md                      # API documentation and usage guide
+├── TEST_SUITE.md                  # Complete test suite reference
+├── INTEGRATION_FEATURES.md        # PyQt6 integration patterns
+├── LESSONS_LEARNED.md             # VmbPy API quirks and best practices
+├── examples/                      # Test scripts and examples
+│   ├── 01_list_cameras.py        # Custom test scripts
 │   ├── 02_camera_info.py
 │   ├── 03_capture_single_frame.py
 │   ├── 04_explore_features.py
-│   └── 05_continuous_stream.py
-├── tests/                 # Unit tests (to be created)
-└── docs/                  # Additional documentation
+│   ├── 05_continuous_stream.py
+│   ├── 06_set_auto_exposure.py
+│   ├── test_camera_performance.py
+│   └── official_allied_vision/    # Official Vimba 6.0 examples (12 scripts)
+│       ├── list_cameras.py
+│       ├── asynchronous_grab.py
+│       ├── asynchronous_grab_opencv.py
+│       └── ... (9 more examples)
+├── tests/                         # Unit and integration tests
+│   └── vmbpy_unit_tests/         # Official VmbPy SDK tests (24+ tests)
+│       ├── basic_tests/
+│       └── real_cam_tests/
+├── docs/                          # Feature documentation
+│   └── camera_features.txt       # Camera capability info
+└── output/                        # Test outputs (images, videos)
 ```
 
 ---
@@ -453,6 +468,44 @@ Connect camera to session management:
 
 ---
 
+## Additional Resources
+
+### Complete Test Suite
+
+See **[TEST_SUITE.md](TEST_SUITE.md)** for comprehensive documentation of:
+- **7 custom test scripts** - Quick validation and development tools
+- **12 Allied Vision official examples** - Advanced features and patterns
+- **24+ VmbPy unit tests** - SDK validation tests
+- Quick start guides and troubleshooting
+
+### Integration Documentation
+
+- **[INTEGRATION_FEATURES.md](INTEGRATION_FEATURES.md)** - PyQt6 integration patterns, thread-safe streaming, video recording, GUI design
+- **[LESSONS_LEARNED.md](LESSONS_LEARNED.md)** - VmbPy API quirks, common pitfalls, performance tips
+
+### Official Examples (examples/official_allied_vision/)
+
+The `official_allied_vision/` directory contains 12 examples from Allied Vision's Vimba 6.0 SDK:
+- `asynchronous_grab_opencv.py` - Real-time display with OpenCV
+- `multithreading_opencv.py` - Producer-consumer threading pattern
+- `event_handling.py` - Camera event callbacks
+- `action_commands.py` - Trigger modes
+- `user_set.py` - Save/load camera configurations
+- And 7 more advanced examples
+
+### Unit Tests (tests/vmbpy_unit_tests/)
+
+Official VmbPy SDK tests for:
+- Camera functionality validation
+- Feature access testing
+- Frame handling verification
+- Streaming performance
+- Transport layer testing
+
+Run with: `cd tests/vmbpy_unit_tests && python -m pytest`
+
+---
+
 ## References
 
 - VmbPy GitHub: https://github.com/alliedvision/VmbPy
@@ -461,5 +514,7 @@ Connect camera to session management:
 
 ---
 
-**Last Updated:** 2025-10-22
+**Last Updated:** 2025-10-23
 **VmbPy Version:** 1.1.1
+**Total Scripts:** 19+ test scripts and examples
+**Total Tests:** 24+ unit tests
