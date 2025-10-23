@@ -175,6 +175,67 @@ See CODING_STANDARDS.md "Hardware API Usage" section for the project-wide rule.
 
 ---
 
+### Issue #5: Camera Frame Rate Limited by Hardware Configuration
+
+**Date:** 2025-10-23
+
+**Problem:**
+- Attempted to set camera acquisition frame rate to 30 FPS using hardware API
+- Camera rejected value with error: `30.0 is not within [1.0369063602411188e-05, 0.451884925365448]`
+- Camera's maximum frame rate was only 0.45 FPS despite being capable of 40+ FPS
+
+**Investigation:**
+- Camera was successfully streaming at 39-40 FPS before attempting rate control
+- `AcquisitionFrameRate` feature reported extremely low max value (0.45 FPS)
+- This suggests camera is in a mode or configuration that limits frame rate range
+- Could be related to: exposure time, pixel format, acquisition mode, or other features
+
+**Root Cause:**
+Camera's frame rate range is dynamic and depends on other settings (exposure, resolution, pixel format, etc.). The `AcquisitionFrameRate` feature reflects the currently achievable range given the camera's state.
+
+**Solution:**
+Implemented graceful handling with fallback:
+
+```python
+def start_streaming(self) -> bool:
+    # Check if hardware supports desired frame rate
+    fps_info = self.get_acquisition_frame_rate_info()
+    if fps_info["max_fps"] >= 30.0:
+        # Use hardware frame rate control
+        self.set_acquisition_frame_rate(30.0)
+        logger.info("Using hardware frame rate control (30 FPS)")
+    else:
+        # Fall back to software throttling
+        logger.warning(
+            f"Camera max FPS ({fps_info['max_fps']:.2f}) < 30. "
+            f"Using software throttling instead"
+        )
+```
+
+Also added range clamping in `set_acquisition_frame_rate()`:
+```python
+# Get valid range and clamp request
+fps_feature = self.camera.get_feature_by_name("AcquisitionFrameRate")
+min_fps, max_fps = fps_feature.get_range()
+clamped_fps = max(min_fps, min(fps, max_fps))
+```
+
+**Files Affected:**
+- `src/hardware/camera_controller.py:584-605` - Added `get_acquisition_frame_rate_info()`
+- `src/hardware/camera_controller.py:607-643` - Updated `set_acquisition_frame_rate()` with clamping
+- `src/hardware/camera_controller.py:301-312` - Smart fallback in `start_streaming()`
+
+**Lesson:**
+**Hardware API features may have dynamic ranges that depend on other settings.** Always:
+1. Query the valid range before setting values
+2. Clamp or validate against the actual range
+3. Have a fallback strategy if hardware doesn't support desired values
+4. Log clearly which method is being used (hardware vs software)
+
+This still follows the "hardware API first" principle - we try hardware, but gracefully fall back when hardware limitations exist.
+
+---
+
 ## Template for New Entries
 
 ```markdown
