@@ -111,7 +111,7 @@ Comprehensive technical documentation is available in `docs/architecture/`:
 5. **Footpedal:** Normally-open momentary switch
 6. **Hotspot Smoothing Device:** With digital signal output
 7. **Photodiode circuit:** With voltage output (0-5V range)
-   
+
 
 ## Safety & Compliance Development Guidelines
 
@@ -155,25 +155,67 @@ Comprehensive technical documentation is available in `docs/architecture/`:
 
 ## Documentation
 
-**Project Management:** `docs/project/`
-- PROJECT_STATUS.md - Current project state
-- CODING_STANDARDS.md - Development rules
-- CONFIGURATION.md - Config file reference
-
 **Architecture:** `docs/architecture/`
-
-1. **01_system_overview.md** - Start here for complete system architecture
-2. **02_database_schema.md** - Database design and schema
-3. **03_safety_system.md** - Critical safety architecture
-4. **04_treatment_protocols.md** - Protocol design and execution
-5. **05_image_processing.md** - Camera and image processing
-
-Additional docs (to be created):
-- **user_manual.md** - End-user guide
-- **installation.md** - Setup and installation
-- **maintenance.md** - Calibration and maintenance procedures
-- **troubleshooting.md** - Common issues and solutions
+- 01_system_overview.md - Complete system architecture
+- 02_database_schema.md - Database design
+- 03_safety_system.md - Safety architecture
+- 04_treatment_protocols.md - Protocol design
+- 05_image_processing.md - Camera and image processing
+- 06_protocol_builder.md - Protocol Builder specification
 
 ---
 
-**Last Updated:** 2025-10-22 22:40
+## Project Structure
+
+```
+components/
+├── camera_module/          [DONE] VmbPy API integration (6 test scripts)
+└── actuator_module/        [DONE] Xeryon API integration (6 test scripts)
+
+src/
+├── ui/
+│   ├── main_window.py      [DONE] 5-tab interface
+│   └── widgets/
+│       ├── subject_widget.py         [DONE] Subject selection
+│       ├── camera_widget.py          [DONE] Camera placeholder
+│       ├── treatment_widget.py       [DONE] Manual controls
+│       ├── protocol_builder_widget.py [DONE] Protocol creation UI
+│       └── safety_widget.py          [DONE] Safety status
+│
+├── core/
+│   ├── protocol.py         [DONE] Action-based data model
+│   ├── protocol_engine.py  [DONE] Async execution engine
+│   ├── safety.py           [TODO] Safety interlock manager
+│   ├── session.py          [TODO] Session management
+│   └── event_logger.py     [TODO] Event logging
+│
+├── hardware/
+│   ├── camera_controller.py    [TODO] Camera HAL
+│   ├── laser_controller.py     [TODO] Laser HAL
+│   ├── actuator_controller.py  [TODO] Actuator HAL
+│   └── gpio_controller.py      [TODO] GPIO HAL
+│
+├── database/
+│   ├── models.py           [TODO] SQLAlchemy models
+│   └── operations.py       [TODO] CRUD operations
+│
+└── image_processing/
+    ├── ring_detector.py    [TODO] Hough circle detection
+    ├── focus_measure.py    [TODO] Laplacian variance
+    └── video_recorder.py   [TODO] OpenCV recording
+
+data/
+├── protocols/              [DONE] Protocol JSON storage
+├── logs/                   [DONE] Application logs
+└── sessions/               [TODO] Session recordings
+
+tests/                      [TODO] Test suite
+```
+
+**Legend:** [DONE] Complete | [TODO] Not started
+
+**Current Status:** Phase 1 complete - GUI shell, camera module, actuator module, protocol core
+
+---
+
+**Last Updated:** 2025-10-22
