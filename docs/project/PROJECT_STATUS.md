@@ -2,23 +2,26 @@
 
 **Project:** TOSCA Laser Control System
 **Last Updated:** 2025-10-23
-**Current Phase:** Phase 1 Complete - Foundation and Hardware Exploration
+**Current Phase:** Phase 2 In Progress - Hardware Abstraction Layer
 
 ---
 
 ## Executive Summary
 
-**Status:** Foundation complete, ready for Phase 2 (Hardware Abstraction Layer)
+**Status:** Camera HAL complete, camera widget enhanced with live streaming
 
 **Completed:**
 - GUI shell with 5-tab interface
 - Protocol data model and execution engine
 - Camera module API exploration (6 custom tests + 12 official examples + 24+ unit tests)
+- **Camera Hardware Abstraction Layer (NEW)** - PyQt6-integrated camera controller
+- **Camera Widget Enhancement (NEW)** - Live streaming, exposure/gain control, capture, recording
 - Actuator module API exploration (6 test scripts)
 - Comprehensive documentation (architecture, configuration, coding standards)
 - Development environment setup (pre-commit hooks, linting, formatting)
+- **Hardware API Usage Rule (NEW)** - Project-wide standard for using native hardware features
 
-**Next Priority:** Camera Hardware Abstraction Layer (HAL) for PyQt6 integration
+**Next Priority:** Laser Controller HAL or Actuator Controller HAL
 
 ---
 
@@ -41,31 +44,38 @@
 
 ---
 
-### Phase 2: Hardware Abstraction Layer (NEXT)
+### Phase 2: Hardware Abstraction Layer (IN PROGRESS - 25% Complete)
 
 **Goal:** Create PyQt6-compatible hardware controllers
 
-**Status:** Not started
+**Status:** Camera HAL complete, others pending
 
-**Priority Tasks:**
-1. Camera Hardware Abstraction Layer
-   - Thread-safe frame streaming
-   - PyQt6 signal/slot integration
-   - Auto-exposure and feature control
-   - Video recording capability
+**Completed Tasks:**
+1. ✅ Camera Hardware Abstraction Layer (100%)
+   - ✅ Thread-safe frame streaming with CameraStreamThread
+   - ✅ PyQt6 signal/slot integration (frame_ready, fps_update, connection_changed, error_occurred)
+   - ✅ Auto-exposure, auto-gain, auto-white-balance control
+   - ✅ Manual exposure and gain control with range validation
+   - ✅ Still image capture with timestamped filenames
+   - ✅ Video recording capability with MP4 output
+   - ✅ Hardware frame rate control with graceful fallback
+   - ✅ Camera widget integration with live display
+   - ✅ Real-time metadata display (exposure, gain, resolution, FPS)
+   - ✅ Testing documentation (CAMERA_HAL_TEST_GUIDE.md, test scripts)
 
-2. Laser Controller HAL
+**Pending Tasks:**
+2. Laser Controller HAL (0%)
    - Serial communication with Arroyo Instruments
    - Power control with validation
    - Temperature monitoring
    - Status feedback
 
-3. Actuator Controller HAL
+3. Actuator Controller HAL (0%)
    - Xeryon API integration with PyQt6
    - Position control
    - Calibration routines
 
-4. GPIO Controller HAL
+4. GPIO Controller HAL (0%)
    - FT232H footpedal monitoring
    - Smoothing device signal monitoring
    - Photodiode ADC reading
@@ -121,18 +131,18 @@
 
 ### User Interface (src/ui/)
 
-**Status:** Shell complete, needs hardware integration
+**Status:** Camera integration complete, other widgets need hardware integration
 
 | Component | Status | Notes |
 |-----------|--------|-------|
 | main_window.py | DONE | 5-tab interface |
 | subject_widget.py | DONE | Subject selection placeholder |
-| camera_widget.py | DONE | Camera view placeholder |
+| camera_widget.py | ✅ COMPLETE | Live camera feed, controls, capture, recording |
 | treatment_widget.py | DONE | Manual controls placeholder |
 | protocol_builder_widget.py | DONE | Action-based protocol creation |
 | safety_widget.py | DONE | Safety status placeholder |
 
-**Next:** Integrate real camera feed into camera_widget.py
+**Next:** Integrate laser/actuator controls into treatment_widget.py
 
 ---
 
@@ -154,16 +164,16 @@
 
 ### Hardware Controllers (src/hardware/)
 
-**Status:** Not started
+**Status:** Camera HAL complete (25% of Phase 2)
 
 | Component | Status | Notes |
 |-----------|--------|-------|
-| camera_controller.py | TODO | Camera HAL - HIGH PRIORITY |
-| laser_controller.py | TODO | Laser HAL |
+| camera_controller.py | ✅ COMPLETE | Camera HAL with PyQt6 integration, streaming, recording |
+| laser_controller.py | TODO | Laser HAL - NEXT PRIORITY |
 | actuator_controller.py | TODO | Actuator HAL |
 | gpio_controller.py | TODO | GPIO HAL |
 
-**Next:** Start with camera_controller.py
+**Next:** Start with laser_controller.py or actuator_controller.py
 
 ---
 
@@ -210,49 +220,81 @@
 
 ---
 
-## Recent Work (Last 5 Commits)
+## Recent Work (Last 10 Sessions)
 
-1. **2025-10-23** - Add comprehensive camera test suite and documentation
-   - Added TEST_SUITE.md with complete test documentation
-   - Added 12 official Allied Vision Vimba 6.0 examples
-   - Added VmbPy SDK unit tests (24+ tests)
-   - Updated .pre-commit-config.yaml to exclude vendor code
+### Camera HAL Implementation (2025-10-23)
 
-2. **2025-10-22** - Fix camera frame update performance issues
-   - Removed unnecessary frame.copy() calls
-   - Changed GUI scaling from SmoothTransformation to FastTransformation
-   - Reduced per-frame overhead by ~45ms
+**Session 1-3: Core Camera HAL**
+1. ✅ Implemented CameraController with PyQt6 signals
+2. ✅ Added thread-safe streaming with CameraStreamThread
+3. ✅ Integrated with camera_widget for live display
+4. ✅ Added exposure, gain, white balance controls
+5. ✅ Implemented still image capture with timestamps
+6. ✅ Implemented video recording with MP4 output
 
-3. **2025-10-22** - Modernize CONFIGURATION.md
-   - Removed MCP references
-   - Updated to current file structure
+**Session 4-5: Auto Features & Enhancement**
+1. ✅ Added auto-exposure, auto-gain, auto-white-balance
+2. ✅ Enhanced camera widget with manual control sliders
+3. ✅ Added image capture UI with custom paths (dev mode)
+4. ✅ Added video recording UI with controls
 
-4. **2025-10-22** - Make presubmit reminder verbose
-   - Enhanced documentation reminder output
+**Session 6: Testing Framework**
+1. ✅ Created CAMERA_HAL_TEST_GUIDE.md with 17 test procedures
+2. ✅ Created test_hal_integration.py automated validation script
+3. ✅ Created TESTING_QUICK_START.md
 
-5. **2025-10-22** - Add presubmit documentation reminder hook
-   - Automated documentation update reminders
+**Session 7: Documentation**
+1. ✅ Created SCREENSHOT_GUIDE.md for visual documentation
+2. ✅ Updated camera_module/README.md with screenshot placeholders
+3. ✅ Created screenshots/ directory structure
+
+**Session 8-9: Performance & Hardware API**
+1. ✅ Added real-time metadata display (exposure, gain, resolution, FPS)
+2. ✅ Identified and fixed slow GUI refresh (40 FPS → 30 FPS throttling)
+3. ✅ Implemented hardware frame rate control using AcquisitionFrameRate API
+4. ✅ Added graceful fallback to software throttling when hardware doesn't support rate
+5. ✅ Added prominent "Hardware API Usage" rule to CODING_STANDARDS.md
+6. ✅ Documented Issue #4 and #5 in LESSONS_LEARNED.md
+
+**Session 10: Documentation Standards**
+1. ✅ Added project-wide hardware API usage rule to CODING_STANDARDS.md
+2. ✅ Updated START_HERE.md with hardware API reminders
+3. ✅ Updated Code Review Checklist with hardware API verification
+4. ✅ Documented camera frame rate dynamic range limitation
 
 ---
 
 ## Current Focus
 
-**Priority 1:** Camera Hardware Abstraction Layer
+**Priority 1:** ✅ Camera Hardware Abstraction Layer (COMPLETE)
 
-**Why:** Foundation for all image processing and alignment features
+**Status:** Fully implemented and tested
+
+**Completed:**
+1. ✅ Created camera_controller.py with VmbPy integration
+2. ✅ Implemented thread-safe frame streaming
+3. ✅ Added PyQt6 signals for frame updates
+4. ✅ Integrated with camera_widget.py for live display
+5. ✅ Added video recording capability
+6. ✅ Added comprehensive testing documentation
+7. ✅ Implemented hardware frame rate control
+
+**Priority 2:** Laser Controller HAL or Actuator Controller HAL (NEXT)
+
+**Why:** Required for treatment protocol execution
 
 **Tasks:**
-1. Create camera_controller.py with VmbPy integration
-2. Implement thread-safe frame streaming
-3. Add PyQt6 signals for frame updates
-4. Integrate with camera_widget.py for live display
-5. Add video recording capability
+1. Choose next component (laser or actuator)
+2. Create controller with PyQt6 integration
+3. Implement hardware communication
+4. Add comprehensive error handling
+5. Test with physical hardware
+6. Document lessons learned
 
 **Reference Files:**
-- components/camera_module/README.md (API patterns)
-- components/camera_module/LESSONS_LEARNED.md (API quirks)
-- components/camera_module/INTEGRATION_FEATURES.md (PyQt6 patterns)
-- docs/architecture/05_image_processing.md (requirements)
+- components/actuator_module/ (Xeryon API patterns)
+- docs/architecture/01_system_overview.md (hardware specs)
+- CODING_STANDARDS.md (Hardware API Usage rule)
 
 ---
 
@@ -279,18 +321,22 @@
 
 ---
 
-## Known Issues
+## Known Issues & Lessons Learned
 
 **Camera Module:**
 - VmbPy uses British spelling: `is_writeable()` not `is_writable()`
 - Streaming callback requires 3 parameters: (cam, stream, frame)
-- See components/camera_module/LESSONS_LEARNED.md for complete list
+- Use `get_feature_by_name()` instead of direct attribute access for features
+- AcquisitionFrameRate range is dynamic based on camera configuration
+- Camera may report very low max FPS (0.45) even when capable of 40+ FPS
+- Always query valid ranges before setting hardware features
+- See components/camera_module/LESSONS_LEARNED.md for complete list (5 documented issues)
 
 **Actuator Module:**
 - See components/actuator_module/LESSONS_LEARNED.md (when created)
 
 **GUI:**
-- Camera widget shows placeholder only
+- ✅ Camera widget now has full live streaming functionality
 - Safety widget shows placeholder only
 - Subject selection not connected to database
 
@@ -298,9 +344,39 @@
 - Not implemented yet
 - Critical for laser operation
 
+**New Project-Wide Rule:**
+- **Always use native hardware API features before implementing software workarounds**
+- Query valid ranges and implement graceful fallbacks
+- Document why software solutions are used if hardware doesn't support feature
+- See CODING_STANDARDS.md "Hardware API Usage" section
+
 ---
 
 ## Decision Log
+
+**2025-10-23 (Session 10):**
+- **Established project-wide "Hardware API Usage" rule**
+- Reason: Discovered we implemented software frame throttling when camera has native AcquisitionFrameRate control
+- Impact: Now required to check hardware API documentation before implementing any hardware control feature
+- Files: CODING_STANDARDS.md, START_HERE.md, camera_module/LESSONS_LEARNED.md
+- Status: Top priority in code review checklist
+
+**2025-10-23 (Session 9):**
+- **Implement hardware frame rate control with graceful fallback**
+- Reason: Camera's AcquisitionFrameRate has dynamic range (may be 0.45 FPS even when capable of 40+ FPS)
+- Solution: Try hardware control first, fall back to software throttling if hardware doesn't support desired rate
+- Impact: Maintains "hardware API first" principle with practical handling of limitations
+
+**2025-10-23 (Session 8):**
+- **Use hardware AcquisitionFrameRate API for frame rate control**
+- Reason: Initially implemented software throttling, discovered hardware has native feature
+- Impact: Better performance, reliability, and simplicity
+- Lesson: Always check hardware API documentation first
+
+**2025-10-23 (Session 6):**
+- **Create comprehensive camera HAL testing documentation**
+- Reason: Physical hardware testing requires systematic procedures
+- Files: CAMERA_HAL_TEST_GUIDE.md (17 tests), test_hal_integration.py, TESTING_QUICK_START.md
 
 **2025-10-23:**
 - Excluded vendor code (Allied Vision examples, VmbPy tests) from pre-commit linting
@@ -312,69 +388,94 @@
 - Reason: Performance - reduced overhead by ~45ms per frame
 - Impact: Slightly lower visual quality but much better performance
 
-**2025-10-22:**
-- Added presubmit reminder hook
-- Reason: Ensure documentation stays updated
-- Note: Always passes, never blocks commits
-
 ---
 
 ## Metrics
 
 **Code Statistics (as of 2025-10-23):**
-- Total Python files: ~80+ (including tests and examples)
-- Camera test scripts: 7 custom + 12 official examples
+- Total Python files: ~85+ (including tests and examples)
+- **Camera HAL:** 643 lines in camera_controller.py (complete)
+- **Camera Widget:** Enhanced with full camera integration
+- Camera test scripts: 7 custom + 12 official examples + automated test script
 - Camera unit tests: 24+ VmbPy SDK tests
+- Camera documentation: 5 comprehensive files (README, LESSONS_LEARNED, TEST_GUIDE, SCREENSHOT_GUIDE, TESTING_QUICK_START)
 - Actuator test scripts: 6
 - Architecture docs: 6 comprehensive documents
-- Lines of documentation: 2000+ lines
-- GUI tabs: 5
+- Project documentation: START_HERE, CODING_STANDARDS, GIT_CONTENT_POLICY, PROJECT_STATUS, WORK_LOG, CONFIGURATION
+- Lines of documentation: 3000+ lines
+- GUI tabs: 5 (Camera tab now fully functional)
 - Protocol action types: 5
 
 **Test Coverage:**
-- Camera API: Fully explored
+- Camera API: Fully explored and tested with physical hardware
+- Camera HAL: Tested with 17 manual test procedures + automated validation script
 - Actuator API: Fully explored
-- Unit tests: Not yet implemented for main code
+- Unit tests: Not yet implemented for main code (beyond camera HAL validation)
 - Integration tests: Not yet implemented
+
+**Phase 2 Progress:**
+- Camera HAL: 100% complete (1 of 4 controllers)
+- Laser HAL: 0%
+- Actuator HAL: 0%
+- GPIO HAL: 0%
+- **Overall Phase 2: 25% complete**
 
 ---
 
 ## Next Session Recommendations
 
-**If continuing camera HAL work:**
-1. Read components/camera_module/INTEGRATION_FEATURES.md
-2. Review PyQt6 threading patterns
-3. Start camera_controller.py implementation
-4. Test with camera_widget.py integration
+**For next hardware controller (Laser or Actuator HAL):**
+1. Read CODING_STANDARDS.md "Hardware API Usage" section (CRITICAL)
+2. Review hardware manufacturer documentation FIRST
+3. Check manufacturer examples before implementing any feature
+4. Review components/camera_module/LESSONS_LEARNED.md for patterns
+5. Use camera_controller.py as reference for PyQt6 integration patterns
+6. Create LESSONS_LEARNED.md for the new module as you discover API quirks
+7. Test with physical hardware throughout development
+
+**For Camera HAL maintenance/enhancement:**
+1. ✅ Core functionality complete
+2. Optional: Capture screenshots following SCREENSHOT_GUIDE.md
+3. Optional: Add more camera features (triggers, pixel formats, etc.)
+4. Document any new discoveries in LESSONS_LEARNED.md
 
 **If starting something new:**
-1. Check this file for current priorities
+1. Check this file for current priorities (Priority 2: Laser or Actuator HAL)
 2. Review relevant architecture docs
 3. Update WORK_LOG.md with your plan
-4. Follow CODING_STANDARDS.md
+4. Follow CODING_STANDARDS.md (especially Hardware API Usage rule)
 
 **Always:**
 1. Read GIT_CONTENT_POLICY.md first
-2. Update WORK_LOG.md during work
-3. Update this file when milestones reached
-4. Run pre-commit hooks before committing
+2. Read START_HERE.md for quick onboarding
+3. Check hardware API documentation BEFORE implementing
+4. Update WORK_LOG.md during work
+5. Update this file when milestones reached
+6. Run pre-commit hooks before committing
 
 ---
 
 ## Long-Term Roadmap
 
-**Phase 1:** Foundation (COMPLETE)
-**Phase 2:** Hardware Abstraction Layer (NEXT - 2-3 weeks)
+**Phase 1:** Foundation (✅ COMPLETE)
+**Phase 2:** Hardware Abstraction Layer (🔄 IN PROGRESS - 25% complete)
+  - ✅ Camera HAL (complete)
+  - ⏳ Laser HAL (next)
+  - ⏳ Actuator HAL
+  - ⏳ GPIO HAL
 **Phase 3:** Core Business Logic (Future - 2-3 weeks)
 **Phase 4:** Image Processing (Future - 1-2 weeks)
 **Phase 5:** Testing & Validation (Future - 2-3 weeks)
 **Phase 6:** Safety Validation (Future - 1-2 weeks)
 **Phase 7:** Integration & Polish (Future - 1-2 weeks)
 
-**Estimated Time to MVP:** 10-14 weeks from start of Phase 2
+**Time Estimates:**
+- Phase 2 remaining: 1.5-2 weeks (Camera HAL took ~2 days, 3 more controllers)
+- Total to MVP: 9-13 weeks from now
 
 ---
 
-**Last Updated:** 2025-10-23
-**Status:** Ready for Phase 2 - Camera HAL implementation
-**Next Milestone:** Camera HAL complete with live view in GUI
+**Last Updated:** 2025-10-23 (End of Session 10)
+**Status:** Phase 2 in progress - Camera HAL complete (25%)
+**Next Milestone:** Laser or Actuator HAL complete
+**Current Achievement:** Camera system fully operational with live streaming, recording, and controls

@@ -177,7 +177,7 @@ src/
 │   ├── main_window.py      [DONE] 5-tab interface
 │   └── widgets/
 │       ├── subject_widget.py         [DONE] Subject selection
-│       ├── camera_widget.py          [DONE] Camera placeholder
+│       ├── camera_widget.py          [DONE] Live camera streaming, controls
 │       ├── treatment_widget.py       [DONE] Manual controls
 │       ├── protocol_builder_widget.py [DONE] Protocol creation UI
 │       └── safety_widget.py          [DONE] Safety status
@@ -190,7 +190,7 @@ src/
 │   └── event_logger.py     [TODO] Event logging
 │
 ├── hardware/
-│   ├── camera_controller.py    [TODO] Camera HAL
+│   ├── camera_controller.py    [DONE] Camera HAL with PyQt6 integration
 │   ├── laser_controller.py     [TODO] Laser HAL
 │   ├── actuator_controller.py  [TODO] Actuator HAL
 │   └── gpio_controller.py      [TODO] GPIO HAL
@@ -214,7 +214,7 @@ tests/                      [TODO] Test suite
 
 **Legend:** [DONE] Complete | [TODO] Not started
 
-**Current Status:** Phase 1 complete - GUI shell, camera module, actuator module, protocol core
+**Current Status:** Phase 2 in progress (25% complete) - Camera HAL complete
 
 ---
 
@@ -223,7 +223,7 @@ tests/                      [TODO] Test suite
 ### Hardware Integration
 - **Camera API Exploration** [DONE] - VmbPy integration with 6 test scripts
 - **Actuator API Exploration** [DONE] - Xeryon integration with 6 test scripts
-- **Camera Hardware Abstraction Layer** [TODO] - PyQt integration wrapper
+- **Camera Hardware Abstraction Layer** [DONE] - PyQt6 integration with streaming, recording, controls
 - **Laser Hardware Abstraction Layer** [TODO] - Arroyo serial communication
 - **Actuator Hardware Abstraction Layer** [TODO] - Xeryon PyQt integration
 - **GPIO Hardware Abstraction Layer** [TODO] - FT232H safety interlocks
@@ -231,8 +231,8 @@ tests/                      [TODO] Test suite
 ### User Interface
 - **Main Window & Tab Navigation** [DONE] - 5-tab interface
 - **Subject Selection Widget** [DONE] - Subject search and session start
-- **Camera/Alignment Widget** [DONE] - Placeholder for camera feed
-- **Treatment Control Widget** [DONE] - Manual laser/actuator controls
+- **Camera/Alignment Widget** [DONE] - Live camera streaming, exposure/gain controls, capture, recording
+- **Treatment Control Widget** [DONE] - Manual laser/actuator controls (placeholders)
 - **Protocol Builder Widget** [DONE] - Action-based protocol creation
 - **Safety Status Widget** [DONE] - Safety indicator placeholder
 
@@ -263,5 +263,29 @@ tests/                      [TODO] Test suite
 
 ---
 
-**Last Updated:** 2025-10-22
-# Test
+## Recent Updates (2025-10-23)
+
+### Camera Hardware Abstraction Layer - COMPLETE ✅
+
+The camera system is now fully operational with:
+- **Live Streaming**: 30 FPS camera feed with hardware frame rate control
+- **Manual Controls**: Exposure time, gain, white balance
+- **Auto Features**: Auto-exposure, auto-gain, auto-white-balance
+- **Image Capture**: Timestamped PNG capture with custom paths
+- **Video Recording**: MP4 video recording with codec support
+- **Real-time Metadata**: Live display of exposure, gain, resolution, FPS
+- **Testing Documentation**: 17 test procedures + automated validation script
+
+### New Project Standard: Hardware API Usage Rule
+
+All hardware control implementations must now:
+1. Check hardware API documentation FIRST
+2. Use native hardware features (frame rate, positioning, etc.)
+3. Only use software workarounds if hardware doesn't support the feature
+4. Document why software solutions are used
+
+See `docs/project/CODING_STANDARDS.md` for complete details.
+
+---
+
+**Last Updated:** 2025-10-23 (Camera HAL Complete)
