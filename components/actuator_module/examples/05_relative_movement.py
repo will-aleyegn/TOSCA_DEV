@@ -47,7 +47,7 @@ def test_relative_movement(com_port: Optional[str] = None) -> int:
 
         # Verify index is found
         if not axis.isEncoderValid():
-            print("\n⚠ Warning: Encoder not valid. Finding index first...")
+            print("\nWarning: Encoder not valid. Finding index first...")
             axis.findIndex()
 
         # Set working units to micrometers

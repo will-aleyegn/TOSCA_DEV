@@ -56,7 +56,7 @@ def find_index(com_port: Optional[str] = None) -> int:
         elapsed_time = time.time() - start_time
 
         if success:
-            print(f"\n✓ Index found in {elapsed_time:.2f} seconds!")
+            print(f"\nIndex found in {elapsed_time:.2f} seconds!")
 
             # Verify encoder is valid
             print(f"\nEncoder Valid: {axis.isEncoderValid()}")
@@ -80,7 +80,7 @@ def find_index(com_port: Optional[str] = None) -> int:
             print("     (Test moving to specific positions)")
 
         else:
-            print("\n✗ Index search failed!")
+            print("\nIndex search failed!")
             print("Check hardware and try again.")
 
         # Cleanup
