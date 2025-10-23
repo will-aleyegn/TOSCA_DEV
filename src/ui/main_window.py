@@ -4,8 +4,9 @@ Main application window with tab-based navigation.
 
 import logging
 
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import (
+    QCheckBox,
     QHBoxLayout,
     QLabel,
     QMainWindow,
@@ -34,6 +35,9 @@ class MainWindow(QMainWindow):
     - Treatment control
     - Safety status
     """
+
+    # Signals
+    dev_mode_changed = pyqtSignal(bool)  # True=dev mode, False=normal mode
 
     def __init__(self) -> None:
         super().__init__()
@@ -84,6 +88,10 @@ class MainWindow(QMainWindow):
         self.treatment_widget = TreatmentWidget()
         self.tabs.addTab(self.treatment_widget, "Treatment Control")
 
+        # Connect dev mode signal to widgets (after widgets are created)
+        self.dev_mode_changed.connect(self.camera_widget.set_dev_mode)
+        self.dev_mode_changed.connect(self.treatment_widget.set_dev_mode)
+
         self.protocol_builder_widget = ProtocolBuilderWidget()
         self.tabs.addTab(self.protocol_builder_widget, "Protocol Builder")
 
@@ -97,6 +105,16 @@ class MainWindow(QMainWindow):
 
         status_layout = QHBoxLayout()
 
+        # Dev mode toggle
+        self.dev_mode_check = QCheckBox("Dev Mode")
+        self.dev_mode_check.setToolTip(
+            "Enable developer mode to bypass session management and customize save paths"
+        )
+        self.dev_mode_check.stateChanged.connect(self._on_dev_mode_changed)
+        status_layout.addWidget(self.dev_mode_check)
+        status_layout.addWidget(QLabel("|"))
+
+        # Connection status
         self.camera_status = QLabel("Camera: Not Connected")
         self.laser_status = QLabel("Laser: Not Connected")
         self.actuator_status = QLabel("Actuator: Not Connected")
@@ -111,3 +129,17 @@ class MainWindow(QMainWindow):
         status_widget = QWidget()
         status_widget.setLayout(status_layout)
         status_bar.addWidget(status_widget)
+
+    def _on_dev_mode_changed(self, state: int) -> None:
+        """Handle dev mode checkbox change."""
+        dev_mode = bool(state)
+        logger.info(f"Dev mode {'enabled' if dev_mode else 'disabled'}")
+        self.dev_mode_changed.emit(dev_mode)
+
+        # Update UI to reflect dev mode
+        if dev_mode:
+            self.setWindowTitle("TOSCA Laser Control System - DEVELOPER MODE")
+            self.subject_widget.setEnabled(False)  # Disable subject selection in dev mode
+        else:
+            self.setWindowTitle("TOSCA Laser Control System")
+            self.subject_widget.setEnabled(True)

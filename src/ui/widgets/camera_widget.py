@@ -9,13 +9,15 @@ Provides:
 """
 
 import logging
-from typing import Any
+from pathlib import Path
+from typing import Any, Optional
 
 import numpy as np
 from PyQt6.QtCore import Qt, pyqtSlot
 from PyQt6.QtGui import QImage, QPixmap
 from PyQt6.QtWidgets import (
     QCheckBox,
+    QFileDialog,
     QGroupBox,
     QHBoxLayout,
     QLabel,
@@ -51,6 +53,9 @@ class CameraWidget(QWidget):
         self.is_connected = False
         self.is_streaming = False
         self.current_fps = 0.0
+        self.dev_mode = False
+        self.custom_video_path: Optional[Path] = None
+        self.custom_image_path: Optional[Path] = None
 
         self._init_ui()
 
@@ -225,6 +230,27 @@ class CameraWidget(QWidget):
         self.image_filename_input.setText("capture")
         layout.addWidget(self.image_filename_input)
 
+        # Dev mode: Custom path selection
+        self.image_path_group = QWidget()
+        path_layout = QVBoxLayout()
+        path_layout.setContentsMargins(0, 0, 0, 0)
+
+        path_layout.addWidget(QLabel("Custom Save Path:"))
+        path_select_layout = QHBoxLayout()
+        self.image_path_input = QLineEdit()
+        self.image_path_input.setPlaceholderText("Use default path")
+        self.image_path_input.setReadOnly(True)
+        path_select_layout.addWidget(self.image_path_input)
+
+        self.image_path_browse_btn = QPushButton("Browse...")
+        self.image_path_browse_btn.clicked.connect(self._on_browse_image_path)
+        path_select_layout.addWidget(self.image_path_browse_btn)
+
+        path_layout.addLayout(path_select_layout)
+        self.image_path_group.setLayout(path_layout)
+        self.image_path_group.setVisible(False)  # Hidden by default
+        layout.addWidget(self.image_path_group)
+
         self.capture_btn = QPushButton("Capture Image")
         self.capture_btn.setEnabled(False)
         self.capture_btn.clicked.connect(self._on_capture_image)
@@ -248,6 +274,27 @@ class CameraWidget(QWidget):
         self.video_filename_input.setPlaceholderText("video")
         self.video_filename_input.setText("recording")
         layout.addWidget(self.video_filename_input)
+
+        # Dev mode: Custom path selection
+        self.video_path_group = QWidget()
+        path_layout = QVBoxLayout()
+        path_layout.setContentsMargins(0, 0, 0, 0)
+
+        path_layout.addWidget(QLabel("Custom Save Path:"))
+        path_select_layout = QHBoxLayout()
+        self.video_path_input = QLineEdit()
+        self.video_path_input.setPlaceholderText("Use default path")
+        self.video_path_input.setReadOnly(True)
+        path_select_layout.addWidget(self.video_path_input)
+
+        self.video_path_browse_btn = QPushButton("Browse...")
+        self.video_path_browse_btn.clicked.connect(self._on_browse_video_path)
+        path_select_layout.addWidget(self.video_path_browse_btn)
+
+        path_layout.addLayout(path_select_layout)
+        self.video_path_group.setLayout(path_layout)
+        self.video_path_group.setVisible(False)  # Hidden by default
+        layout.addWidget(self.video_path_group)
 
         self.record_btn = QPushButton("Start Recording")
         self.record_btn.setEnabled(False)
@@ -278,6 +325,47 @@ class CameraWidget(QWidget):
         controller.recording_status_changed.connect(self._on_recording_status_changed)
 
         logger.info("Camera controller connected to widget")
+
+    def set_dev_mode(self, dev_mode: bool) -> None:
+        """
+        Enable/disable developer mode.
+
+        Args:
+            dev_mode: True to enable dev mode, False to disable
+        """
+        self.dev_mode = dev_mode
+        logger.info(f"Camera widget dev mode: {dev_mode}")
+
+        # Show/hide custom path controls
+        self.video_path_group.setVisible(dev_mode)
+        self.image_path_group.setVisible(dev_mode)
+
+        if not dev_mode:
+            # Clear custom paths when exiting dev mode
+            self.custom_video_path = None
+            self.custom_image_path = None
+            self.video_path_input.clear()
+            self.image_path_input.clear()
+
+    def _on_browse_video_path(self) -> None:
+        """Browse for custom video save path."""
+        directory = QFileDialog.getExistingDirectory(
+            self, "Select Video Save Directory", str(Path.home())
+        )
+        if directory:
+            self.custom_video_path = Path(directory)
+            self.video_path_input.setText(str(self.custom_video_path))
+            logger.info(f"Custom video path set: {self.custom_video_path}")
+
+    def _on_browse_image_path(self) -> None:
+        """Browse for custom image save path."""
+        directory = QFileDialog.getExistingDirectory(
+            self, "Select Image Save Directory", str(Path.home())
+        )
+        if directory:
+            self.custom_image_path = Path(directory)
+            self.image_path_input.setText(str(self.custom_image_path))
+            logger.info(f"Custom image path set: {self.custom_image_path}")
 
     # Event handlers
     def _on_connect_clicked(self) -> None:
@@ -407,7 +495,14 @@ class CameraWidget(QWidget):
             self.camera_controller.stop_recording()
         else:
             base_filename = self.video_filename_input.text() or "recording"
-            self.camera_controller.start_recording(base_filename)
+
+            # Use custom path if in dev mode
+            output_dir = None
+            if self.dev_mode and self.custom_video_path:
+                output_dir = self.custom_video_path
+                logger.info(f"Using custom video path: {output_dir}")
+
+            self.camera_controller.start_recording(base_filename, output_dir)
 
     # Slots for camera controller signals
     @pyqtSlot(np.ndarray)
