@@ -1,0 +1,7 @@
+# Development-only dependencies
+-r requirements.txt
+
+# Additional development tools
+ipython>=8.14.0
+ipdb>=0.13.13
+pre-commit>=3.3.0

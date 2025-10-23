@@ -1,0 +1,95 @@
+%% TOSCA Software Architecture Block Diagram
+%% This Mermaid diagram can be rendered at https://mermaid.live
+%% or in GitHub/GitLab markdown, VS Code, and many other tools
+
+graph TB
+    %% User Interface Layer
+    subgraph UI["User Interface Layer"]
+        GUI["GUI Module<br/>• Treatment Control Panel<br/>• Live Video Display<br/>• Patient Management<br/>• Safety Status Indicators"]
+        MON["Monitoring & Alerting<br/>• Status Display<br/>• Progress Indicators<br/>• Operator Guidance<br/>• Performance Metrics"]
+        INPUT["Operator Input Devices<br/>• Joystick<br/>• Keyboard<br/>• Mouse<br/>(Non-safety-critical)"]
+    end
+
+    %% Application Logic Layer
+    subgraph LOGIC["Application Logic Layer"]
+        SESSION["Session Control<br/>(Treatment Management)<br/>• Protocol Execution<br/>• Session Lifecycle<br/>• Progress Tracking<br/>• Operator Adjustments"]
+        ERROR["Error Handling<br/>(Fault Management)<br/>• Error Classification<br/>• Recovery Procedures<br/>• Graceful Degradation"]
+    end
+
+    %% Device Control Layer
+    subgraph DEVICES["Device Control Layer"]
+        LASER["Laser Control & TEC<br/>(Arroyo Serial Interface)<br/>• Power Commands<br/>• Emission Control<br/>• Temperature Management"]
+        ACTUATOR["Actuator & Peripheral Control<br/>(Xeryon API)<br/>• Ring Size Adjustment<br/>• Position Feedback<br/>• Calibration Management"]
+        CAMERA["Camera & Image Processing<br/>(VmbPy + OpenCV)<br/>• Live Video Feed<br/>• Ring Detection<br/>• Focus Measurement<br/>• Video Recording"]
+        GPIO["GPIO Safety Interlocks<br/>(FT232H Interface)<br/>• Footpedal Monitor<br/>• Smoothing Device Monitor<br/>• Photodiode ADC"]
+    end
+
+    %% Data Layer
+    subgraph DATA["Data Management Layer"]
+        DB["Data Management<br/>(SQLite Database)<br/>• Patient Records<br/>• Session Data<br/>• Treatment Events<br/>• Safety Log"]
+        LOG["Logging & Reporting<br/>• High-Freq Buffering<br/>• Event Logging<br/>• Report Generation<br/>• Audit Trail"]
+    end
+
+    %% Safety - Central Authority
+    SAFETY["<b>SAFETY MANAGEMENT</b><br/><b>(Master Control)</b><br/>━━━━━━━━━━━━━━━━<br/>Hardware Interlocks:<br/>• Footpedal Deadman Switch<br/>• Smoothing Device Health<br/>• Photodiode Power Monitor<br/><br/>Software Interlocks:<br/>• Emergency Stop<br/>• Power Limits<br/>• Session State<br/>• Camera Validity<br/><br/>• Safety State Machine<br/>• Fault Handling<br/>• Watchdog Timer<br/>• Override Authority"]
+
+    %% User Interface Connections
+    GUI --> SESSION
+    GUI --> MON
+    INPUT --> SESSION
+    MON --> SESSION
+
+    %% Session Control Connections
+    SESSION --> LASER
+    SESSION --> ACTUATOR
+    SESSION --> DB
+    SESSION --> LOG
+
+    %% Device Layer to Safety
+    GPIO ==>|Interlock Signals| SAFETY
+    CAMERA ==>|Feed Validity| SAFETY
+    LASER -.->|Status| SAFETY
+    ACTUATOR -.->|Status| SAFETY
+
+    %% Safety Override Authority
+    SAFETY ==>|OVERRIDE<br/>AUTHORITY| LASER
+    SAFETY --> ERROR
+    SAFETY --> LOG
+    SAFETY --> MON
+
+    %% Data Flow
+    LASER --> LOG
+    ACTUATOR --> LOG
+    CAMERA --> LOG
+    CAMERA --> GUI
+    DB --> GUI
+    DB --> SESSION
+    LOG --> DB
+
+    %% Error Handling
+    ERROR --> LOG
+    ERROR --> SAFETY
+
+    %% Styling
+    classDef safetyClass fill:#ff6b6b,stroke:#c92a2a,stroke-width:4px,color:#fff
+    classDef deviceClass fill:#4dabf7,stroke:#1971c2,stroke-width:2px,color:#000
+    classDef logicClass fill:#69db7c,stroke:#2f9e44,stroke-width:2px,color:#000
+    classDef dataClass fill:#ffd43b,stroke:#f59f00,stroke-width:2px,color:#000
+    classDef uiClass fill:#da77f2,stroke:#9c36b5,stroke-width:2px,color:#fff
+
+    class SAFETY safetyClass
+    class LASER,ACTUATOR,CAMERA,GPIO deviceClass
+    class SESSION,ERROR logicClass
+    class DB,LOG dataClass
+    class GUI,MON,INPUT uiClass
+
+    %% Notes
+    subgraph LEGEND["Legend"]
+        direction LR
+        N1["━━━► Safety-Critical Signals"]
+        N2["────► Operational Data Flow"]
+        N3["- - -► Status/Monitoring"]
+    end
+
+    style SAFETY fill:#ff6b6b,stroke:#c92a2a,stroke-width:4px,color:#fff,font-weight:bold
+    style LEGEND fill:#f8f9fa,stroke:#868e96,stroke-width:1px

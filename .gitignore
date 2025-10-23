@@ -1,0 +1,117 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+env/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+*.cover
+
+# Medical Device Data - DO NOT COMMIT
+data/
+*.db
+*.sqlite
+*.sqlite3
+sessions/
+logs/
+*.log
+
+# Patient Data - CRITICAL: Never commit
+*patient*
+*PHI*
+
+# Hardware Calibration - Project Specific
+calibration/
+*.cal
+
+# Video recordings
+*.avi
+*.mp4
+*.mkv
+
+# Camera test outputs
+camera_module/output/
+camera_module/docs/camera_features.txt
+
+# Documentation builds
+docs/_build/
+docs/.doctrees/
+
+# Environment variables and secrets
+.env
+.env.local
+*.pem
+*.key
+credentials.json
+
+# MCP Configuration with tokens
+.mcp.json
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+
+# OS files
+Thumbs.db
+Desktop.ini
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+*.ipynb
+
+# PyInstaller
+*.spec
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+actuator_module/output/
+
+# AI Assistant Files (local use only, not tracked in repo)
+.claude/
+.mcp.json
+NEW_SESSION_GUIDE.md
+claude-code-tool-install.txt.txt
+docs/project/WORK_LOG.md
+docs/project/archive/
+docs/project/PROJECT_STATUS.md
+docs/project/SESSION_PROMPT.md
+docs/project/GIT_CONTENT_POLICY.md
+
+# Regulatory/FDA Strategy Documents (archive only)
+docs/regulatory_archive/
