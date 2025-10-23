@@ -16,11 +16,13 @@ from typing import Optional
 from PyQt6.QtCore import Qt, QTimer, pyqtSlot
 from PyQt6.QtWidgets import (
     QDoubleSpinBox,
+    QGridLayout,
     QGroupBox,
     QHBoxLayout,
     QLabel,
     QPushButton,
     QSlider,
+    QTabWidget,
     QVBoxLayout,
     QWidget,
 )
@@ -74,51 +76,51 @@ class ActuatorWidget(QWidget):
         """Initialize the user interface."""
         layout = QVBoxLayout(self)
 
-        # Connection group
+        # Connection controls (always visible)
         connection_group = self._create_connection_group()
         layout.addWidget(connection_group)
 
-        # Position control group
-        position_group = self._create_position_group()
-        layout.addWidget(position_group)
-
-        # Step control group
-        step_group = self._create_step_group()
-        layout.addWidget(step_group)
-
-        # Scan control group
-        scan_group = self._create_scan_group()
-        layout.addWidget(scan_group)
-
-        # Advanced scan range group
-        scan_range_group = self._create_scan_range_group()
-        layout.addWidget(scan_range_group)
-
-        # Speed control group
-        speed_group = self._create_speed_group()
-        layout.addWidget(speed_group)
-
-        # Acceleration control group
-        accel_group = self._create_acceleration_group()
-        layout.addWidget(accel_group)
-
-        # Limits display group
-        limits_group = self._create_limits_group()
-        layout.addWidget(limits_group)
-
-        # Status display
+        # Status display (always visible)
         status_group = self._create_status_group()
         layout.addWidget(status_group)
 
-        layout.addStretch()
+        # Tabbed interface for controls
+        tabs = QTabWidget()
+
+        # Tab 1: Position Control
+        position_tab = QWidget()
+        position_layout = QVBoxLayout(position_tab)
+        position_layout.addWidget(self._create_position_group())
+        position_layout.addWidget(self._create_step_group())
+        position_layout.addStretch()
+        tabs.addTab(position_tab, "Position Control")
+
+        # Tab 2: Scanning
+        scan_tab = QWidget()
+        scan_layout = QVBoxLayout(scan_tab)
+        scan_layout.addWidget(self._create_scan_group())
+        scan_layout.addWidget(self._create_scan_range_group())
+        scan_layout.addStretch()
+        tabs.addTab(scan_tab, "Scanning")
+
+        # Tab 3: Settings
+        settings_tab = QWidget()
+        settings_layout = QVBoxLayout(settings_tab)
+        settings_layout.addWidget(self._create_speed_group())
+        settings_layout.addWidget(self._create_acceleration_group())
+        settings_layout.addWidget(self._create_limits_group())
+        settings_layout.addStretch()
+        tabs.addTab(settings_tab, "Settings")
+
+        layout.addWidget(tabs)
 
         # Initial state
         self._update_ui_state()
 
     def _create_connection_group(self) -> QGroupBox:
         """Create connection control group."""
-        group = QGroupBox("Connection")
-        layout = QVBoxLayout()
+        group = QGroupBox("Connection & Homing")
+        layout = QHBoxLayout()
 
         # Connect button
         self.connect_btn = QPushButton("Connect")
@@ -126,7 +128,7 @@ class ActuatorWidget(QWidget):
         layout.addWidget(self.connect_btn)
 
         # Home button
-        self.home_btn = QPushButton("Find Home (Index)")
+        self.home_btn = QPushButton("Find Home")
         self.home_btn.clicked.connect(self._on_home_clicked)
         self.home_btn.setEnabled(False)
         layout.addWidget(self.home_btn)
@@ -482,23 +484,29 @@ class ActuatorWidget(QWidget):
     def _create_status_group(self) -> QGroupBox:
         """Create status display group."""
         group = QGroupBox("Status")
-        layout = QVBoxLayout()
+        layout = QGridLayout()
 
-        # Connection status
-        self.connection_status_label = QLabel("Status: Disconnected")
-        layout.addWidget(self.connection_status_label)
+        # Row 1: Connection and Homing
+        self.connection_status_label = QLabel("Disconnected")
+        self.connection_status_label.setStyleSheet("font-weight: bold;")
+        layout.addWidget(QLabel("Connection:"), 0, 0)
+        layout.addWidget(self.connection_status_label, 0, 1)
 
-        # Homing status
-        self.homing_status_label = QLabel("Homed: No")
-        layout.addWidget(self.homing_status_label)
+        self.homing_status_label = QLabel("Not Homed")
+        self.homing_status_label.setStyleSheet("font-weight: bold;")
+        layout.addWidget(QLabel("Homed:"), 0, 2)
+        layout.addWidget(self.homing_status_label, 0, 3)
 
-        # Current position
-        self.position_label = QLabel("Position: -- µm")
-        layout.addWidget(self.position_label)
+        # Row 2: Position and Motion
+        self.position_label = QLabel("-- µm")
+        self.position_label.setStyleSheet("font-weight: bold;")
+        layout.addWidget(QLabel("Position:"), 1, 0)
+        layout.addWidget(self.position_label, 1, 1)
 
-        # Motion status
-        self.motion_status_label = QLabel("Motion: Idle")
-        layout.addWidget(self.motion_status_label)
+        self.motion_status_label = QLabel("Idle")
+        self.motion_status_label.setStyleSheet("font-weight: bold;")
+        layout.addWidget(QLabel("Motion:"), 1, 2)
+        layout.addWidget(self.motion_status_label, 1, 3)
 
         group.setLayout(layout)
         return group
@@ -627,7 +635,7 @@ class ActuatorWidget(QWidget):
             dir_str = "positive" if direction > 0 else "negative"
             logger.info(f"Starting continuous scan in {dir_str} direction")
             self.controller.start_scan(direction)
-            self.motion_status_label.setText(f"Motion: Scanning {dir_str}")
+            self.motion_status_label.setText(f"Scanning {dir_str}")
 
     @pyqtSlot()
     def _on_scan_stop_clicked(self) -> None:
@@ -635,7 +643,7 @@ class ActuatorWidget(QWidget):
         if self.controller:
             logger.info("Stopping scan")
             self.controller.stop_scan()
-            self.motion_status_label.setText("Motion: Stopped")
+            self.motion_status_label.setText("Stopped")
 
     @pyqtSlot(int)
     def _on_fast_mode_changed(self, state: int) -> None:
@@ -674,7 +682,10 @@ class ActuatorWidget(QWidget):
         """Handle connection status change."""
         self.is_connected = connected
         status_text = "Connected" if connected else "Disconnected"
-        self.connection_status_label.setText(f"Status: {status_text}")
+        self.connection_status_label.setText(status_text)
+        self.connection_status_label.setStyleSheet(
+            f"font-weight: bold; color: {'#4CAF50' if connected else '#f44336'};"
+        )
         logger.info(f"Connection status: {status_text}")
         self._update_ui_state()
 
@@ -684,29 +695,32 @@ class ActuatorWidget(QWidget):
         # Update homing status
         if status == "ready":
             self.is_homed = True
-            self.homing_status_label.setText("Homed: Yes")
+            self.homing_status_label.setText("Yes")
+            self.homing_status_label.setStyleSheet("font-weight: bold; color: #4CAF50;")
             self._update_ui_state()
         elif status == "not_homed":
             self.is_homed = False
-            self.homing_status_label.setText("Homed: No")
+            self.homing_status_label.setText("No")
+            self.homing_status_label.setStyleSheet("font-weight: bold; color: #FFC107;")
             self._update_ui_state()
 
         # Update motion status
         status_map = {
             "homing": "Homing...",
             "moving": "Moving...",
+            "scanning": "Scanning",
             "ready": "Ready",
             "not_homed": "Not Homed",
             "error": "Error",
         }
         motion_text = status_map.get(status, status.title())
-        self.motion_status_label.setText(f"Motion: {motion_text}")
+        self.motion_status_label.setText(motion_text)
 
     @pyqtSlot(float)
     def _on_position_changed(self, position_um: float) -> None:
         """Handle position update."""
         self.current_position_um = position_um
-        self.position_label.setText(f"Position: {position_um:.2f} µm")
+        self.position_label.setText(f"{position_um:.2f} µm")
 
         # Update distance from limits with color coding
         if self.controller:
