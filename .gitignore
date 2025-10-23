@@ -112,3 +112,4 @@ presubmit/
 
 # Regulatory/FDA Strategy Documents (archive only)
 docs/regulatory_archive/
+*.pdf

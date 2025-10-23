@@ -212,10 +212,6 @@ data/
 tests/                      [TODO] Test suite
 ```
 
-**Legend:** [DONE] Complete | [TODO] Not started
-
-**Current Status:** Phase 2 in progress (25% complete) - Camera HAL complete
-
 ---
 
 ## Architecture Status
@@ -263,29 +259,6 @@ tests/                      [TODO] Test suite
 
 ---
 
-## Recent Updates (2025-10-23)
+**Last Updated:** 2025-10-23
 
-### Camera Hardware Abstraction Layer - COMPLETE ✅
-
-The camera system is now fully operational with:
-- **Live Streaming**: 30 FPS camera feed with hardware frame rate control
-- **Manual Controls**: Exposure time, gain, white balance
-- **Auto Features**: Auto-exposure, auto-gain, auto-white-balance
-- **Image Capture**: Timestamped PNG capture with custom paths
-- **Video Recording**: MP4 video recording with codec support
-- **Real-time Metadata**: Live display of exposure, gain, resolution, FPS
-- **Testing Documentation**: 17 test procedures + automated validation script
-
-### New Project Standard: Hardware API Usage Rule
-
-All hardware control implementations must now:
-1. Check hardware API documentation FIRST
-2. Use native hardware features (frame rate, positioning, etc.)
-3. Only use software workarounds if hardware doesn't support the feature
-4. Document why software solutions are used
-
-See `docs/project/CODING_STANDARDS.md` for complete details.
-
----
-
-**Last Updated:** 2025-10-23 (Camera HAL Complete)
+**For current project status and TODO list, see:** [TODO.md](TODO.md)
