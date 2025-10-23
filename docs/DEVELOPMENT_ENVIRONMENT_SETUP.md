@@ -95,7 +95,7 @@ Created comprehensive `.gitignore` file to exclude:
 - Python artifacts (`__pycache__`, `*.pyc`, `*.egg-info`)
 - Virtual environment (`venv/`, `.venv/`)
 - Application data (`data/`, `*.db`, `sessions/`, `logs/`)
-- Patient data (critical security requirement)
+- Subject data (critical security requirement)
 - IDE files (`.vscode/`, `.idea/`)
 - Environment variables (`.env`, `.mcp.json`)
 - Temporary files

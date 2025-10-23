@@ -6,7 +6,7 @@
 
 ## Executive Summary
 
-This document outlines the architecture for a laser control system. The system integrates laser control, linear actuator positioning, GPIO-based safety interlocks, camera-based alignment, and comprehensive patient/session tracking.
+This document outlines the architecture for a laser control system. The system integrates laser control, linear actuator positioning, GPIO-based safety interlocks, camera-based alignment, and comprehensive subject/session tracking.
 
 ## System Purpose
 
@@ -16,7 +16,7 @@ Control and monitor laser treatments with:
 - Real-time safety monitoring via photodiode and hotspot smoothing device
 - Camera-based alignment and focus verification
 - Complete treatment recording and audit trail
-- Longitudinal patient tracking across multiple sessions
+- Longitudinal subject tracking across multiple sessions
 
 ## Technology Stack
 
@@ -63,7 +63,7 @@ jsonschema            # Protocol validation
 ┌─────────────────────────────────────────────────────────────────┐
 │                     User Interface (PyQt6)                      │
 │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐          │
-│  │ Patient  │ │  Live    │ │Treatment │ │ Safety   │          │
+│  │ Subject  │ │  Live    │ │Treatment │ │ Safety   │          │
 │  │Selection │ │  Video   │ │ Control  │ │ Status   │          │
 │  └──────────┘ └──────────┘ └──────────┘ └──────────┘          │
 └─────────────────────────────────────────────────────────────────┘
@@ -72,7 +72,7 @@ jsonschema            # Protocol validation
 │              Application Core (Business Logic)                  │
 │  ┌──────────────────┐  ┌──────────────────┐                    │
 │  │ Session Manager  │  │  Safety Manager  │                    │
-│  │ - Patient select │  │  - Footpedal     │                    │
+│  │ - Subject select │  │  - Footpedal     │                    │
 │  │ - Tech ID        │  │  - Smoothing dev │                    │
 │  │ - Recording      │  │  - Photodiode    │                    │
 │  └──────────────────┘  │  - Interlocks    │                    │
@@ -206,14 +206,14 @@ Any interlock failure → Immediate transition to FAULT state → Safe shutdown
    ↓
 3. Tech ID Entry (required for all operations)
    ↓
-4. Patient Selection Screen
-   ├─ Option A: Select Existing Patient (search by patient code)
-   │   └─ Load patient history
-   └─ Option B: Create New Patient
-       └─ Generate patient code, enter demographics
+4. Subject Selection Screen
+   ├─ Option A: Select Existing Subject (search by subject code)
+   │   └─ Load subject history
+   └─ Option B: Create New Subject
+       └─ Generate subject code, enter demographics
    ↓
 5. Session Creation
-   └─ Log: Patient ID, Tech ID, Start Time
+   └─ Log: Subject ID, Tech ID, Start Time
 ```
 
 ### Pre-Treatment Setup
@@ -224,7 +224,7 @@ Any interlock failure → Immediate transition to FAULT state → Safe shutdown
 2. Operator Manual Actions (outside software control):
    ├─ Adjust focus (physical optics)
    ├─ Align laser ring to treatment site
-   └─ Position patient
+   └─ Position subject
    ↓
 3. Software Assistance:
    ├─ Real-time focus quality indicator
@@ -296,9 +296,9 @@ data/
    ↓
 4. Mark session as complete in database
    ↓
-5. Update patient last_modified timestamp
+5. Update subject last_modified timestamp
    ↓
-6. Return to Patient Selection (for next patient)
+6. Return to Subject Selection (for next subject)
 ```
 
 ## Treatment Protocol Engine
@@ -439,7 +439,7 @@ def calculate_focus_score(frame):
 **Location:** `data/laser_control.db`
 
 **Key Tables:**
-1. `patients` - Patient records (anonymized)
+1. `subjects` - Subject records (anonymized)
 2. `sessions` - Treatment sessions
 3. `treatment_events` - Detailed event log (high frequency)
 4. `protocols` - Saved treatment protocols
@@ -479,7 +479,7 @@ laser-control-system/
 │   │
 │   ├── ui/
 │   │   ├── main_window.py           # Main application window
-│   │   ├── patient_selection.py     # Patient selection/creation dialog
+│   │   ├── subject_selection.py     # Subject selection/creation dialog
 │   │   ├── treatment_control.py     # Treatment control panel
 │   │   ├── video_display.py         # Live camera feed widget
 │   │   ├── protocol_builder.py      # Protocol creation/editing UI
@@ -563,7 +563,7 @@ laser-control-system/
 - [ ] Database schema and basic CRUD operations
 
 ### Phase 2: Core Treatment Features
-- [ ] Patient selection and session management
+- [ ] Subject selection and session management
 - [ ] Treatment protocol engine
 - [ ] Manual treatment control (constant power)
 - [ ] Basic event logging

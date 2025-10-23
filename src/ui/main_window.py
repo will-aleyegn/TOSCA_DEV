@@ -16,8 +16,8 @@ from PyQt6.QtWidgets import (
 )
 
 from ui.widgets.camera_widget import CameraWidget
-from ui.widgets.patient_widget import PatientWidget
 from ui.widgets.safety_widget import SafetyWidget
+from ui.widgets.subject_widget import SubjectWidget
 from ui.widgets.treatment_widget import TreatmentWidget
 
 logger = logging.getLogger(__name__)
@@ -28,7 +28,7 @@ class MainWindow(QMainWindow):
     Main application window.
 
     Provides tab-based navigation between:
-    - Patient selection
+    - Subject selection
     - Camera/alignment view
     - Treatment control
     - Safety status
@@ -63,8 +63,8 @@ class MainWindow(QMainWindow):
         self.tabs = QTabWidget()
         layout.addWidget(self.tabs)
 
-        self.patient_widget = PatientWidget()
-        self.tabs.addTab(self.patient_widget, "Patient Selection")
+        self.subject_widget = SubjectWidget()
+        self.tabs.addTab(self.subject_widget, "Subject Selection")
 
         self.camera_widget = CameraWidget()
         self.tabs.addTab(self.camera_widget, "Camera/Alignment")

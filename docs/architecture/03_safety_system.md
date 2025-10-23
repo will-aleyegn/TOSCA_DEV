@@ -33,7 +33,7 @@ This laser system implements multiple redundant safety layers based on these pri
     │ Hardware Interlocks│ │ Software   │ │  Session        │
     │ - Footpedal        │ │ Interlocks │ │  Interlocks     │
     │ - Smoothing Device │ │ - E-stop   │ │  - Active sess. │
-    │ - Photodiode       │ │ - Power    │ │  - Patient ID   │
+    │ - Photodiode       │ │ - Power    │ │  - Subject ID   │
     └─────────┬──────────┘ │   limits   │ │  - Tech auth.   │
               │            └─────┬──────┘ └────────┬────────┘
               └──────────────────┼──────────────────┘
@@ -386,7 +386,7 @@ class PowerLimitEnforcer:
             return (False, self.protocol_max_power_watts,
                     f"LIMITED: Requested power {requested_power:.2f}W exceeds protocol limit {self.protocol_max_power_watts:.2f}W")
 
-        # Check session limit (e.g., patient-specific)
+        # Check session limit (e.g., subject-specific)
         if self.session_max_power_watts and requested_power > self.session_max_power_watts:
             return (False, self.session_max_power_watts,
                     f"LIMITED: Requested power {requested_power:.2f}W exceeds session limit {self.session_max_power_watts:.2f}W")
@@ -416,7 +416,7 @@ class PowerLimitEnforcer:
 **Rules:**
 - Laser cannot fire unless:
   - Active session exists
-  - Patient selected
+  - Subject selected
   - Tech ID authenticated
   - Session status = 'in_progress'
 
@@ -438,9 +438,9 @@ class SessionInterlock:
         if session.status != 'in_progress':
             return (False, f"Session status '{session.status}' - laser disabled")
 
-        # Check patient assigned
-        if not session.patient_id:
-            return (False, "No patient assigned - laser disabled")
+        # Check subject assigned
+        if not session.subject_id:
+            return (False, "No subject assigned - laser disabled")
 
         # Check tech authenticated
         if not session.tech_id:

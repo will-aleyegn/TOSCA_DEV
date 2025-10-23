@@ -163,7 +163,7 @@ data/
 - Excluding new file types
 - Protecting sensitive data
 
-**Security Critical:** Never commit patient data or secrets
+**Security Critical:** Never commit subject data or secrets
 
 ---
 

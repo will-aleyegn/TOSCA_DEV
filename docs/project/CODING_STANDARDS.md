@@ -220,6 +220,6 @@ Key takeaway to avoid repeating this mistake
 
 ## Remember
 
-**This is medical device software. Every line of code can impact patient safety.**
+**This is safety-critical software. Every line of code matters.**
 
 **When in doubt, ask before adding. It's easier to add than to remove from FDA documentation.**

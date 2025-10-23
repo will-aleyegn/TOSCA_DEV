@@ -7,11 +7,11 @@
 
 ## Overview
 
-The database stores all patient information, treatment sessions, event logs, protocols, and calibration data. Design principles:
+The database stores all subject information, treatment sessions, event logs, protocols, and calibration data. Design principles:
 
 1. **Immutability**: Treatment events are write-once (no updates/deletes)
 2. **Auditability**: Every change is logged with timestamp and operator
-3. **Longitudinal tracking**: Patient data spans multiple sessions over time
+3. **Longitudinal tracking**: Subject data spans multiple sessions over time
 4. **Referential integrity**: Foreign keys enforce data consistency
 5. **Performance**: Indexed for common queries
 
@@ -19,7 +19,7 @@ The database stores all patient information, treatment sessions, event logs, pro
 
 ```
 ┌──────────────┐         ┌──────────────┐         ┌──────────────┐
-│  tech_users  │         │   patients   │         │  protocols   │
+│  tech_users  │         │   subjects   │         │  protocols   │
 └──────┬───────┘         └──────┬───────┘         └──────┬───────┘
        │                        │                        │
        │                        │                        │
@@ -73,14 +73,14 @@ INSERT INTO tech_users (username, full_name, role) VALUES
     ('supervisor01', 'John Smith', 'supervisor');
 ```
 
-### 2. patients
+### 2. subjects
 
-Anonymized patient records for longitudinal tracking.
+Anonymized subject records for longitudinal tracking.
 
 ```sql
-CREATE TABLE patients (
-    patient_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    patient_code TEXT UNIQUE NOT NULL,  -- Anonymized ID (e.g., 'P-2025-0001')
+CREATE TABLE subjects (
+    subject_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    subject_code TEXT UNIQUE NOT NULL,  -- Anonymized ID (e.g., 'P-2025-0001')
     date_of_birth DATE,  -- Optional, for age calculation
     gender TEXT,  -- Optional demographics
     created_date DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -93,16 +93,16 @@ CREATE TABLE patients (
 );
 
 -- Indexes
-CREATE UNIQUE INDEX idx_patient_code ON patients(patient_code);
-CREATE INDEX idx_patient_active ON patients(is_active);
-CREATE INDEX idx_patient_created_date ON patients(created_date);
+CREATE UNIQUE INDEX idx_subject_code ON subjects(subject_code);
+CREATE INDEX idx_subject_active ON subjects(is_active);
+CREATE INDEX idx_subject_created_date ON subjects(created_date);
 ```
 
-**Patient Code Format:** `P-YYYY-NNNN` (e.g., P-2025-0001)
+**Subject Code Format:** `P-YYYY-NNNN` (e.g., P-2025-0001)
 
 **Sample Data:**
 ```sql
-INSERT INTO patients (patient_code, created_by_tech_id, notes) VALUES
+INSERT INTO subjects (subject_code, created_by_tech_id, notes) VALUES
     ('P-2025-0001', 1, 'Initial consultation');
 ```
 
@@ -164,12 +164,12 @@ CREATE INDEX idx_protocol_active ON protocols(is_active);
 
 ### 4. sessions
 
-Treatment sessions - each patient visit creates one session.
+Treatment sessions - each subject visit creates one session.
 
 ```sql
 CREATE TABLE sessions (
     session_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    patient_id INTEGER NOT NULL,
+    subject_id INTEGER NOT NULL,
     tech_id INTEGER NOT NULL,
     protocol_id INTEGER,  -- NULL if custom/ad-hoc treatment
 
@@ -198,13 +198,13 @@ CREATE TABLE sessions (
     post_treatment_notes TEXT,  -- Post-treatment observations
     created_date DATETIME DEFAULT CURRENT_TIMESTAMP,
 
-    FOREIGN KEY (patient_id) REFERENCES patients(patient_id),
+    FOREIGN KEY (subject_id) REFERENCES subjects(subject_id),
     FOREIGN KEY (tech_id) REFERENCES tech_users(tech_id),
     FOREIGN KEY (protocol_id) REFERENCES protocols(protocol_id)
 );
 
 -- Indexes
-CREATE INDEX idx_session_patient ON sessions(patient_id);
+CREATE INDEX idx_session_subject ON sessions(subject_id);
 CREATE INDEX idx_session_tech ON sessions(tech_id);
 CREATE INDEX idx_session_start_time ON sessions(start_time);
 CREATE INDEX idx_session_status ON sessions(status);
@@ -286,7 +286,7 @@ CREATE INDEX idx_event_session_time ON treatment_events(session_id, time_offset_
   "action": "protocol_power_override",
   "old_value": 5.0,
   "new_value": 6.5,
-  "reason": "patient tolerance"
+  "reason": "subject tolerance"
 }
 ```
 
@@ -457,8 +457,8 @@ INSERT INTO system_config (config_key, config_value, config_type, description) V
 CREATE VIEW active_sessions AS
 SELECT
     s.session_id,
-    s.patient_id,
-    p.patient_code,
+    s.subject_id,
+    p.subject_code,
     s.tech_id,
     t.full_name as tech_name,
     s.start_time,
@@ -466,18 +466,18 @@ SELECT
     s.protocol_name,
     strftime('%s', 'now') - strftime('%s', s.start_time) as duration_seconds
 FROM sessions s
-JOIN patients p ON s.patient_id = p.patient_id
+JOIN subjects p ON s.subject_id = p.subject_id
 JOIN tech_users t ON s.tech_id = t.tech_id
 WHERE s.status IN ('in_progress', 'paused');
 ```
 
-### View: Patient Session History
+### View: Subject Session History
 
 ```sql
-CREATE VIEW patient_session_history AS
+CREATE VIEW subject_session_history AS
 SELECT
-    p.patient_id,
-    p.patient_code,
+    p.subject_id,
+    p.subject_code,
     s.session_id,
     s.start_time,
     s.end_time,
@@ -487,10 +487,10 @@ SELECT
     s.avg_power_watts,
     s.total_energy_joules,
     t.full_name as technician
-FROM patients p
-LEFT JOIN sessions s ON p.patient_id = s.patient_id
+FROM subjects p
+LEFT JOIN sessions s ON p.subject_id = s.subject_id
 LEFT JOIN tech_users t ON s.tech_id = t.tech_id
-ORDER BY p.patient_id, s.start_time DESC;
+ORDER BY p.subject_id, s.start_time DESC;
 ```
 
 ### View: Safety Events Summary
@@ -509,14 +509,14 @@ ORDER BY event_date DESC, severity;
 
 ## Common Queries
 
-### 1. Find Patient by Code
+### 1. Find Subject by Code
 
 ```sql
-SELECT * FROM patients
-WHERE patient_code = 'P-2025-0001';
+SELECT * FROM subjects
+WHERE subject_code = 'P-2025-0001';
 ```
 
-### 2. Get All Sessions for Patient
+### 2. Get All Sessions for Subject
 
 ```sql
 SELECT
@@ -529,7 +529,7 @@ SELECT
     t.full_name as technician
 FROM sessions s
 JOIN tech_users t ON s.tech_id = t.tech_id
-WHERE s.patient_id = ?
+WHERE s.subject_id = ?
 ORDER BY s.start_time DESC;
 ```
 

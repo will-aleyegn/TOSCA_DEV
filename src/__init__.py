@@ -3,7 +3,7 @@ TOSCA Laser Control System
 ===========================
 
 This package provides comprehensive control and monitoring for laser
-systems, including safety interlocks, treatment protocols, patient
+systems, including safety interlocks, treatment protocols, subject
 management, and real-time image processing.
 """
 

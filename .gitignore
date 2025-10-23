@@ -49,8 +49,9 @@ sessions/
 logs/
 *.log
 
-# Patient Data - CRITICAL: Never commit
+# Subject Data - CRITICAL: Never commit
 *patient*
+*subject*
 *PHI*
 
 # Hardware Calibration - Project Specific

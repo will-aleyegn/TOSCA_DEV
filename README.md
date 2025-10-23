@@ -11,7 +11,7 @@ This is a comprehensive laser control system. The system integrates:
 - **Linear Actuator** - Xeryon actuator for ring size control
 - **Camera System** - Allied Vision camera with VmbPy SDK for alignment and monitoring
 - **GPIO Safety Interlocks** - Adafruit FT232H breakouts for footpedal, smoothing device, and photodiode monitoring
-- **Patient Management** - SQLite database for longitudinal patient tracking
+- **Session Management** - SQLite database for longitudinal subject tracking
 - **Treatment Protocols** - Configurable treatment plans with power ramping and ring sizing
 - **Video Recording** - Complete session recording and event logging
 
@@ -39,11 +39,11 @@ This is a comprehensive laser control system. The system integrates:
 - Session video recording
 - Snapshot capture
 
-### Patient Management
-- Anonymized patient profiles
+### Session Management
+- Anonymized subject profiles
 - Multi-session longitudinal tracking
 - Technician/operator authentication
-- Complete treatment history
+- Complete session history
 
 ## Architecture Documentation
 
@@ -159,7 +159,7 @@ TOSCA-dev/
 │   │   ├── main_window.py                      ✓ Main window with 4-tab layout
 │   │   └── 📁 widgets/                         ✓ UI Widgets
 │   │       ├── __init__.py                     ✓ Package init
-│   │       ├── patient_widget.py               ✓ Patient selection and session initiation
+│   │       ├── subject_widget.py               ✓ Subject selection and session initiation
 │   │       ├── camera_widget.py                ✓ Camera feed placeholder and controls
 │   │       ├── treatment_widget.py             ✓ Laser power and ring size controls
 │   │       └── safety_widget.py                ✓ Safety interlocks and E-stop
@@ -246,7 +246,7 @@ TOSCA-dev/
 - **Phase 1 (Camera + GUI Shell):** 100% ✓
 - **Phase 2 (HAL Integration):** 0% ⚪
 - **Phase 3 (Safety System):** 0% ⚪
-- **Phase 4 (Patient Management):** 0% ⚪
+- **Phase 4 (Session Management):** 0% ⚪
 
 ## Technology Stack
 
@@ -329,7 +329,7 @@ pip install -r requirements.txt
 - [x] Camera integration specification (736 lines)
 - [x] Lessons learned system (API quirks documented)
 - [x] Basic GUI shell with PyQt6
-- [x] 4-tab interface (Patient, Camera, Treatment, Safety)
+- [x] 4-tab interface (Subject, Camera, Treatment, Safety)
 - [x] Status bar with hardware indicators
 - [x] All widgets with proper layouts
 
@@ -350,12 +350,12 @@ pip install -r requirements.txt
 - [ ] Safety event logging to GUI
 - [ ] Hardware watchdog implementation
 
-### Phase 4: Patient Management & Database ⚪ NOT STARTED
+### Phase 4: Session Management & Database ⚪ NOT STARTED
 - [ ] Database schema implementation
-- [ ] Patient models (SQLAlchemy)
-- [ ] Patient search functionality
+- [ ] Subject models (SQLAlchemy)
+- [ ] Subject search functionality
 - [ ] Session management
-- [ ] Treatment history logging
+- [ ] Session history logging
 - [ ] Database migrations (Alembic)
 
 ### Phase 5: Treatment Protocols ⚪ NOT STARTED
