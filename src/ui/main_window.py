@@ -70,6 +70,17 @@ class MainWindow(QMainWindow):
         self.camera_widget = CameraWidget()
         self.tabs.addTab(self.camera_widget, "Camera/Alignment")
 
+        # Initialize camera controller (if available)
+        try:
+            from hardware.camera_controller import CameraController
+
+            self.camera_controller = CameraController()
+            self.camera_widget.set_camera_controller(self.camera_controller)
+            logger.info("Camera controller initialized")
+        except ImportError as e:
+            logger.warning(f"Camera controller not available: {e}")
+            self.camera_controller = None
+
         self.treatment_widget = TreatmentWidget()
         self.tabs.addTab(self.treatment_widget, "Treatment Control")
 

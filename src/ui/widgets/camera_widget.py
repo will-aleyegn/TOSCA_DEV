@@ -1,24 +1,56 @@
 """
-Camera display and alignment widget.
+Camera display and control widget with live view.
+
+Provides:
+- Live camera feed with frame updates
+- Exposure and gain controls
+- Still image capture
+- Video recording (manual and auto-record when laser on)
 """
 
-from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QGroupBox, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
+import logging
+from typing import Any
+
+import numpy as np
+from PyQt6.QtCore import Qt, pyqtSlot
+from PyQt6.QtGui import QImage, QPixmap
+from PyQt6.QtWidgets import (
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QSlider,
+    QVBoxLayout,
+    QWidget,
+)
+
+logger = logging.getLogger(__name__)
 
 
 class CameraWidget(QWidget):
     """
-    Live camera feed with alignment indicators.
+    Live camera feed with alignment indicators and controls.
 
-    Displays:
-    - Camera feed (placeholder)
-    - Ring detection overlay
-    - Focus quality indicator
-    - Alignment status
+    Features:
+    - Real-time camera streaming
+    - Exposure and gain adjustment
+    - Still image capture with custom filename
+    - Manual video recording
+    - Auto-record when laser is on (TODO)
     """
 
     def __init__(self) -> None:
         super().__init__()
+
+        # Camera controller will be injected later
+        self.camera_controller = None
+
+        # State
+        self.is_connected = False
+        self.is_streaming = False
+        self.current_fps = 0.0
+
         self._init_ui()
 
     def _init_ui(self) -> None:
@@ -40,11 +72,22 @@ class CameraWidget(QWidget):
         self.camera_display.setStyleSheet(
             "background-color: #2b2b2b; color: #888; font-size: 16px;"
         )
+        self.camera_display.setScaledContents(False)
         layout.addWidget(self.camera_display)
 
-        self.status_label = QLabel("Camera: Not Connected")
-        self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(self.status_label)
+        # Status bar
+        status_layout = QHBoxLayout()
+        self.connection_status = QLabel("Status: Not Connected")
+        self.fps_label = QLabel("FPS: --")
+        self.recording_indicator = QLabel("")
+        self.recording_indicator.setStyleSheet("color: red; font-weight: bold; font-size: 14px;")
+
+        status_layout.addWidget(self.connection_status)
+        status_layout.addStretch()
+        status_layout.addWidget(self.fps_label)
+        status_layout.addWidget(self.recording_indicator)
+
+        layout.addLayout(status_layout)
 
         group.setLayout(layout)
         return group
@@ -54,23 +97,300 @@ class CameraWidget(QWidget):
         group = QGroupBox("Camera Controls")
         layout = QVBoxLayout()
 
-        self.connect_button = QPushButton("Connect Camera")
-        layout.addWidget(self.connect_button)
+        # Connection controls
+        conn_group = self._create_connection_controls()
+        layout.addWidget(conn_group)
 
-        self.capture_button = QPushButton("Capture Frame")
-        self.capture_button.setEnabled(False)
-        layout.addWidget(self.capture_button)
+        # Camera settings
+        settings_group = self._create_camera_settings()
+        layout.addWidget(settings_group)
 
-        layout.addWidget(QLabel("Alignment Status:"))
-        self.ring_status = QLabel("Ring: Not Detected")
-        self.ring_status.setStyleSheet("padding: 5px; background-color: #f0f0f0;")
-        layout.addWidget(self.ring_status)
+        # Capture controls
+        capture_group = self._create_capture_controls()
+        layout.addWidget(capture_group)
 
-        self.focus_status = QLabel("Focus: N/A")
-        self.focus_status.setStyleSheet("padding: 5px; background-color: #f0f0f0;")
-        layout.addWidget(self.focus_status)
+        # Recording controls
+        record_group = self._create_recording_controls()
+        layout.addWidget(record_group)
 
         layout.addStretch()
 
         group.setLayout(layout)
         return group
+
+    def _create_connection_controls(self) -> QGroupBox:
+        """Create connection control group."""
+        group = QGroupBox("Connection")
+        layout = QVBoxLayout()
+
+        self.connect_btn = QPushButton("Connect Camera")
+        self.connect_btn.clicked.connect(self._on_connect_clicked)
+        layout.addWidget(self.connect_btn)
+
+        self.stream_btn = QPushButton("Start Streaming")
+        self.stream_btn.setEnabled(False)
+        self.stream_btn.clicked.connect(self._on_stream_clicked)
+        layout.addWidget(self.stream_btn)
+
+        group.setLayout(layout)
+        return group
+
+    def _create_camera_settings(self) -> QGroupBox:
+        """Create camera settings control group."""
+        group = QGroupBox("Camera Settings")
+        layout = QVBoxLayout()
+
+        # Exposure control
+        layout.addWidget(QLabel("Exposure (µs):"))
+        self.exposure_slider = QSlider(Qt.Orientation.Horizontal)
+        self.exposure_slider.setMinimum(100)
+        self.exposure_slider.setMaximum(100000)
+        self.exposure_slider.setValue(10000)
+        self.exposure_slider.setEnabled(False)
+        self.exposure_slider.valueChanged.connect(self._on_exposure_changed)
+        layout.addWidget(self.exposure_slider)
+
+        self.exposure_value_label = QLabel("10000 µs")
+        layout.addWidget(self.exposure_value_label)
+
+        # Gain control
+        layout.addWidget(QLabel("Gain (dB):"))
+        self.gain_slider = QSlider(Qt.Orientation.Horizontal)
+        self.gain_slider.setMinimum(0)
+        self.gain_slider.setMaximum(240)  # 24.0 dB * 10
+        self.gain_slider.setValue(0)
+        self.gain_slider.setEnabled(False)
+        self.gain_slider.valueChanged.connect(self._on_gain_changed)
+        layout.addWidget(self.gain_slider)
+
+        self.gain_value_label = QLabel("0.0 dB")
+        layout.addWidget(self.gain_value_label)
+
+        group.setLayout(layout)
+        return group
+
+    def _create_capture_controls(self) -> QGroupBox:
+        """Create image capture control group."""
+        group = QGroupBox("Still Image Capture")
+        layout = QVBoxLayout()
+
+        layout.addWidget(QLabel("Base Filename:"))
+        self.image_filename_input = QLineEdit()
+        self.image_filename_input.setPlaceholderText("image")
+        self.image_filename_input.setText("capture")
+        layout.addWidget(self.image_filename_input)
+
+        self.capture_btn = QPushButton("Capture Image")
+        self.capture_btn.setEnabled(False)
+        self.capture_btn.clicked.connect(self._on_capture_image)
+        layout.addWidget(self.capture_btn)
+
+        self.last_capture_label = QLabel("No images captured")
+        self.last_capture_label.setWordWrap(True)
+        self.last_capture_label.setStyleSheet("color: #666; font-size: 10px;")
+        layout.addWidget(self.last_capture_label)
+
+        group.setLayout(layout)
+        return group
+
+    def _create_recording_controls(self) -> QGroupBox:
+        """Create video recording control group."""
+        group = QGroupBox("Video Recording")
+        layout = QVBoxLayout()
+
+        layout.addWidget(QLabel("Base Filename:"))
+        self.video_filename_input = QLineEdit()
+        self.video_filename_input.setPlaceholderText("video")
+        self.video_filename_input.setText("recording")
+        layout.addWidget(self.video_filename_input)
+
+        self.record_btn = QPushButton("Start Recording")
+        self.record_btn.setEnabled(False)
+        self.record_btn.clicked.connect(self._on_record_clicked)
+        layout.addWidget(self.record_btn)
+
+        self.recording_status_label = QLabel("Not recording")
+        self.recording_status_label.setStyleSheet("color: #666; font-size: 10px;")
+        layout.addWidget(self.recording_status_label)
+
+        group.setLayout(layout)
+        return group
+
+    def set_camera_controller(self, controller: Any) -> None:
+        """
+        Inject camera controller dependency.
+
+        Args:
+            controller: CameraController instance
+        """
+        self.camera_controller = controller
+
+        # Connect signals
+        controller.frame_ready.connect(self._on_frame_received)
+        controller.fps_update.connect(self._on_fps_update)
+        controller.connection_changed.connect(self._on_connection_changed)
+        controller.error_occurred.connect(self._on_error)
+        controller.recording_status_changed.connect(self._on_recording_status_changed)
+
+        logger.info("Camera controller connected to widget")
+
+    # Event handlers
+    def _on_connect_clicked(self) -> None:
+        """Handle connect/disconnect button click."""
+        if not self.camera_controller:
+            return
+
+        if self.is_connected:
+            self.camera_controller.disconnect()
+        else:
+            success = self.camera_controller.connect()
+            if success:
+                # Update slider ranges from camera
+                exp_min, exp_max = self.camera_controller.get_exposure_range()
+                self.exposure_slider.setMinimum(int(exp_min))
+                self.exposure_slider.setMaximum(int(exp_max))
+
+                gain_min, gain_max = self.camera_controller.get_gain_range()
+                self.gain_slider.setMinimum(int(gain_min * 10))
+                self.gain_slider.setMaximum(int(gain_max * 10))
+
+    def _on_stream_clicked(self) -> None:
+        """Handle start/stop streaming button click."""
+        if not self.camera_controller:
+            return
+
+        if self.is_streaming:
+            self.camera_controller.stop_streaming()
+            self.is_streaming = False
+            self.stream_btn.setText("Start Streaming")
+            self.capture_btn.setEnabled(False)
+            self.record_btn.setEnabled(False)
+            self.exposure_slider.setEnabled(False)
+            self.gain_slider.setEnabled(False)
+        else:
+            success = self.camera_controller.start_streaming()
+            if success:
+                self.is_streaming = True
+                self.stream_btn.setText("Stop Streaming")
+                self.capture_btn.setEnabled(True)
+                self.record_btn.setEnabled(True)
+                self.exposure_slider.setEnabled(True)
+                self.gain_slider.setEnabled(True)
+
+    def _on_exposure_changed(self, value: int) -> None:
+        """Handle exposure slider change."""
+        if self.camera_controller:
+            self.camera_controller.set_exposure(float(value))
+            self.exposure_value_label.setText(f"{value} µs")
+
+    def _on_gain_changed(self, value: int) -> None:
+        """Handle gain slider change."""
+        if self.camera_controller:
+            gain_db = value / 10.0
+            self.camera_controller.set_gain(gain_db)
+            self.gain_value_label.setText(f"{gain_db:.1f} dB")
+
+    def _on_capture_image(self) -> None:
+        """Handle capture image button click."""
+        # TODO: Implement actual image capture
+        # For now, just save current frame
+        logger.info("Image capture requested - feature pending implementation")
+        self.last_capture_label.setText("Feature pending implementation")
+
+    def _on_record_clicked(self) -> None:
+        """Handle record button click."""
+        if not self.camera_controller:
+            return
+
+        if self.camera_controller.is_recording:
+            self.camera_controller.stop_recording()
+        else:
+            base_filename = self.video_filename_input.text() or "recording"
+            self.camera_controller.start_recording(base_filename)
+
+    # Slots for camera controller signals
+    @pyqtSlot(np.ndarray)
+    def _on_frame_received(self, frame: np.ndarray) -> None:
+        """
+        Update display with new frame.
+
+        Args:
+            frame: Numpy array frame from camera
+        """
+        try:
+            # Convert to QImage
+            if len(frame.shape) == 2:
+                # Grayscale
+                height, width = frame.shape
+                bytes_per_line = width
+                q_image = QImage(
+                    frame.data, width, height, bytes_per_line, QImage.Format.Format_Grayscale8
+                )
+            else:
+                # RGB
+                height, width, channels = frame.shape
+                bytes_per_line = channels * width
+                q_image = QImage(
+                    frame.data, width, height, bytes_per_line, QImage.Format.Format_RGB888
+                )
+
+            # Convert to pixmap and display
+            pixmap = QPixmap.fromImage(q_image)
+
+            # Scale to fit display while maintaining aspect ratio
+            scaled_pixmap = pixmap.scaled(
+                self.camera_display.size(),
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation,
+            )
+            self.camera_display.setPixmap(scaled_pixmap)
+
+        except Exception as e:
+            logger.error(f"Error displaying frame: {e}")
+
+    @pyqtSlot(float)
+    def _on_fps_update(self, fps: float) -> None:
+        """Update FPS display."""
+        self.current_fps = fps
+        self.fps_label.setText(f"FPS: {fps:.1f}")
+
+    @pyqtSlot(bool)
+    def _on_connection_changed(self, connected: bool) -> None:
+        """Handle connection status change."""
+        self.is_connected = connected
+
+        if connected:
+            self.connection_status.setText("Status: Connected")
+            self.connection_status.setStyleSheet("color: green;")
+            self.connect_btn.setText("Disconnect")
+            self.stream_btn.setEnabled(True)
+        else:
+            self.connection_status.setText("Status: Not Connected")
+            self.connection_status.setStyleSheet("color: red;")
+            self.connect_btn.setText("Connect Camera")
+            self.stream_btn.setEnabled(False)
+            self.capture_btn.setEnabled(False)
+            self.record_btn.setEnabled(False)
+            self.camera_display.clear()
+            self.camera_display.setText("Camera feed will appear here")
+
+    @pyqtSlot(str)
+    def _on_error(self, error_msg: str) -> None:
+        """Handle error from camera controller."""
+        logger.error(f"Camera error: {error_msg}")
+        self.connection_status.setText(f"Error: {error_msg}")
+        self.connection_status.setStyleSheet("color: red;")
+
+    @pyqtSlot(bool)
+    def _on_recording_status_changed(self, recording: bool) -> None:
+        """Handle recording status change."""
+        if recording:
+            self.record_btn.setText("Stop Recording")
+            self.recording_indicator.setText("● REC")
+            self.recording_status_label.setText("Recording...")
+            self.recording_status_label.setStyleSheet("color: red; font-weight: bold;")
+        else:
+            self.record_btn.setText("Start Recording")
+            self.recording_indicator.setText("")
+            self.recording_status_label.setText("Not recording")
+            self.recording_status_label.setStyleSheet("color: #666; font-size: 10px;")
