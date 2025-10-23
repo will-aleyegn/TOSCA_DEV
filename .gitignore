@@ -102,16 +102,12 @@ Desktop.ini
 dmypy.json
 components/actuator_module/output/
 
-# AI Assistant Files (local use only, not tracked in repo)
+# AI Configuration (required in root for Claude Code/MCP)
 .claude/
 .mcp.json
-NEW_SESSION_GUIDE.md
-claude-code-tool-install.txt.txt
-docs/project/WORK_LOG.md
-docs/project/archive/
-docs/project/PROJECT_STATUS.md
-docs/project/SESSION_PROMPT.md
-docs/project/GIT_CONTENT_POLICY.md
+
+# AI Documentation and Session Files (local use only)
+ai/
 
 # Regulatory/FDA Strategy Documents (archive only)
 docs/regulatory_archive/
