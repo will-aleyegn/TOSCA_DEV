@@ -454,9 +454,13 @@ class CameraWidget(QWidget):
 
     def _on_auto_exposure_changed(self, state: int) -> None:
         """Handle auto exposure checkbox change."""
-        # TODO: Implement auto exposure via camera controller
-        logger.info(f"Auto exposure {'enabled' if state else 'disabled'}")
-        if state:
+        enabled = bool(state)
+        logger.info(f"Auto exposure {'enabled' if enabled else 'disabled'}")
+
+        if self.camera_controller:
+            self.camera_controller.set_auto_exposure(enabled)
+
+        if enabled:
             self.exposure_slider.setEnabled(False)
             self.exposure_input.setEnabled(False)
         else:
@@ -465,9 +469,13 @@ class CameraWidget(QWidget):
 
     def _on_auto_gain_changed(self, state: int) -> None:
         """Handle auto gain checkbox change."""
-        # TODO: Implement auto gain via camera controller
-        logger.info(f"Auto gain {'enabled' if state else 'disabled'}")
-        if state:
+        enabled = bool(state)
+        logger.info(f"Auto gain {'enabled' if enabled else 'disabled'}")
+
+        if self.camera_controller:
+            self.camera_controller.set_auto_gain(enabled)
+
+        if enabled:
             self.gain_slider.setEnabled(False)
             self.gain_input.setEnabled(False)
         else:
@@ -476,8 +484,11 @@ class CameraWidget(QWidget):
 
     def _on_auto_wb_changed(self, state: int) -> None:
         """Handle auto white balance checkbox change."""
-        # TODO: Implement auto white balance via camera controller
-        logger.info(f"Auto white balance {'enabled' if state else 'disabled'}")
+        enabled = bool(state)
+        logger.info(f"Auto white balance {'enabled' if enabled else 'disabled'}")
+
+        if self.camera_controller:
+            self.camera_controller.set_auto_white_balance(enabled)
 
     def _on_capture_image(self) -> None:
         """Handle capture image button click."""

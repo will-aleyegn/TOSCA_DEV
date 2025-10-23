@@ -396,7 +396,8 @@ class CameraController(QObject):
             return False
 
         try:
-            self.camera.ExposureTime.set(exposure_us)
+            # Use get_feature_by_name (per LESSONS_LEARNED.md)
+            self.camera.get_feature_by_name("ExposureTime").set(exposure_us)
             logger.debug(f"Exposure set to {exposure_us} us")
             return True
         except Exception as e:
@@ -417,7 +418,8 @@ class CameraController(QObject):
             return False
 
         try:
-            self.camera.Gain.set(gain_db)
+            # Use get_feature_by_name (per LESSONS_LEARNED.md)
+            self.camera.get_feature_by_name("Gain").set(gain_db)
             logger.debug(f"Gain set to {gain_db} dB")
             return True
         except Exception as e:
@@ -430,10 +432,9 @@ class CameraController(QObject):
             return (0.0, 1000000.0)
 
         try:
-            return (
-                self.camera.ExposureTime.get_min(),
-                self.camera.ExposureTime.get_max(),
-            )
+            # Use get_feature_by_name (per LESSONS_LEARNED.md)
+            exp_feature = self.camera.get_feature_by_name("ExposureTime")
+            return (exp_feature.get_range()[0], exp_feature.get_range()[1])
         except Exception:
             return (0.0, 1000000.0)
 
@@ -443,6 +444,74 @@ class CameraController(QObject):
             return (0.0, 24.0)
 
         try:
-            return (self.camera.Gain.get_min(), self.camera.Gain.get_max())
+            # Use get_feature_by_name (per LESSONS_LEARNED.md)
+            gain_feature = self.camera.get_feature_by_name("Gain")
+            return (gain_feature.get_range()[0], gain_feature.get_range()[1])
         except Exception:
             return (0.0, 24.0)
+
+    def set_auto_exposure(self, enabled: bool) -> bool:
+        """
+        Enable or disable auto exposure.
+
+        Args:
+            enabled: True to enable auto exposure, False to disable
+
+        Returns:
+            True if successful
+        """
+        if not self.camera:
+            return False
+
+        try:
+            mode = "Continuous" if enabled else "Off"
+            self.camera.get_feature_by_name("ExposureAuto").set(mode)
+            logger.debug(f"Auto exposure set to {mode}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to set auto exposure: {e}")
+            return False
+
+    def set_auto_gain(self, enabled: bool) -> bool:
+        """
+        Enable or disable auto gain.
+
+        Args:
+            enabled: True to enable auto gain, False to disable
+
+        Returns:
+            True if successful
+        """
+        if not self.camera:
+            return False
+
+        try:
+            mode = "Continuous" if enabled else "Off"
+            self.camera.get_feature_by_name("GainAuto").set(mode)
+            logger.debug(f"Auto gain set to {mode}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to set auto gain: {e}")
+            return False
+
+    def set_auto_white_balance(self, enabled: bool) -> bool:
+        """
+        Enable or disable auto white balance.
+
+        Args:
+            enabled: True to enable auto white balance, False to disable
+
+        Returns:
+            True if successful
+        """
+        if not self.camera:
+            return False
+
+        try:
+            mode = "Continuous" if enabled else "Off"
+            self.camera.get_feature_by_name("BalanceWhiteAuto").set(mode)
+            logger.debug(f"Auto white balance set to {mode}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to set auto white balance: {e}")
+            return False
