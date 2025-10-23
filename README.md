@@ -99,32 +99,34 @@ TOSCA-dev/
 ├── 📁 .github/                                 ✓ GitHub Configuration
 │   └── PULL_REQUEST_TEMPLATE.md               ✓ PR template with coding standards
 │
-├── 📁 camera_module/                           ✓ Camera Exploration Module (COMPLETE)
-│   ├── README.md                               ✓ VmbPy API documentation (500+ lines)
-│   ├── INTEGRATION_FEATURES.md                 ✓ Integration spec (736 lines)
-│   ├── LESSONS_LEARNED.md                      ✓ API quirks documented (3 issues)
-│   ├── 📁 examples/                            ✓ Test Scripts
-│   │   ├── 01_list_cameras.py                  ✓ Camera detection (Allied Vision 1800 U-158c)
-│   │   ├── 02_camera_info.py                   ✓ Camera specs (1456x1088, RGB8)
-│   │   ├── 03_capture_single_frame.py          ✓ Frame capture with timestamps
-│   │   ├── 04_explore_features.py              ✓ Feature exploration (223/313 features)
-│   │   ├── 05_continuous_stream.py             ✓ Streaming (39.4 FPS sustained)
-│   │   └── 06_set_auto_exposure.py             ✓ Auto exposure control
-│   └── 📁 output/                              ✓ Test images (git-ignored)
-│
-├── 📁 actuator_module/                         ✓ Actuator Exploration Module (COMPLETE)
-│   ├── README.md                               ✓ Xeryon API documentation (500+ lines)
-│   ├── LESSONS_LEARNED.md                      ✓ API quirks documented (10 issues)
-│   ├── Xeryon.py                               ✓ Vendor library v1.88 (excluded from linting)
-│   ├── settings_default.txt                    ✓ Default stage parameters
-│   ├── 📁 examples/                            ✓ Test Scripts (ready for hardware)
-│   │   ├── 01_list_ports.py                    ✓ List available COM ports
-│   │   ├── 02_connect_actuator.py              ✓ Connect and display stage info
-│   │   ├── 03_find_index.py                    ✓ Find home position (required for positioning)
-│   │   ├── 04_absolute_positioning.py          ✓ Test setDPOS() 0-3000 µm TOSCA range
-│   │   ├── 05_relative_movement.py             ✓ Test step() incremental movement
-│   │   └── 06_speed_and_limits.py              ✓ Test SSPD speed control and HLIM/LLIM safety
-│   └── 📁 output/                              ✓ Test data (git-ignored)
+├── 📁 components/                              ✓ Hardware Component Modules
+│   │
+│   ├── 📁 camera_module/                       ✓ Camera Exploration Module (COMPLETE)
+│   │   ├── README.md                           ✓ VmbPy API documentation (500+ lines)
+│   │   ├── INTEGRATION_FEATURES.md             ✓ Integration spec (736 lines)
+│   │   ├── LESSONS_LEARNED.md                  ✓ API quirks documented (3 issues)
+│   │   ├── 📁 examples/                        ✓ Test Scripts
+│   │   │   ├── 01_list_cameras.py              ✓ Camera detection (Allied Vision 1800 U-158c)
+│   │   │   ├── 02_camera_info.py               ✓ Camera specs (1456x1088, RGB8)
+│   │   │   ├── 03_capture_single_frame.py      ✓ Frame capture with timestamps
+│   │   │   ├── 04_explore_features.py          ✓ Feature exploration (223/313 features)
+│   │   │   ├── 05_continuous_stream.py         ✓ Streaming (39.4 FPS sustained)
+│   │   │   └── 06_set_auto_exposure.py         ✓ Auto exposure control
+│   │   └── 📁 output/                          ✓ Test images (git-ignored)
+│   │
+│   └── 📁 actuator_module/                     ✓ Actuator Exploration Module (COMPLETE)
+│       ├── README.md                           ✓ Xeryon API documentation (500+ lines)
+│       ├── LESSONS_LEARNED.md                  ✓ API quirks documented (10 issues)
+│       ├── Xeryon.py                           ✓ Vendor library v1.88 (excluded from linting)
+│       ├── settings_default.txt                ✓ Default stage parameters
+│       ├── 📁 examples/                        ✓ Test Scripts (ready for hardware)
+│       │   ├── 01_list_ports.py                ✓ List available COM ports
+│       │   ├── 02_connect_actuator.py          ✓ Connect and display stage info
+│       │   ├── 03_find_index.py                ✓ Find home position (required for positioning)
+│       │   ├── 04_absolute_positioning.py      ✓ Test setDPOS() 0-3000 µm TOSCA range
+│       │   ├── 05_relative_movement.py         ✓ Test step() incremental movement
+│       │   └── 06_speed_and_limits.py          ✓ Test SSPD speed control and HLIM/LLIM safety
+│       └── 📁 output/                          ✓ Test data (git-ignored)
 │
 ├── 📁 docs/                                    ⏳ Documentation
 │   │
@@ -164,9 +166,9 @@ TOSCA-dev/
 │   │
 │   ├── 📁 hardware/                            ⚪ Hardware Abstraction Layer (Next: Phase 2)
 │   │   ├── __init__.py                         ⚪ Not started
-│   │   ├── camera_controller.py                ⚪ Camera HAL (spec ready in camera_module/)
+│   │   ├── camera_controller.py                ⚪ Camera HAL (spec ready in components/camera_module/)
 │   │   ├── laser_controller.py                 ⚪ Arroyo TEC Controller HAL
-│   │   ├── actuator_controller.py              ⚪ Xeryon actuator HAL
+│   │   ├── actuator_controller.py              ⚪ Xeryon actuator HAL (spec in components/actuator_module/)
 │   │   └── gpio_controller.py                  ⚪ FT232H GPIO/ADC HAL
 │   │
 │   ├── 📁 core/                                ⚪ Business Logic

@@ -35,4 +35,4 @@ repos:
     hooks:
       - id: mypy
         args: ['--ignore-missing-imports', '--no-strict-optional']
-        exclude: '^(actuator_module/Xeryon\.py|docs/actuator-control/.*|\.claude/.*)'
+        exclude: '^(components/actuator_module/Xeryon\.py|\.claude/.*)'

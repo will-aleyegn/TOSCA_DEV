@@ -9,9 +9,8 @@ exclude =
     build,
     dist,
     *.egg-info,
-    actuator_module/Xeryon.py,
-    actuator_module/settings_default.txt,
-    docs/actuator-control
+    components/actuator_module/Xeryon.py,
+    components/actuator_module/settings_default.txt
 per-file-ignores =
     __init__.py:F401
 max-complexity = 10

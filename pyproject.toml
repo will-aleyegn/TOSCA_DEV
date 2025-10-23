@@ -31,9 +31,8 @@ exclude = '''
   | venv
   | build
   | dist
-  | actuator_module/Xeryon\.py
-  | actuator_module/settings_default\.txt
-  | docs/actuator-control
+  | components/actuator_module/Xeryon\.py
+  | components/actuator_module/settings_default\.txt
 )/
 '''
 
@@ -56,8 +55,7 @@ warn_unused_ignores = true
 warn_no_return = true
 strict_equality = true
 exclude = [
-    '^actuator_module/Xeryon\.py$',
-    '^docs/actuator-control/.*',
+    '^components/actuator_module/Xeryon\.py$',
 ]
 
 [[tool.mypy.overrides]]
@@ -69,7 +67,7 @@ module = [
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
-module = "actuator_module.Xeryon"
+module = "components.actuator_module.Xeryon"
 ignore_errors = true
 
 [tool.pylint.messages_control]

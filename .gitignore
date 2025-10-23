@@ -63,8 +63,8 @@ calibration/
 *.mkv
 
 # Camera test outputs
-camera_module/output/
-camera_module/docs/camera_features.txt
+components/camera_module/output/
+components/camera_module/docs/camera_features.txt
 
 # Documentation builds
 docs/_build/
@@ -100,7 +100,7 @@ Desktop.ini
 .mypy_cache/
 .dmypy.json
 dmypy.json
-actuator_module/output/
+components/actuator_module/output/
 
 # AI Assistant Files (local use only, not tracked in repo)
 .claude/
