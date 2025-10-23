@@ -51,7 +51,7 @@ class CameraStreamThread(QThread):
         self.last_gui_frame_time = 0.0
         self.gui_fps_target = 30.0  # Limit GUI updates to 30 FPS
 
-    def run(self) -> None:
+    def run(self) -> None:  # noqa: C901
         """Start streaming frames."""
         import time
 
@@ -67,7 +67,6 @@ class CameraStreamThread(QThread):
 
             try:
                 # Convert frame to numpy array
-                frame_data = frame.as_numpy_ndarray()
                 self.frame_count += 1
                 current_time = time.time()
 
@@ -76,10 +75,27 @@ class CameraStreamThread(QThread):
                 min_frame_interval = 1.0 / self.gui_fps_target
 
                 if time_since_last_gui_frame >= min_frame_interval:
+                    # Only process frame data when we're actually going to send it
+                    frame_data = np.ascontiguousarray(frame.as_numpy_ndarray())
+
                     # Emit frame to GUI (no copy needed - Qt signals handle data safely)
                     self.frame_ready.emit(frame_data)
                     self.last_gui_frame_time = current_time
                     self.gui_frame_count += 1
+
+                    # Debug logging every 30 GUI frames
+                    if self.gui_frame_count % 30 == 0:
+                        gui_fps = (
+                            30.0 / (current_time - self.start_time)
+                            if current_time > self.start_time
+                            else 0
+                        )
+                        msg = (
+                            f"GUI frames: {self.gui_frame_count}, "
+                            f"Camera frames: {self.frame_count}, "
+                            f"GUI FPS: {gui_fps:.1f}"
+                        )
+                        logger.debug(msg)
 
                 # Calculate and emit camera FPS every 30 frames (real camera rate)
                 if self.frame_count % 30 == 0:
@@ -274,6 +290,9 @@ class CameraController(QObject):
             return True
 
         try:
+            # Set camera acquisition frame rate to 30 FPS for smooth GUI performance
+            self.set_acquisition_frame_rate(30.0)
+
             self.stream_thread = CameraStreamThread(self.camera)
             self.stream_thread.frame_ready.connect(self._on_frame_received)
             self.stream_thread.fps_update.connect(self.fps_update.emit)
@@ -281,7 +300,7 @@ class CameraController(QObject):
             self.stream_thread.start()
 
             self.is_streaming = True
-            logger.info("Camera streaming started")
+            logger.info("Camera streaming started at 30 FPS")
             return True
 
         except Exception as e:
@@ -560,4 +579,28 @@ class CameraController(QObject):
             return True
         except Exception as e:
             logger.error(f"Failed to set auto white balance: {e}")
+            return False
+
+    def set_acquisition_frame_rate(self, fps: float) -> bool:
+        """
+        Set camera's acquisition frame rate.
+
+        Args:
+            fps: Desired frames per second
+
+        Returns:
+            True if successful
+        """
+        if not self.camera:
+            return False
+
+        try:
+            # Enable frame rate control
+            self.camera.get_feature_by_name("AcquisitionFrameRateEnable").set(True)
+            # Set frame rate
+            self.camera.get_feature_by_name("AcquisitionFrameRate").set(fps)
+            logger.info(f"Camera acquisition frame rate set to {fps} FPS")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to set acquisition frame rate: {e}")
             return False
