@@ -10,6 +10,79 @@
 
 ## 2025-10-23
 
+### Session: Screenshot Documentation Framework
+
+**Time:** Late evening session
+
+**Actions:**
+1. Created comprehensive screenshot capture guide (SCREENSHOT_GUIDE.md):
+   - Step-by-step instructions for 16 screenshots
+   - Detailed setup requirements for each screenshot
+   - Camera positioning and lighting guidance
+   - Quality specifications (PNG, 800-1920px, <500KB)
+   - Consistency requirements across all screenshots
+   - Troubleshooting section for common issues
+   - 25-30 minute quick capture workflow
+   - Complete checklist for tracking progress
+
+2. Updated README.md with visual examples section:
+   - Added screenshot placeholders at beginning
+   - Organized by feature category
+   - Side-by-side layouts for comparison views
+   - 16 screenshot references with captions
+   - Professional documentation layout
+   - Updated directory structure
+
+3. Created screenshots directory structure:
+   - Created screenshots/ directory
+   - Added screenshots/README.md with quick reference
+   - Included file naming conventions
+   - Added progress checklist
+   - Ready for screenshot files
+
+**Screenshot Coverage (16 screenshots):**
+- Main window and interface overview
+- Camera connection success
+- Live streaming at full FPS
+- Manual exposure control
+- Auto exposure mode
+- Gain control interface
+- Auto white balance
+- Image capture controls
+- Image capture dev mode (custom paths)
+- Video recording (idle and active states)
+- All features combined
+- Error state (not connected)
+- High FPS performance metrics
+- Example captured image result
+- Example recorded video result
+
+**Files Created:**
+- components/camera_module/SCREENSHOT_GUIDE.md (360 lines)
+- components/camera_module/screenshots/README.md (75 lines)
+
+**Files Modified:**
+- components/camera_module/README.md (added Visual Examples section)
+
+**Commits:**
+- 5259f4e - Add screenshot guide and prepare README for visual documentation
+
+**Status:**
+- Screenshot framework: COMPLETE
+- README ready for screenshots
+- Guide provides 25-30 minute workflow
+- All 16 screenshots documented and planned
+
+**Next Steps:**
+- Connect camera and run application
+- Follow SCREENSHOT_GUIDE.md to capture screenshots
+- Place screenshots in components/camera_module/screenshots/
+- Screenshots will display automatically in README.md
+
+---
+
+## 2025-10-23
+
 ### Session: Camera HAL Testing Framework
 
 **Time:** Evening session
