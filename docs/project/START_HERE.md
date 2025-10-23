@@ -52,11 +52,18 @@ Shows complete project state:
 **File:** docs/project/CODING_STANDARDS.md
 
 **Key Principles:**
+- **⚠️ CRITICAL: Always use native hardware API features before software workarounds**
 - Minimal code only (no extras, no decorative elements)
 - Type hints on all functions
 - Comprehensive docstrings for safety-critical code
 - All code must pass pre-commit hooks (Black, Flake8, MyPy, isort)
 - Update LESSONS_LEARNED.md for API quirks
+
+**Hardware API Rule:** Before implementing any camera, actuator, or sensor control:
+1. Read hardware API documentation
+2. Check manufacturer examples
+3. Use native hardware features (frame rate, positioning, etc.)
+4. Only use software workarounds if hardware doesn't support the feature
 
 **Safety-Critical:** Every line matters. This is safety-critical software.
 
@@ -109,11 +116,12 @@ Complete guide to all 11 configuration files:
 
 ### During Work
 
-1. Follow CODING_STANDARDS.md principles
-2. Write minimal code only
-3. Update LESSONS_LEARNED.md for API quirks
-4. Keep WORK_LOG.md updated
-5. Test thoroughly
+1. **Check hardware API documentation FIRST** (camera, actuator, sensor controls)
+2. Follow CODING_STANDARDS.md principles
+3. Write minimal code only
+4. Update LESSONS_LEARNED.md for API quirks
+5. Keep WORK_LOG.md updated
+6. Test thoroughly
 
 ### Before Committing
 

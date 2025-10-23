@@ -113,6 +113,68 @@ output_file = str(output_dir / "captured_frame.png")
 
 ---
 
+### Issue #4: Using Software Frame Throttling Instead of Hardware Frame Rate Control
+
+**Date:** 2025-10-23
+
+**Problem:**
+- Implemented software-based frame throttling in `CameraStreamThread.frame_callback()` to limit GUI updates to 30 FPS
+- Camera was capturing at 39-40 FPS, causing slow/stuttering GUI updates
+- Software solution wasted CPU cycles converting and discarding ~25% of frames
+
+**Investigation:**
+- Initially assumed throttling had to be done in software
+- User asked: "does the api not have built in commands for this"
+- Checked Allied Vision official examples and VmbPy API documentation
+- Found `AcquisitionFrameRateEnable` and `AcquisitionFrameRate` features
+
+**Root Cause:**
+Failed to check hardware API capabilities before implementing software workaround. VmbPy provides native frame rate control through the camera's acquisition settings.
+
+**Solution:**
+Added `set_acquisition_frame_rate()` method using hardware features:
+
+```python
+def set_acquisition_frame_rate(self, fps: float) -> bool:
+    """Set camera's acquisition frame rate at hardware level."""
+    try:
+        # Enable frame rate control
+        self.camera.get_feature_by_name("AcquisitionFrameRateEnable").set(True)
+        # Set frame rate
+        self.camera.get_feature_by_name("AcquisitionFrameRate").set(fps)
+        logger.info(f"Camera acquisition frame rate set to {fps} FPS")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to set acquisition frame rate: {e}")
+        return False
+```
+
+Called in `start_streaming()`:
+```python
+def start_streaming(self) -> bool:
+    # Set camera acquisition frame rate to 30 FPS for smooth GUI performance
+    self.set_acquisition_frame_rate(30.0)
+    # ... rest of streaming setup
+```
+
+**Benefits of Hardware Solution:**
+- Camera captures exactly 30 FPS (not 40 FPS with 10 discarded)
+- No frame conversion overhead for discarded frames
+- No timing jitter from software throttling
+- More reliable and predictable performance
+- Simpler code
+
+**Files Affected:**
+- `src/hardware/camera_controller.py` - Added `set_acquisition_frame_rate()` method
+- `src/hardware/camera_controller.py:293-294` - Call in `start_streaming()`
+
+**Lesson:**
+**ALWAYS check hardware API documentation FIRST before implementing software workarounds.** Hardware-level features are more efficient, reliable, and appropriate than software alternatives. This applies to all hardware modules (cameras, actuators, sensors).
+
+See CODING_STANDARDS.md "Hardware API Usage" section for the project-wide rule.
+
+---
+
 ## Template for New Entries
 
 ```markdown
