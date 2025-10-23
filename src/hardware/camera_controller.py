@@ -46,6 +46,11 @@ class CameraStreamThread(QThread):
         self.frame_count = 0
         self.start_time: Optional[float] = None
 
+        # Frame throttling for GUI updates
+        self.gui_frame_count = 0
+        self.last_gui_frame_time = 0.0
+        self.gui_fps_target = 30.0  # Limit GUI updates to 30 FPS
+
     def run(self) -> None:
         """Start streaming frames."""
         import time
@@ -63,13 +68,21 @@ class CameraStreamThread(QThread):
                 # Convert frame to numpy array
                 frame_data = frame.as_numpy_ndarray()
                 self.frame_count += 1
+                current_time = time.time()
 
-                # Emit frame to GUI (no copy needed - Qt signals handle data safely)
-                self.frame_ready.emit(frame_data)
+                # Throttle GUI updates to target FPS
+                time_since_last_gui_frame = current_time - self.last_gui_frame_time
+                min_frame_interval = 1.0 / self.gui_fps_target
 
-                # Calculate and emit FPS every 30 frames
+                if time_since_last_gui_frame >= min_frame_interval:
+                    # Emit frame to GUI (no copy needed - Qt signals handle data safely)
+                    self.frame_ready.emit(frame_data)
+                    self.last_gui_frame_time = current_time
+                    self.gui_frame_count += 1
+
+                # Calculate and emit camera FPS every 30 frames (real camera rate)
                 if self.frame_count % 30 == 0:
-                    elapsed = time.time() - self.start_time
+                    elapsed = current_time - self.start_time
                     fps = self.frame_count / elapsed
                     self.fps_update.emit(fps)
 

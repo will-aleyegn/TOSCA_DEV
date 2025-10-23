@@ -95,6 +95,24 @@ class CameraWidget(QWidget):
 
         layout.addLayout(status_layout)
 
+        # Camera settings info bar
+        settings_layout = QHBoxLayout()
+        self.exposure_info = QLabel("Exposure: --")
+        self.exposure_info.setStyleSheet("color: #888; font-size: 10px;")
+        self.gain_info = QLabel("Gain: --")
+        self.gain_info.setStyleSheet("color: #888; font-size: 10px;")
+        self.resolution_info = QLabel("Resolution: --")
+        self.resolution_info.setStyleSheet("color: #888; font-size: 10px;")
+
+        settings_layout.addWidget(self.exposure_info)
+        settings_layout.addWidget(QLabel("|"))
+        settings_layout.addWidget(self.gain_info)
+        settings_layout.addWidget(QLabel("|"))
+        settings_layout.addWidget(self.resolution_info)
+        settings_layout.addStretch()
+
+        layout.addLayout(settings_layout)
+
         group.setLayout(layout)
         return group
 
@@ -426,6 +444,8 @@ class CameraWidget(QWidget):
             self.camera_controller.set_exposure(float(value))
             self.exposure_value_label.setText(f"{value} us")
             self.exposure_input.setText(str(value))
+            # Update info display
+            self.exposure_info.setText(f"Exposure: {value} µs")
 
     def _on_exposure_input_changed(self) -> None:
         """Handle exposure input box change."""
@@ -442,6 +462,8 @@ class CameraWidget(QWidget):
             self.camera_controller.set_gain(gain_db)
             self.gain_value_label.setText(f"{gain_db:.1f} dB")
             self.gain_input.setText(f"{gain_db:.1f}")
+            # Update info display
+            self.gain_info.setText(f"Gain: {gain_db:.1f} dB")
 
     def _on_gain_input_changed(self) -> None:
         """Handle gain input box change."""
@@ -543,17 +565,24 @@ class CameraWidget(QWidget):
             frame: Numpy array frame from camera
         """
         try:
+            # Update resolution info (only once or when changed)
+            if len(frame.shape) == 2:
+                height, width = frame.shape
+            else:
+                height, width, _ = frame.shape
+
+            self.resolution_info.setText(f"Resolution: {width}x{height}")
+
             # Convert to QImage
             if len(frame.shape) == 2:
                 # Grayscale
-                height, width = frame.shape
                 bytes_per_line = width
                 q_image = QImage(
                     frame.data, width, height, bytes_per_line, QImage.Format.Format_Grayscale8
                 )
             else:
                 # RGB
-                height, width, channels = frame.shape
+                channels = frame.shape[2]
                 bytes_per_line = channels * width
                 q_image = QImage(
                     frame.data, width, height, bytes_per_line, QImage.Format.Format_RGB888
