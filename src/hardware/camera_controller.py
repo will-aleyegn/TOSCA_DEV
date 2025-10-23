@@ -247,6 +247,14 @@ class CameraController(QObject):
             self.connection_changed.emit(True)
 
             logger.info(f"Connected to camera: {self.camera.get_id()}")
+
+            # Log frame rate capabilities
+            fps_info = self.get_acquisition_frame_rate_info()
+            logger.info(
+                f"Camera FPS range: [{fps_info['min_fps']:.2f}, "
+                f"{fps_info['max_fps']:.2f}], current: {fps_info['current_fps']:.2f}"
+            )
+
             return True
 
         except Exception as e:
@@ -290,8 +298,18 @@ class CameraController(QObject):
             return True
 
         try:
-            # Set camera acquisition frame rate to 30 FPS for smooth GUI performance
-            self.set_acquisition_frame_rate(30.0)
+            # Try to set camera acquisition frame rate to 30 FPS
+            fps_info = self.get_acquisition_frame_rate_info()
+            if fps_info["max_fps"] >= 30.0:
+                # Hardware supports desired frame rate
+                self.set_acquisition_frame_rate(30.0)
+                logger.info("Using hardware frame rate control (30 FPS)")
+            else:
+                # Hardware frame rate limited, use software throttling instead
+                logger.warning(
+                    f"Camera max FPS ({fps_info['max_fps']:.2f}) < 30. "
+                    f"Using software throttling instead"
+                )
 
             self.stream_thread = CameraStreamThread(self.camera)
             self.stream_thread.frame_ready.connect(self._on_frame_received)
@@ -581,6 +599,29 @@ class CameraController(QObject):
             logger.error(f"Failed to set auto white balance: {e}")
             return False
 
+    def get_acquisition_frame_rate_info(self) -> dict:
+        """
+        Get information about camera's frame rate capabilities.
+
+        Returns:
+            Dictionary with min_fps, max_fps, current_fps
+        """
+        if not self.camera:
+            return {"min_fps": 0, "max_fps": 0, "current_fps": 0}
+
+        try:
+            fps_feature = self.camera.get_feature_by_name("AcquisitionFrameRate")
+            min_fps, max_fps = fps_feature.get_range()
+            current_fps = fps_feature.get()
+            return {
+                "min_fps": min_fps,
+                "max_fps": max_fps,
+                "current_fps": current_fps,
+            }
+        except Exception as e:
+            logger.error(f"Failed to get frame rate info: {e}")
+            return {"min_fps": 0, "max_fps": 0, "current_fps": 0}
+
     def set_acquisition_frame_rate(self, fps: float) -> bool:
         """
         Set camera's acquisition frame rate.
@@ -597,9 +638,23 @@ class CameraController(QObject):
         try:
             # Enable frame rate control
             self.camera.get_feature_by_name("AcquisitionFrameRateEnable").set(True)
+
+            # Get the valid range for this camera
+            fps_feature = self.camera.get_feature_by_name("AcquisitionFrameRate")
+            min_fps, max_fps = fps_feature.get_range()
+
+            # Clamp to valid range
+            clamped_fps = max(min_fps, min(fps, max_fps))
+
+            if clamped_fps != fps:
+                logger.warning(
+                    f"Requested FPS {fps} outside valid range "
+                    f"[{min_fps:.2f}, {max_fps:.2f}]. Using {clamped_fps:.2f}"
+                )
+
             # Set frame rate
-            self.camera.get_feature_by_name("AcquisitionFrameRate").set(fps)
-            logger.info(f"Camera acquisition frame rate set to {fps} FPS")
+            fps_feature.set(clamped_fps)
+            logger.info(f"Camera acquisition frame rate set to {clamped_fps:.2f} FPS")
             return True
         except Exception as e:
             logger.error(f"Failed to set acquisition frame rate: {e}")
