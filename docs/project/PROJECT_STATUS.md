@@ -8,20 +8,22 @@
 
 ## Executive Summary
 
-**Status:** Camera HAL complete, camera widget enhanced with live streaming
+**Status:** Camera HAL complete, **Actuator HAL homing working!**
 
 **Completed:**
 - GUI shell with 5-tab interface
 - Protocol data model and execution engine
 - Camera module API exploration (6 custom tests + 12 official examples + 24+ unit tests)
-- **Camera Hardware Abstraction Layer (NEW)** - PyQt6-integrated camera controller
-- **Camera Widget Enhancement (NEW)** - Live streaming, exposure/gain control, capture, recording
+- **Camera Hardware Abstraction Layer** - PyQt6-integrated camera controller
+- **Camera Widget Enhancement** - Live streaming, exposure/gain control, capture, recording
+- **Actuator HAL Connection & Homing (NEW)** - Physical hardware tested and working
+- **Critical Fix: AUTO_SEND_SETTINGS (NEW)** - Use device settings, not file overrides
 - Actuator module API exploration (6 test scripts)
 - Comprehensive documentation (architecture, configuration, coding standards)
 - Development environment setup (pre-commit hooks, linting, formatting)
-- **Hardware API Usage Rule (NEW)** - Project-wide standard for using native hardware features
+- **Hardware API Usage Rule** - Project-wide standard for using native hardware features
 
-**Next Priority:** Laser Controller HAL or Actuator Controller HAL
+**Next Priority:** Actuator position control or Laser Controller HAL
 
 ---
 
@@ -44,7 +46,7 @@
 
 ---
 
-### Phase 2: Hardware Abstraction Layer (IN PROGRESS - 25% Complete)
+### Phase 2: Hardware Abstraction Layer (IN PROGRESS - 44% Complete)
 
 **Goal:** Create PyQt6-compatible hardware controllers
 
@@ -70,13 +72,15 @@
    - Temperature monitoring
    - Status feedback
 
-3. Actuator Controller HAL (50% - Initialization Complete)
+3. Actuator Controller HAL (75% - Homing Complete) **MAJOR PROGRESS**
    - ✅ Xeryon API integration with PyQt6
    - ✅ Hardware connection and initialization
    - ✅ Status monitoring and error handling
-   - TODO: Homing procedures
+   - ✅ Homing procedures (index finding) **WORKING!**
+   - ✅ Critical fix: AUTO_SEND_SETTINGS=False (use device settings)
+   - ✅ Tested with physical hardware - PASSING
    - TODO: Position control (absolute and relative)
-   - TODO: Testing with physical hardware
+   - TODO: Speed control and movement testing
 
 4. GPIO Controller HAL (0%)
    - FT232H footpedal monitoring
