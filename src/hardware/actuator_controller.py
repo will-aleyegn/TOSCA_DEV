@@ -49,6 +49,8 @@ class ActuatorController(QObject):
     error_occurred = pyqtSignal(str)
     status_changed = pyqtSignal(str)  # Status description (homing, moving, ready, error)
     homing_progress = pyqtSignal(str)  # Homing status updates
+    limits_changed = pyqtSignal(float, float)  # (low_limit_um, high_limit_um)
+    limit_warning = pyqtSignal(str, float)  # (direction, distance_from_limit)
 
     def __init__(self) -> None:
         super().__init__()
@@ -69,6 +71,15 @@ class ActuatorController(QObject):
         # Settings
         self.working_units = Units.mu  # Micrometers for TOSCA
         self.position_tolerance_um = 5.0  # ±5 µm tolerance
+
+        # Hardware limits (will be read from device)
+        self.low_limit_um = -45000.0  # Default TOSCA XLA-5-125-10MU: -45mm
+        self.high_limit_um = 45000.0  # Default TOSCA XLA-5-125-10MU: +45mm
+        self.limit_warning_distance_um = 1000.0  # Warn when within 1mm of limit
+
+        # Acceleration settings (will be read from device)
+        self.acceleration = 65500  # Default from settings_default.txt
+        self.deceleration = 65500  # Default from settings_default.txt
 
         logger.info("Actuator controller initialized")
 
@@ -191,6 +202,15 @@ class ActuatorController(QObject):
             else:
                 logger.warning("Actuator not homed - call find_index() before positioning")
                 self.status_changed.emit("not_homed")
+
+            # Query hardware limits and acceleration settings
+            low_limit, high_limit = self.get_limits()
+            acce, dece = self.get_acceleration_settings()
+            logger.info(
+                f"Hardware limits: {low_limit:.0f} to {high_limit:.0f} µm, "
+                f"ACCE={acce}, DECE={dece}"
+            )
+            self.limits_changed.emit(low_limit, high_limit)
 
             # Start position monitoring
             self.position_timer.start()
@@ -325,6 +345,13 @@ class ActuatorController(QObject):
             self.error_occurred.emit("Actuator not homed - call find_index() first")
             return False
 
+        # Validate position is within limits
+        is_valid, error_msg = self.validate_position(position_um)
+        if not is_valid:
+            logger.warning(f"Position rejected: {error_msg}")
+            self.error_occurred.emit(error_msg)
+            return False
+
         try:
             # Use native hardware absolute positioning
             self.axis.setDPOS(position_um, self.working_units)
@@ -389,12 +416,22 @@ class ActuatorController(QObject):
             self.error_occurred.emit("Actuator not homed")
             return False
 
+        # Calculate target position and validate
+        current_pos = self.axis.getEPOS()
+        target_pos = current_pos + step_um
+
+        is_valid, error_msg = self.validate_position(target_pos)
+        if not is_valid:
+            logger.warning(f"Step rejected: {error_msg}")
+            self.error_occurred.emit(error_msg)
+            return False
+
         try:
             # Use native hardware relative positioning
             self.axis.step(step_um)
 
             self.status_changed.emit("moving")
-            logger.debug(f"Making step: {step_um:+.1f} µm")
+            logger.debug(f"Making step: {step_um:+.1f} µm (target: {target_pos:.1f} µm)")
 
             # Monitor position reached
             QTimer.singleShot(100, self._check_position_reached)
@@ -431,6 +468,20 @@ class ActuatorController(QObject):
         try:
             current_pos = self.axis.getEPOS(self.working_units)
             self.position_changed.emit(current_pos)
+
+            # Check if at hardware limits (for scan auto-stop)
+            if self.axis.isAtLeftEnd() or self.axis.isAtRightEnd():
+                # At a limit - stop any scanning
+                if self.axis.isScanning():
+                    logger.warning("Limit reached during scan - stopping")
+                    self.stop_scan()
+
+            # Check for limit proximity warnings
+            proximity_info = self.check_limit_proximity(current_pos)
+            if proximity_info:
+                direction, distance = proximity_info
+                self.limit_warning.emit(direction, distance)
+
         except Exception:
             # Don't spam errors for periodic updates
             pass
@@ -591,6 +642,155 @@ class ActuatorController(QObject):
             logger.error(f"Failed to reset: {e}")
             return False
 
+    def get_limits(self) -> tuple[float, float]:
+        """
+        Get hardware position limits from device.
+
+        Queries LLIM and HLIM settings from the actuator.
+
+        Returns:
+            Tuple of (low_limit_um, high_limit_um)
+        """
+        if not self.axis:
+            return (self.low_limit_um, self.high_limit_um)
+
+        try:
+            # Query LLIM and HLIM from device
+            # The axis.getParameter() method reads settings from device
+            low_limit = float(self.axis.getParameter("LLIM"))
+            high_limit = float(self.axis.getParameter("HLIM"))
+
+            # Update cached values
+            self.low_limit_um = low_limit
+            self.high_limit_um = high_limit
+
+            logger.debug(f"Hardware limits: {low_limit:.0f} to {high_limit:.0f} µm")
+            return (low_limit, high_limit)
+
+        except Exception as e:
+            logger.warning(f"Failed to read limits from device: {e}")
+            return (self.low_limit_um, self.high_limit_um)
+
+    def get_acceleration_settings(self) -> tuple[int, int]:
+        """
+        Get acceleration and deceleration settings from device.
+
+        Queries ACCE and DECE settings from the actuator.
+
+        Returns:
+            Tuple of (acceleration, deceleration)
+        """
+        if not self.axis:
+            return (self.acceleration, self.deceleration)
+
+        try:
+            # Query ACCE and DECE from device
+            acce = int(self.axis.getParameter("ACCE"))
+            dece = int(self.axis.getParameter("DECE"))
+
+            # Update cached values
+            self.acceleration = acce
+            self.deceleration = dece
+
+            logger.debug(f"Acceleration settings: ACCE={acce}, DECE={dece}")
+            return (acce, dece)
+
+        except Exception as e:
+            logger.warning(f"Failed to read acceleration settings: {e}")
+            return (self.acceleration, self.deceleration)
+
+    def set_acceleration(self, acceleration: int) -> bool:
+        """
+        Set acceleration value.
+
+        Args:
+            acceleration: Acceleration value (typical range: 10000-65535)
+
+        Returns:
+            True if successful
+        """
+        if not self.axis:
+            return False
+
+        try:
+            self.axis.sendCommand(f"ACCE={acceleration}")
+            self.acceleration = acceleration
+            logger.info(f"Acceleration set to {acceleration}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to set acceleration: {e}")
+            return False
+
+    def set_deceleration(self, deceleration: int) -> bool:
+        """
+        Set deceleration value.
+
+        Args:
+            deceleration: Deceleration value (typical range: 10000-65535)
+
+        Returns:
+            True if successful
+        """
+        if not self.axis:
+            return False
+
+        try:
+            self.axis.sendCommand(f"DECE={deceleration}")
+            self.deceleration = deceleration
+            logger.info(f"Deceleration set to {deceleration}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to set deceleration: {e}")
+            return False
+
+    def validate_position(self, target_position_um: float) -> tuple[bool, str]:
+        """
+        Validate if a target position is within hardware limits.
+
+        Args:
+            target_position_um: Target position to validate
+
+        Returns:
+            Tuple of (is_valid, error_message)
+            - is_valid: True if position is within limits
+            - error_message: Empty string if valid, error description if invalid
+        """
+        if target_position_um < self.low_limit_um:
+            error = f"Position {target_position_um:.0f} µm below limit ({self.low_limit_um:.0f} µm)"
+            return (False, error)
+
+        if target_position_um > self.high_limit_um:
+            error = (
+                f"Position {target_position_um:.0f} µm above limit ({self.high_limit_um:.0f} µm)"
+            )
+            return (False, error)
+
+        return (True, "")
+
+    def check_limit_proximity(self, position_um: float) -> Optional[tuple[str, float]]:
+        """
+        Check if position is near a limit and return warning info.
+
+        Args:
+            position_um: Position to check
+
+        Returns:
+            Tuple of (direction, distance) if within warning distance, None otherwise
+            - direction: "low" or "high"
+            - distance: Distance from limit in µm
+        """
+        # Check low limit
+        distance_from_low = position_um - self.low_limit_um
+        if 0 < distance_from_low < self.limit_warning_distance_um:
+            return ("low", distance_from_low)
+
+        # Check high limit
+        distance_from_high = self.high_limit_um - position_um
+        if 0 < distance_from_high < self.limit_warning_distance_um:
+            return ("high", distance_from_high)
+
+        return None
+
     def get_status_info(self) -> dict:
         """
         Get comprehensive status information.
@@ -607,14 +807,26 @@ class ActuatorController(QObject):
             }
 
         try:
+            current_pos = self.axis.getEPOS()
+
+            # Check if at limits
+            at_low_limit = self.axis.isAtLeftEnd()
+            at_high_limit = self.axis.isAtRightEnd()
+
             return {
                 "connected": self.is_connected,
                 "homed": self.is_homed,
-                "position_um": self.axis.getEPOS(),
+                "position_um": current_pos,
                 "position_reached": self.axis.isPositionReached(),
                 "encoder_valid": self.axis.isEncoderValid(),
                 "searching_index": self.axis.isSearchingIndex(),
                 "safety_timeout": self.axis.isSafetyTimeoutTriggered(),
+                "at_low_limit": at_low_limit,
+                "at_high_limit": at_high_limit,
+                "low_limit_um": self.low_limit_um,
+                "high_limit_um": self.high_limit_um,
+                "distance_from_low_limit": current_pos - self.low_limit_um,
+                "distance_from_high_limit": self.high_limit_um - current_pos,
                 "status": "ready" if self.is_homed else "not_homed",
             }
         except Exception as e:

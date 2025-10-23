@@ -81,6 +81,14 @@ class ActuatorWidget(QWidget):
         speed_group = self._create_speed_group()
         layout.addWidget(speed_group)
 
+        # Acceleration control group
+        accel_group = self._create_acceleration_group()
+        layout.addWidget(accel_group)
+
+        # Limits display group
+        limits_group = self._create_limits_group()
+        layout.addWidget(limits_group)
+
         # Status display
         status_group = self._create_status_group()
         layout.addWidget(status_group)
@@ -122,11 +130,11 @@ class ActuatorWidget(QWidget):
 
         # Position input (home at center, allows negative)
         self.position_input = QDoubleSpinBox()
-        self.position_input.setRange(-1500.0, 1500.0)  # ±1500 µm (home at 0)
+        self.position_input.setRange(-45000.0, 45000.0)  # ±45mm (full hardware range)
         self.position_input.setValue(0.0)
         self.position_input.setSuffix(" µm")
         self.position_input.setDecimals(2)
-        self.position_input.setSingleStep(10.0)
+        self.position_input.setSingleStep(100.0)  # Larger step for larger range
         self.position_input.setEnabled(False)
         layout.addWidget(QLabel("Target:"))
         layout.addWidget(self.position_input)
@@ -170,14 +178,14 @@ class ActuatorWidget(QWidget):
 
         layout.addLayout(button_layout)
 
-        # Custom step (removed restrictions - full range)
+        # Custom step (full range available)
         custom_layout = QHBoxLayout()
         self.custom_step_input = QDoubleSpinBox()
-        self.custom_step_input.setRange(-3000.0, 3000.0)  # ±3000 µm (full range)
-        self.custom_step_input.setValue(50.0)
+        self.custom_step_input.setRange(-90000.0, 90000.0)  # ±90mm (max possible step)
+        self.custom_step_input.setValue(100.0)
         self.custom_step_input.setSuffix(" µm")
         self.custom_step_input.setDecimals(2)
-        self.custom_step_input.setSingleStep(10.0)
+        self.custom_step_input.setSingleStep(100.0)  # Larger step for larger range
         self.custom_step_input.setEnabled(False)
         custom_layout.addWidget(QLabel("Custom:"))
         custom_layout.addWidget(self.custom_step_input)
@@ -255,6 +263,101 @@ class ActuatorWidget(QWidget):
         group.setLayout(layout)
         return group
 
+    def _create_acceleration_group(self) -> QGroupBox:
+        """Create acceleration/deceleration control group."""
+        group = QGroupBox("Acceleration Control")
+        layout = QVBoxLayout()
+
+        # Acceleration slider
+        accel_layout = QHBoxLayout()
+        accel_layout.addWidget(QLabel("Acceleration:"))
+
+        self.accel_slider = QSlider(Qt.Orientation.Horizontal)
+        self.accel_slider.setRange(10000, 65535)  # Valid ACCE range
+        self.accel_slider.setValue(65500)  # Default high acceleration
+        self.accel_slider.setTickPosition(QSlider.TickPosition.TicksBelow)
+        self.accel_slider.setTickInterval(10000)
+        self.accel_slider.valueChanged.connect(self._on_accel_display_changed)
+        self.accel_slider.sliderReleased.connect(self._on_accel_released)
+        self.accel_slider.setEnabled(False)
+        accel_layout.addWidget(self.accel_slider)
+
+        self.accel_label = QLabel("65500")
+        self.accel_label.setMinimumWidth(50)
+        accel_layout.addWidget(self.accel_label)
+
+        layout.addLayout(accel_layout)
+
+        # Deceleration slider
+        decel_layout = QHBoxLayout()
+        decel_layout.addWidget(QLabel("Deceleration:"))
+
+        self.decel_slider = QSlider(Qt.Orientation.Horizontal)
+        self.decel_slider.setRange(10000, 65535)  # Valid DECE range
+        self.decel_slider.setValue(65500)  # Default high deceleration
+        self.decel_slider.setTickPosition(QSlider.TickPosition.TicksBelow)
+        self.decel_slider.setTickInterval(10000)
+        self.decel_slider.valueChanged.connect(self._on_decel_display_changed)
+        self.decel_slider.sliderReleased.connect(self._on_decel_released)
+        self.decel_slider.setEnabled(False)
+        decel_layout.addWidget(self.decel_slider)
+
+        self.decel_label = QLabel("65500")
+        self.decel_label.setMinimumWidth(50)
+        decel_layout.addWidget(self.decel_label)
+
+        layout.addLayout(decel_layout)
+
+        # Info label
+        info_label = QLabel("Higher values = faster acceleration/deceleration")
+        info_label.setWordWrap(True)
+        info_label.setStyleSheet("font-size: 9pt; color: gray;")
+        layout.addWidget(info_label)
+
+        group.setLayout(layout)
+        return group
+
+    def _create_limits_group(self) -> QGroupBox:
+        """Create hardware limits display group."""
+        group = QGroupBox("Hardware Limits")
+        layout = QVBoxLayout()
+
+        # Limit values display
+        limits_layout = QHBoxLayout()
+        limits_layout.addWidget(QLabel("Range:"))
+
+        self.limits_label = QLabel("-45000 to +45000 µm")
+        self.limits_label.setStyleSheet("font-weight: bold;")
+        limits_layout.addWidget(self.limits_label)
+        limits_layout.addStretch()
+
+        layout.addLayout(limits_layout)
+
+        # Distance from limits (with color coding)
+        distance_layout = QVBoxLayout()
+
+        self.low_limit_distance_label = QLabel("Low limit: -- µm away")
+        self.low_limit_distance_label.setStyleSheet("background-color: #4CAF50; padding: 3px;")
+        distance_layout.addWidget(self.low_limit_distance_label)
+
+        self.high_limit_distance_label = QLabel("High limit: -- µm away")
+        self.high_limit_distance_label.setStyleSheet("background-color: #4CAF50; padding: 3px;")
+        distance_layout.addWidget(self.high_limit_distance_label)
+
+        layout.addLayout(distance_layout)
+
+        # Warning label
+        self.limit_warning_label = QLabel("")
+        self.limit_warning_label.setWordWrap(True)
+        self.limit_warning_label.setStyleSheet(
+            "background-color: #FFC107; padding: 5px; font-weight: bold;"
+        )
+        self.limit_warning_label.setVisible(False)
+        layout.addWidget(self.limit_warning_label)
+
+        group.setLayout(layout)
+        return group
+
     def _create_status_group(self) -> QGroupBox:
         """Create status display group."""
         group = QGroupBox("Status")
@@ -304,6 +407,8 @@ class ActuatorWidget(QWidget):
         self.scan_stop_btn.setEnabled(controls_enabled)
 
         self.speed_slider.setEnabled(controls_enabled)
+        self.accel_slider.setEnabled(controls_enabled)
+        self.decel_slider.setEnabled(controls_enabled)
 
     @pyqtSlot()
     def _on_connect_clicked(self) -> None:
@@ -321,6 +426,8 @@ class ActuatorWidget(QWidget):
             self.controller.position_reached.connect(self._on_position_reached)
             self.controller.error_occurred.connect(self._on_error)
             self.controller.homing_progress.connect(self._on_homing_progress)
+            self.controller.limits_changed.connect(self._on_limits_changed)
+            self.controller.limit_warning.connect(self._on_limit_warning)
 
         # Connect without auto-homing (user must click Find Home button)
         success = self.controller.connect("COM3", auto_home=False)
@@ -436,6 +543,40 @@ class ActuatorWidget(QWidget):
         self.current_position_um = position_um
         self.position_label.setText(f"Position: {position_um:.2f} µm")
 
+        # Update distance from limits with color coding
+        if self.controller:
+            low_limit = self.controller.low_limit_um
+            high_limit = self.controller.high_limit_um
+
+            distance_from_low = position_um - low_limit
+            distance_from_high = high_limit - position_um
+
+            # Color code based on distance (green > 5000, yellow 1000-5000, red < 1000)
+            def get_color(distance: float) -> str:
+                if distance > 5000:
+                    return "#4CAF50"  # Green - safe
+                elif distance > 1000:
+                    return "#FFC107"  # Yellow - warning
+                else:
+                    return "#f44336"  # Red - danger
+
+            low_color = get_color(distance_from_low)
+            high_color = get_color(distance_from_high)
+
+            self.low_limit_distance_label.setText(f"Low limit: {distance_from_low:.0f} µm away")
+            self.low_limit_distance_label.setStyleSheet(
+                f"background-color: {low_color}; padding: 3px; color: white;"
+            )
+
+            self.high_limit_distance_label.setText(f"High limit: {distance_from_high:.0f} µm away")
+            self.high_limit_distance_label.setStyleSheet(
+                f"background-color: {high_color}; padding: 3px; color: white;"
+            )
+
+            # Hide warning label if far from limits
+            if distance_from_low > 1000 and distance_from_high > 1000:
+                self.limit_warning_label.setVisible(False)
+
     @pyqtSlot(float)
     def _on_position_reached(self, position_um: float) -> None:
         """Handle position reached notification."""
@@ -452,6 +593,46 @@ class ActuatorWidget(QWidget):
         """Handle homing progress updates."""
         logger.info(f"Homing: {message}")
         self.homing_status_label.setText(f"Homed: {message}")
+
+    @pyqtSlot(int)
+    def _on_accel_display_changed(self, value: int) -> None:
+        """Update acceleration label (doesn't send to hardware yet)."""
+        self.accel_label.setText(str(value))
+
+    @pyqtSlot()
+    def _on_accel_released(self) -> None:
+        """Handle acceleration slider release (send to hardware)."""
+        value = self.accel_slider.value()
+        if self.controller and self.is_connected:
+            self.controller.set_acceleration(value)
+            logger.debug(f"Acceleration set to {value}")
+
+    @pyqtSlot(int)
+    def _on_decel_display_changed(self, value: int) -> None:
+        """Update deceleration label (doesn't send to hardware yet)."""
+        self.decel_label.setText(str(value))
+
+    @pyqtSlot()
+    def _on_decel_released(self) -> None:
+        """Handle deceleration slider release (send to hardware)."""
+        value = self.decel_slider.value()
+        if self.controller and self.is_connected:
+            self.controller.set_deceleration(value)
+            logger.debug(f"Deceleration set to {value}")
+
+    @pyqtSlot(float, float)
+    def _on_limits_changed(self, low_limit: float, high_limit: float) -> None:
+        """Handle hardware limits update."""
+        self.limits_label.setText(f"{low_limit:.0f} to {high_limit:.0f} µm")
+        logger.info(f"Hardware limits updated: {low_limit:.0f} to {high_limit:.0f} µm")
+
+    @pyqtSlot(str, float)
+    def _on_limit_warning(self, direction: str, distance: float) -> None:
+        """Handle limit proximity warning."""
+        warning_text = f"WARNING: {distance:.0f} µm from {direction} limit!"
+        self.limit_warning_label.setText(warning_text)
+        self.limit_warning_label.setVisible(True)
+        logger.warning(warning_text)
 
     def cleanup(self) -> None:
         """Cleanup resources."""
