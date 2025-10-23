@@ -16,7 +16,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from src.ui.widgets.actuator_widget import ActuatorWidget
+from ui.widgets.actuator_widget import ActuatorWidget
 
 logger = logging.getLogger(__name__)
 
