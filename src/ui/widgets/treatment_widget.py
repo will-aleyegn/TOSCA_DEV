@@ -12,10 +12,11 @@ from PyQt6.QtWidgets import (
     QLabel,
     QPushButton,
     QSlider,
-    QSpinBox,
     QVBoxLayout,
     QWidget,
 )
+
+from src.ui.widgets.actuator_widget import ActuatorWidget
 
 logger = logging.getLogger(__name__)
 
@@ -34,17 +35,27 @@ class TreatmentWidget(QWidget):
     def __init__(self) -> None:
         super().__init__()
         self.dev_mode = False
+        self.actuator_widget: ActuatorWidget = ActuatorWidget()
         self._init_ui()
 
     def _init_ui(self) -> None:
         """Initialize UI components."""
-        layout = QVBoxLayout()
+        layout = QHBoxLayout()  # Horizontal layout for side-by-side controls
         self.setLayout(layout)
 
-        layout.addWidget(self._create_laser_control())
-        layout.addWidget(self._create_ring_control())
-        layout.addWidget(self._create_treatment_control())
-        layout.addStretch()
+        # Left side: Laser and treatment controls
+        left_layout = QVBoxLayout()
+        left_layout.addWidget(self._create_laser_control())
+        left_layout.addWidget(self._create_treatment_control())
+        left_layout.addStretch()
+
+        # Right side: Actuator controls
+        right_layout = QVBoxLayout()
+        right_layout.addWidget(self.actuator_widget)
+
+        # Add to main layout
+        layout.addLayout(left_layout, 1)
+        layout.addLayout(right_layout, 1)
 
     def _create_laser_control(self) -> QGroupBox:
         """Create laser power control group."""
@@ -67,31 +78,6 @@ class TreatmentWidget(QWidget):
 
         self.power_spinbox.valueChanged.connect(self.power_slider.setValue)
         self.power_slider.valueChanged.connect(self.power_spinbox.setValue)
-
-        group.setLayout(layout)
-        return group
-
-    def _create_ring_control(self) -> QGroupBox:
-        """Create ring size control group."""
-        group = QGroupBox("Ring Size Control (Actuator)")
-        layout = QVBoxLayout()
-
-        position_layout = QHBoxLayout()
-        position_layout.addWidget(QLabel("Position (um):"))
-        self.position_spinbox = QSpinBox()
-        self.position_spinbox.setRange(0, 3000)
-        self.position_spinbox.setSingleStep(50)
-        self.position_spinbox.setValue(0)
-        position_layout.addWidget(self.position_spinbox)
-        layout.addLayout(position_layout)
-
-        self.position_slider = QSlider(Qt.Orientation.Horizontal)
-        self.position_slider.setRange(0, 3000)
-        self.position_slider.setValue(0)
-        layout.addWidget(self.position_slider)
-
-        self.position_spinbox.valueChanged.connect(self.position_slider.setValue)
-        self.position_slider.valueChanged.connect(self.position_spinbox.setValue)
 
         group.setLayout(layout)
         return group
@@ -151,3 +137,8 @@ class TreatmentWidget(QWidget):
             self.start_button.setEnabled(False)
             self.status_label.setText("Status: Ready - No Active Session")
             self.status_label.setStyleSheet("font-size: 14px; padding: 10px;")
+
+    def cleanup(self) -> None:
+        """Cleanup resources."""
+        if self.actuator_widget:
+            self.actuator_widget.cleanup()

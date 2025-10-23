@@ -5,6 +5,7 @@ Main application window with tab-based navigation.
 import logging
 
 from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtGui import QCloseEvent
 from PyQt6.QtWidgets import (
     QCheckBox,
     QHBoxLayout,
@@ -143,3 +144,18 @@ class MainWindow(QMainWindow):
         else:
             self.setWindowTitle("TOSCA Laser Control System")
             self.subject_widget.setEnabled(True)
+
+    def closeEvent(self, event: QCloseEvent) -> None:
+        """Handle window close event and cleanup resources."""
+        logger.info("Application closing, cleaning up resources...")
+
+        # Cleanup camera
+        if hasattr(self, "camera_widget") and self.camera_widget:
+            self.camera_widget.cleanup()
+
+        # Cleanup actuator
+        if hasattr(self, "treatment_widget") and self.treatment_widget:
+            self.treatment_widget.cleanup()
+
+        logger.info("Cleanup complete")
+        event.accept()
