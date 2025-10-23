@@ -28,6 +28,9 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+# Get project root (parent of src/)
+PROJECT_ROOT = Path(__file__).parent.parent.parent
+
 
 class CameraStreamThread(QThread):
     """Thread for continuous camera streaming."""
@@ -301,18 +304,21 @@ class CameraController(QObject):
             self.video_recorder.write_frame(frame_bgr)
 
     def capture_image(
-        self, base_filename: str, output_dir: Path = Path("data/images")
+        self, base_filename: str, output_dir: Optional[Path] = None
     ) -> Optional[Path]:
         """
         Capture still image from camera.
 
         Args:
             base_filename: Base filename (timestamp will be appended)
-            output_dir: Output directory for image
+            output_dir: Output directory for image (defaults to PROJECT_ROOT/data/images)
 
         Returns:
             Path to saved image, or None if failed
         """
+        if output_dir is None:
+            output_dir = PROJECT_ROOT / "data" / "images"
+
         if not self.is_streaming:
             self.error_occurred.emit("Camera not streaming")
             return None
@@ -323,18 +329,21 @@ class CameraController(QObject):
         return None
 
     def start_recording(
-        self, base_filename: str = "video", output_dir: Path = Path("data/videos")
+        self, base_filename: str = "video", output_dir: Optional[Path] = None
     ) -> bool:
         """
         Start video recording.
 
         Args:
             base_filename: Base filename for video
-            output_dir: Output directory
+            output_dir: Output directory (defaults to PROJECT_ROOT/data/videos)
 
         Returns:
             True if recording started
         """
+        if output_dir is None:
+            output_dir = PROJECT_ROOT / "data" / "videos"
+
         if self.is_recording:
             return True
 
@@ -388,7 +397,7 @@ class CameraController(QObject):
 
         try:
             self.camera.ExposureTime.set(exposure_us)
-            logger.debug(f"Exposure set to {exposure_us} �s")
+            logger.debug(f"Exposure set to {exposure_us} us")
             return True
         except Exception as e:
             logger.error(f"Failed to set exposure: {e}")
