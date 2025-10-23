@@ -571,13 +571,15 @@ class CameraWidget(QWidget):
             frame: Numpy array frame from camera
         """
         try:
-            # Update resolution info (only once or when changed)
+            # Update resolution info (only when changed)
             if len(frame.shape) == 2:
                 height, width = frame.shape
             else:
                 height, width, _ = frame.shape
 
-            self.resolution_info.setText(f"Resolution: {width}x{height}")
+            resolution_text = f"Resolution: {width}x{height}"
+            if self.resolution_info.text() != resolution_text:
+                self.resolution_info.setText(resolution_text)
 
             # Convert to QImage
             if len(frame.shape) == 2:
