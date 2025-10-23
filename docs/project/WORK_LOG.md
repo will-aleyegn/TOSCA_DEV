@@ -10,6 +10,59 @@
 
 ## 2025-10-23
 
+### Session: Image Capture Feature
+
+**Time:** Late afternoon session
+
+**Actions:**
+1. Implemented image capture functionality in camera_controller.py:
+   - Added latest_frame member to store current frame
+   - Updated _on_frame_received() to store frame copy
+   - Implemented capture_image() method with full functionality:
+     - Saves PNG images with timestamps
+     - Supports custom filenames
+     - Supports custom output directories (dev mode)
+     - Proper RGB to BGR conversion
+     - Error handling and user feedback
+
+2. Updated camera_widget.py to use image capture:
+   - Implemented _on_capture_image() handler
+   - Integrated with custom filename input
+   - Integrated with custom path selection (dev mode)
+   - Added color-coded UI feedback (green/red)
+   - Updates last capture label with file path
+
+**Features Added:**
+- Still image capture from live stream
+- Timestamped filenames: {base}_{YYYYMMDD_HHMMSS}.png
+- Custom base filename support
+- Custom save directory in dev mode
+- Automatic directory creation
+- PNG format (lossless)
+- Default path: data/images/
+
+**Files Modified:**
+- src/hardware/camera_controller.py
+- src/ui/widgets/camera_widget.py
+
+**Commits:**
+- 3338bbd - Add image capture functionality to camera HAL
+
+**Status:**
+- Image capture: COMPLETE
+- Full integration with camera_widget
+- Dev mode custom paths working
+- Error handling implemented
+
+**Next Steps:**
+- Test image capture with physical camera
+- Consider Phase 2: Ring Detection implementation
+- Consider Phase 3: Focus Measurement implementation
+
+---
+
+## 2025-10-23
+
 ### Session: Camera HAL Enhancement
 
 **Time:** Afternoon session
