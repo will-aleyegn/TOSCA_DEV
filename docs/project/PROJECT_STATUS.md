@@ -70,10 +70,13 @@
    - Temperature monitoring
    - Status feedback
 
-3. Actuator Controller HAL (0%)
-   - Xeryon API integration with PyQt6
-   - Position control
-   - Calibration routines
+3. Actuator Controller HAL (50% - Initialization Complete)
+   - ✅ Xeryon API integration with PyQt6
+   - ✅ Hardware connection and initialization
+   - ✅ Status monitoring and error handling
+   - TODO: Homing procedures
+   - TODO: Position control (absolute and relative)
+   - TODO: Testing with physical hardware
 
 4. GPIO Controller HAL (0%)
    - FT232H footpedal monitoring
@@ -170,10 +173,10 @@
 |-----------|--------|-------|
 | camera_controller.py | ✅ COMPLETE | Camera HAL with PyQt6 integration, streaming, recording |
 | laser_controller.py | TODO | Laser HAL - NEXT PRIORITY |
-| actuator_controller.py | TODO | Actuator HAL |
+| actuator_controller.py | 🔄 IN PROGRESS | Initialization complete, positioning pending |
 | gpio_controller.py | TODO | GPIO HAL |
 
-**Next:** Start with laser_controller.py or actuator_controller.py
+**Next:** Complete actuator positioning tests or start laser_controller.py
 
 ---
 
@@ -221,6 +224,29 @@
 ---
 
 ## Recent Work (Last 10 Sessions)
+
+### Actuator HAL Implementation (2025-10-23)
+
+**Session 11: Actuator Initialization & Code Cleanup**
+1. ✅ Fixed 6 Xeryon API integration issues in actuator_controller.py
+   - Fixed axis letter mismatch (A → X to match config.txt)
+   - Corrected axis registration using addAxis(Stage, letter)
+   - Fixed method names: setUnit() → setUnits(), makeStep() → step()
+   - Fixed getEPOS() signature (removed units parameter)
+   - Removed non-existent isInSafeMode() method
+2. ✅ Successfully tested hardware connection (COM3, 9600 baud)
+3. ✅ Created test_actuator_connection.py for non-interactive testing
+4. ✅ Removed all decorative emojis from example scripts (8 instances across 4 files)
+   - 03_find_index.py, 04_absolute_positioning.py
+   - 05_relative_movement.py, 06_speed_and_limits.py
+5. ✅ Status: Actuator connects successfully, reports position, ready for homing tests
+
+**Lessons Learned:**
+- Xeryon API uses addAxis(stage, letter) not Axis() constructor
+- Config file axis letter must match code ("X" in config.txt)
+- getEPOS() uses current units set by setUnits(), no parameter needed
+
+---
 
 ### Camera HAL Implementation (2025-10-23)
 
@@ -416,9 +442,9 @@
 **Phase 2 Progress:**
 - Camera HAL: 100% complete (1 of 4 controllers)
 - Laser HAL: 0%
-- Actuator HAL: 0%
+- Actuator HAL: 50% complete (initialization done)
 - GPIO HAL: 0%
-- **Overall Phase 2: 25% complete**
+- **Overall Phase 2: 37.5% complete**
 
 ---
 
@@ -475,7 +501,7 @@
 
 ---
 
-**Last Updated:** 2025-10-23 (End of Session 10)
-**Status:** Phase 2 in progress - Camera HAL complete (25%)
-**Next Milestone:** Laser or Actuator HAL complete
-**Current Achievement:** Camera system fully operational with live streaming, recording, and controls
+**Last Updated:** 2025-10-23 (End of Session 11)
+**Status:** Phase 2 in progress - Camera HAL complete, Actuator HAL 50% (37.5% overall)
+**Next Milestone:** Complete Actuator HAL positioning or start Laser HAL
+**Current Achievement:** Camera fully operational, Actuator initialization complete and tested

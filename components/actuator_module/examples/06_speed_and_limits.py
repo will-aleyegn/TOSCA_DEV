@@ -46,7 +46,7 @@ def test_speed_and_limits(com_port: Optional[str] = None) -> int:
 
         # Verify index is found
         if not axis.isEncoderValid():
-            print("\n⚠ Warning: Encoder not valid. Finding index first...")
+            print("\nWarning: Encoder not valid. Finding index first...")
             axis.findIndex()
 
         # Set working units to micrometers
@@ -101,12 +101,12 @@ def test_speed_and_limits(com_port: Optional[str] = None) -> int:
         print("\nMoving to upper limit (2400 µm - within limits)...")
         axis.setDPOS(2400, Units.mu)
         print(f"Position: {axis.getEPOS():.2f} µm")
-        print("✓ Move successful (within limits)")
+        print("Move successful (within limits)")
 
         print("\nMoving to lower limit (600 µm - within limits)...")
         axis.setDPOS(600, Units.mu)
         print(f"Position: {axis.getEPOS():.2f} µm")
-        print("✓ Move successful (within limits)")
+        print("Move successful (within limits)")
 
         # Note about exceeding limits
         print("\nNote: Attempting to exceed limits would trigger ELIM error.")
@@ -141,7 +141,7 @@ def test_speed_and_limits(com_port: Optional[str] = None) -> int:
         print("(Check serial output for values)")
 
         print("\nSpeed and limits test complete!")
-        print("\n✓ All 6 test scripts complete!")
+        print("\nAll 6 test scripts complete!")
         print("\nActuator module ready for integration.")
 
         # Cleanup

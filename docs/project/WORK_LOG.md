@@ -10,6 +10,109 @@
 
 ## 2025-10-23
 
+### Session: Actuator HAL Initialization
+
+**Time:** Late evening session
+
+**Actions:**
+1. Fixed Xeryon API integration in actuator_controller.py:
+   - Issue: Axis letter mismatch ("A" in code vs "X" in config.txt)
+   - Issue: Incorrect axis registration pattern
+   - Issue: Wrong method names (setUnit → setUnits, makeStep → step)
+   - Issue: getEPOS() called with units parameter (should use none)
+   - Issue: Non-existent isInSafeMode() method in status reporting
+   - Solution: Consulted Xeryon.py source code and official examples
+   - Result: All 6 API issues fixed
+
+2. Created test_actuator_connection.py:
+   - Non-interactive connection test
+   - Validates COM port, config files, initialization
+   - Reports full status information
+   - Result: Connection successful on COM3, 9600 baud
+
+3. Removed decorative emojis from example scripts:
+   - Per CODING_STANDARDS.md line 9: "No decorative elements"
+   - Files: 03_find_index.py, 04_absolute_positioning.py, 05_relative_movement.py, 06_speed_and_limits.py
+   - Removed: ✓, ✗, ⚠ symbols (8 total instances)
+   - Result: All examples now conform to coding standards
+
+**Decisions:**
+- Used addAxis(Stage.XLA_1250_3N, "X") instead of Axis() constructor
+- Axis letter "X" matches config.txt: AXES=1 X
+- Config files (config.txt, settings_default.txt) in repo root for accessibility
+
+**Files Modified:**
+- src/hardware/actuator_controller.py (6 API fixes)
+- test_actuator_connection.py (created)
+- components/actuator_module/examples/*.py (4 files, emoji removal)
+
+**Files Added:**
+- test_actuator_connection.py
+- test_actuator_hal.py (emoji fix)
+
+**Current Status:**
+- Actuator HAL: 50% complete (initialization done)
+- Connection test: PASSING
+- Status reporting: Working (connected, homed, position, encoder_valid, etc.)
+- Next: Homing procedure testing with physical hardware
+
+**Lessons Learned:**
+- Xeryon addAxis() signature: addAxis(stage, axis_letter) - stage first
+- Axis constructor doesn't auto-register, must use addAxis()
+- getEPOS() returns position in current units (set by setUnits())
+- Config file axis letter must match code exactly
+
+---
+
+### Session: Camera UI Performance and Metadata Display
+
+**Time:** Evening session
+
+**Actions:**
+1. Added real-time camera settings metadata display:
+   - Created info bar below FPS counter
+   - Shows live exposure value (microseconds)
+   - Shows live gain value (dB)
+   - Shows current frame resolution
+   - Auto-updates when settings change
+   - Styled with subtle gray color for secondary info
+
+2. Implemented frame throttling for GUI performance:
+   - Identified root cause: All 39-40 camera frames/sec overwhelming Qt event loop
+   - Added frame throttling in CameraStreamThread
+   - Limits GUI updates to 30 FPS target
+   - Still captures all camera frames for recording/statistics
+   - Calculates real camera FPS separately from GUI update rate
+   - Uses time-based gating (min_frame_interval = 1.0 / gui_fps_target)
+
+3. Technical implementation details:
+   - Added gui_frame_count, last_gui_frame_time, gui_fps_target tracking
+   - Frame callback now checks time since last GUI frame emission
+   - Only emits to GUI when sufficient time has elapsed
+   - Maintains accurate camera FPS calculation on all frames
+
+**Files Modified:**
+- `src/ui/widgets/camera_widget.py:95-112` - Added settings info bar layout
+- `src/ui/widgets/camera_widget.py:443-445,461-463` - Updated info displays on setting changes
+- `src/ui/widgets/camera_widget.py:565-574` - Update resolution info on frame received
+- `src/hardware/camera_controller.py:49-52` - Added throttling member variables
+- `src/hardware/camera_controller.py:73-81` - Implemented throttling logic in frame_callback
+
+**Results:**
+- GUI now updates smoothly at 30 FPS instead of stuttering
+- Users can see real-time camera settings at a glance
+- Camera still captures at full rate (39-40 FPS) for recording
+- Responsive UI with accurate information display
+
+**Commit:** da8ac5e "Improve camera UI responsiveness and add settings display"
+
+**Next Steps:**
+- Test improvements with physical camera hardware
+- Verify smooth GUI updates and accurate metadata display
+- Continue with screenshot documentation capture
+
+---
+
 ### Session: Screenshot Documentation Framework
 
 **Time:** Late evening session
