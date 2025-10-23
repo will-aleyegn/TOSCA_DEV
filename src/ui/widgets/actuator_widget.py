@@ -73,6 +73,10 @@ class ActuatorWidget(QWidget):
         step_group = self._create_step_group()
         layout.addWidget(step_group)
 
+        # Scan control group
+        scan_group = self._create_scan_group()
+        layout.addWidget(scan_group)
+
         # Speed control group
         speed_group = self._create_speed_group()
         layout.addWidget(speed_group)
@@ -116,9 +120,9 @@ class ActuatorWidget(QWidget):
         group = QGroupBox("Absolute Position")
         layout = QHBoxLayout()
 
-        # Position input
+        # Position input (home at center, allows negative)
         self.position_input = QDoubleSpinBox()
-        self.position_input.setRange(0.0, 3000.0)  # 0-3000 µm range
+        self.position_input.setRange(-1500.0, 1500.0)  # ±1500 µm (home at 0)
         self.position_input.setValue(0.0)
         self.position_input.setSuffix(" µm")
         self.position_input.setDecimals(2)
@@ -166,10 +170,10 @@ class ActuatorWidget(QWidget):
 
         layout.addLayout(button_layout)
 
-        # Custom step
+        # Custom step (removed restrictions - full range)
         custom_layout = QHBoxLayout()
         self.custom_step_input = QDoubleSpinBox()
-        self.custom_step_input.setRange(-1000.0, 1000.0)
+        self.custom_step_input.setRange(-3000.0, 3000.0)  # ±3000 µm (full range)
         self.custom_step_input.setValue(50.0)
         self.custom_step_input.setSuffix(" µm")
         self.custom_step_input.setDecimals(2)
@@ -184,6 +188,43 @@ class ActuatorWidget(QWidget):
         custom_layout.addWidget(self.custom_step_btn)
 
         layout.addLayout(custom_layout)
+
+        group.setLayout(layout)
+        return group
+
+    def _create_scan_group(self) -> QGroupBox:
+        """Create continuous scan control group."""
+        group = QGroupBox("Continuous Scan (Velocity Control)")
+        layout = QVBoxLayout()
+
+        # Scan buttons
+        button_layout = QHBoxLayout()
+
+        self.scan_negative_btn = QPushButton("◄ Scan Negative")
+        self.scan_negative_btn.clicked.connect(lambda: self._on_scan_clicked(-1))
+        self.scan_negative_btn.setEnabled(False)
+        self.scan_negative_btn.setStyleSheet("background-color: #4CAF50;")
+        button_layout.addWidget(self.scan_negative_btn)
+
+        self.scan_stop_btn = QPushButton("■ STOP")
+        self.scan_stop_btn.clicked.connect(self._on_scan_stop_clicked)
+        self.scan_stop_btn.setEnabled(False)
+        self.scan_stop_btn.setStyleSheet("background-color: #f44336; font-weight: bold;")
+        button_layout.addWidget(self.scan_stop_btn)
+
+        self.scan_positive_btn = QPushButton("Scan Positive ►")
+        self.scan_positive_btn.clicked.connect(lambda: self._on_scan_clicked(1))
+        self.scan_positive_btn.setEnabled(False)
+        self.scan_positive_btn.setStyleSheet("background-color: #4CAF50;")
+        button_layout.addWidget(self.scan_positive_btn)
+
+        layout.addLayout(button_layout)
+
+        # Info label
+        info_label = QLabel("Scan = continuous movement at constant speed until stopped")
+        info_label.setWordWrap(True)
+        info_label.setStyleSheet("font-size: 9pt; color: gray;")
+        layout.addWidget(info_label)
 
         group.setLayout(layout)
         return group
@@ -257,6 +298,10 @@ class ActuatorWidget(QWidget):
         self.step_plus_100_btn.setEnabled(controls_enabled)
         self.custom_step_input.setEnabled(controls_enabled)
         self.custom_step_btn.setEnabled(controls_enabled)
+
+        self.scan_negative_btn.setEnabled(controls_enabled)
+        self.scan_positive_btn.setEnabled(controls_enabled)
+        self.scan_stop_btn.setEnabled(controls_enabled)
 
         self.speed_slider.setEnabled(controls_enabled)
 
@@ -334,6 +379,23 @@ class ActuatorWidget(QWidget):
         if self.controller and self.is_connected:
             self.controller.set_speed(value)
             logger.debug(f"Speed set to {value}")
+
+    @pyqtSlot(int)
+    def _on_scan_clicked(self, direction: int) -> None:
+        """Handle scan button click."""
+        if self.controller and self.is_homed:
+            dir_str = "positive" if direction > 0 else "negative"
+            logger.info(f"Starting continuous scan in {dir_str} direction")
+            self.controller.start_scan(direction)
+            self.motion_status_label.setText(f"Motion: Scanning {dir_str}")
+
+    @pyqtSlot()
+    def _on_scan_stop_clicked(self) -> None:
+        """Handle scan stop button click."""
+        if self.controller:
+            logger.info("Stopping scan")
+            self.controller.stop_scan()
+            self.motion_status_label.setText("Motion: Stopped")
 
     @pyqtSlot(bool)
     def _on_connection_changed(self, connected: bool) -> None:

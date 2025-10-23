@@ -468,6 +468,67 @@ class ActuatorController(QObject):
             logger.error(f"Failed to set speed: {e}")
             return False
 
+    def start_scan(self, direction: int) -> bool:
+        """
+        Start continuous scan (velocity control) using official Xeryon API.
+
+        Official API: axis.startScan(direction, execTime=None)
+            - Direction: +1 (positive/increasing) or -1 (negative/decreasing)
+            - Continuous movement at constant speed
+            - Speed maintained by closed-loop control
+            - Continues until stopScan() is called
+            - See: XERYON_API_REFERENCE.md "Scan" section
+
+        Args:
+            direction: Scan direction (+1 positive, -1 negative)
+
+        Returns:
+            True if scan started successfully
+        """
+        if not self.is_connected or not self.axis:
+            self.error_occurred.emit("Actuator not connected")
+            return False
+
+        if not self.is_homed:
+            self.error_occurred.emit("Actuator not homed")
+            return False
+
+        try:
+            # Use official API for continuous scanning
+            self.axis.startScan(direction)
+            self.status_changed.emit("scanning")
+            dir_str = "positive" if direction > 0 else "negative"
+            logger.info(f"Scan started in {dir_str} direction")
+            return True
+        except Exception as e:
+            error_msg = f"Failed to start scan: {e}"
+            logger.error(error_msg)
+            self.error_occurred.emit(error_msg)
+            return False
+
+    def stop_scan(self) -> bool:
+        """
+        Stop continuous scan using official Xeryon API.
+
+        Official API: axis.stopScan()
+            - Stops scanning movement
+            - See: XERYON_API_REFERENCE.md "Scan" section
+
+        Returns:
+            True if successful
+        """
+        if not self.axis:
+            return False
+
+        try:
+            self.axis.stopScan()
+            self.status_changed.emit("ready")
+            logger.info("Scan stopped")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to stop scan: {e}")
+            return False
+
     def set_position_limits(self, low_um: float, high_um: float) -> bool:
         """
         Set position limits.
