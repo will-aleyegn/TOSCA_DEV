@@ -534,10 +534,11 @@ class CameraWidget(QWidget):
             pixmap = QPixmap.fromImage(q_image)
 
             # Scale to fit display while maintaining aspect ratio
+            # Use FastTransformation for real-time video (SmoothTransformation is too slow)
             scaled_pixmap = pixmap.scaled(
                 self.camera_display.size(),
                 Qt.AspectRatioMode.KeepAspectRatio,
-                Qt.TransformationMode.SmoothTransformation,
+                Qt.TransformationMode.FastTransformation,
             )
             self.camera_display.setPixmap(scaled_pixmap)
 

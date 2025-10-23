@@ -64,8 +64,8 @@ class CameraStreamThread(QThread):
                 frame_data = frame.as_numpy_ndarray()
                 self.frame_count += 1
 
-                # Emit frame to GUI
-                self.frame_ready.emit(frame_data.copy())
+                # Emit frame to GUI (no copy needed - Qt signals handle data safely)
+                self.frame_ready.emit(frame_data)
 
                 # Calculate and emit FPS every 30 frames
                 if self.frame_count % 30 == 0:
