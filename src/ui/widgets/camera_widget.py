@@ -15,6 +15,7 @@ import numpy as np
 from PyQt6.QtCore import Qt, pyqtSlot
 from PyQt6.QtGui import QImage, QPixmap
 from PyQt6.QtWidgets import (
+    QCheckBox,
     QGroupBox,
     QHBoxLayout,
     QLabel,
@@ -141,7 +142,15 @@ class CameraWidget(QWidget):
         layout = QVBoxLayout()
 
         # Exposure control
-        layout.addWidget(QLabel("Exposure (µs):"))
+        exp_header = QHBoxLayout()
+        exp_header.addWidget(QLabel("Exposure (us):"))
+        self.auto_exposure_check = QCheckBox("Auto")
+        self.auto_exposure_check.setEnabled(False)
+        self.auto_exposure_check.stateChanged.connect(self._on_auto_exposure_changed)
+        exp_header.addWidget(self.auto_exposure_check)
+        exp_header.addStretch()
+        layout.addLayout(exp_header)
+
         self.exposure_slider = QSlider(Qt.Orientation.Horizontal)
         self.exposure_slider.setMinimum(100)
         self.exposure_slider.setMaximum(100000)
@@ -150,11 +159,28 @@ class CameraWidget(QWidget):
         self.exposure_slider.valueChanged.connect(self._on_exposure_changed)
         layout.addWidget(self.exposure_slider)
 
-        self.exposure_value_label = QLabel("10000 µs")
-        layout.addWidget(self.exposure_value_label)
+        exp_value_layout = QHBoxLayout()
+        self.exposure_value_label = QLabel("10000 us")
+        exp_value_layout.addWidget(self.exposure_value_label)
+        self.exposure_input = QLineEdit()
+        self.exposure_input.setPlaceholderText("Enter value")
+        self.exposure_input.setMaximumWidth(100)
+        self.exposure_input.setEnabled(False)
+        self.exposure_input.returnPressed.connect(self._on_exposure_input_changed)
+        exp_value_layout.addWidget(self.exposure_input)
+        exp_value_layout.addStretch()
+        layout.addLayout(exp_value_layout)
 
         # Gain control
-        layout.addWidget(QLabel("Gain (dB):"))
+        gain_header = QHBoxLayout()
+        gain_header.addWidget(QLabel("Gain (dB):"))
+        self.auto_gain_check = QCheckBox("Auto")
+        self.auto_gain_check.setEnabled(False)
+        self.auto_gain_check.stateChanged.connect(self._on_auto_gain_changed)
+        gain_header.addWidget(self.auto_gain_check)
+        gain_header.addStretch()
+        layout.addLayout(gain_header)
+
         self.gain_slider = QSlider(Qt.Orientation.Horizontal)
         self.gain_slider.setMinimum(0)
         self.gain_slider.setMaximum(240)  # 24.0 dB * 10
@@ -163,8 +189,27 @@ class CameraWidget(QWidget):
         self.gain_slider.valueChanged.connect(self._on_gain_changed)
         layout.addWidget(self.gain_slider)
 
+        gain_value_layout = QHBoxLayout()
         self.gain_value_label = QLabel("0.0 dB")
-        layout.addWidget(self.gain_value_label)
+        gain_value_layout.addWidget(self.gain_value_label)
+        self.gain_input = QLineEdit()
+        self.gain_input.setPlaceholderText("Enter value")
+        self.gain_input.setMaximumWidth(100)
+        self.gain_input.setEnabled(False)
+        self.gain_input.returnPressed.connect(self._on_gain_input_changed)
+        gain_value_layout.addWidget(self.gain_input)
+        gain_value_layout.addStretch()
+        layout.addLayout(gain_value_layout)
+
+        # Auto white balance
+        wb_layout = QHBoxLayout()
+        wb_layout.addWidget(QLabel("White Balance:"))
+        self.auto_wb_check = QCheckBox("Auto")
+        self.auto_wb_check.setEnabled(False)
+        self.auto_wb_check.stateChanged.connect(self._on_auto_wb_changed)
+        wb_layout.addWidget(self.auto_wb_check)
+        wb_layout.addStretch()
+        layout.addLayout(wb_layout)
 
         group.setLayout(layout)
         return group
@@ -267,6 +312,11 @@ class CameraWidget(QWidget):
             self.record_btn.setEnabled(False)
             self.exposure_slider.setEnabled(False)
             self.gain_slider.setEnabled(False)
+            self.exposure_input.setEnabled(False)
+            self.gain_input.setEnabled(False)
+            self.auto_exposure_check.setEnabled(False)
+            self.auto_gain_check.setEnabled(False)
+            self.auto_wb_check.setEnabled(False)
         else:
             success = self.camera_controller.start_streaming()
             if success:
@@ -276,12 +326,26 @@ class CameraWidget(QWidget):
                 self.record_btn.setEnabled(True)
                 self.exposure_slider.setEnabled(True)
                 self.gain_slider.setEnabled(True)
+                self.exposure_input.setEnabled(True)
+                self.gain_input.setEnabled(True)
+                self.auto_exposure_check.setEnabled(True)
+                self.auto_gain_check.setEnabled(True)
+                self.auto_wb_check.setEnabled(True)
 
     def _on_exposure_changed(self, value: int) -> None:
         """Handle exposure slider change."""
         if self.camera_controller:
             self.camera_controller.set_exposure(float(value))
-            self.exposure_value_label.setText(f"{value} µs")
+            self.exposure_value_label.setText(f"{value} us")
+            self.exposure_input.setText(str(value))
+
+    def _on_exposure_input_changed(self) -> None:
+        """Handle exposure input box change."""
+        try:
+            value = int(self.exposure_input.text())
+            self.exposure_slider.setValue(value)
+        except ValueError:
+            logger.warning(f"Invalid exposure value: {self.exposure_input.text()}")
 
     def _on_gain_changed(self, value: int) -> None:
         """Handle gain slider change."""
@@ -289,6 +353,43 @@ class CameraWidget(QWidget):
             gain_db = value / 10.0
             self.camera_controller.set_gain(gain_db)
             self.gain_value_label.setText(f"{gain_db:.1f} dB")
+            self.gain_input.setText(f"{gain_db:.1f}")
+
+    def _on_gain_input_changed(self) -> None:
+        """Handle gain input box change."""
+        try:
+            gain_db = float(self.gain_input.text())
+            value = int(gain_db * 10)
+            self.gain_slider.setValue(value)
+        except ValueError:
+            logger.warning(f"Invalid gain value: {self.gain_input.text()}")
+
+    def _on_auto_exposure_changed(self, state: int) -> None:
+        """Handle auto exposure checkbox change."""
+        # TODO: Implement auto exposure via camera controller
+        logger.info(f"Auto exposure {'enabled' if state else 'disabled'}")
+        if state:
+            self.exposure_slider.setEnabled(False)
+            self.exposure_input.setEnabled(False)
+        else:
+            self.exposure_slider.setEnabled(True)
+            self.exposure_input.setEnabled(True)
+
+    def _on_auto_gain_changed(self, state: int) -> None:
+        """Handle auto gain checkbox change."""
+        # TODO: Implement auto gain via camera controller
+        logger.info(f"Auto gain {'enabled' if state else 'disabled'}")
+        if state:
+            self.gain_slider.setEnabled(False)
+            self.gain_input.setEnabled(False)
+        else:
+            self.gain_slider.setEnabled(True)
+            self.gain_input.setEnabled(True)
+
+    def _on_auto_wb_changed(self, state: int) -> None:
+        """Handle auto white balance checkbox change."""
+        # TODO: Implement auto white balance via camera controller
+        logger.info(f"Auto white balance {'enabled' if state else 'disabled'}")
 
     def _on_capture_image(self) -> None:
         """Handle capture image button click."""
