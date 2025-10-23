@@ -218,4 +218,49 @@ tests/                      [TODO] Test suite
 
 ---
 
+## Architecture Status
+
+### Hardware Integration
+- **Camera API Exploration** [DONE] - VmbPy integration with 6 test scripts
+- **Actuator API Exploration** [DONE] - Xeryon integration with 6 test scripts
+- **Camera Hardware Abstraction Layer** [TODO] - PyQt integration wrapper
+- **Laser Hardware Abstraction Layer** [TODO] - Arroyo serial communication
+- **Actuator Hardware Abstraction Layer** [TODO] - Xeryon PyQt integration
+- **GPIO Hardware Abstraction Layer** [TODO] - FT232H safety interlocks
+
+### User Interface
+- **Main Window & Tab Navigation** [DONE] - 5-tab interface
+- **Subject Selection Widget** [DONE] - Subject search and session start
+- **Camera/Alignment Widget** [DONE] - Placeholder for camera feed
+- **Treatment Control Widget** [DONE] - Manual laser/actuator controls
+- **Protocol Builder Widget** [DONE] - Action-based protocol creation
+- **Safety Status Widget** [DONE] - Safety indicator placeholder
+
+### Core Business Logic
+- **Protocol Data Model** [DONE] - 5 action types with validation
+- **Protocol Execution Engine** [DONE] - Async engine with pause/resume/stop
+- **Safety System** [TODO] - Interlock manager and state machine
+- **Session Management** [TODO] - Session lifecycle and tracking
+- **Event Logger** [TODO] - Immutable audit trail
+
+### Data Layer
+- **Database Schema Design** [DONE] - Documented in architecture docs
+- **Database Models** [TODO] - SQLAlchemy ORM models
+- **Database Operations** [TODO] - CRUD operations
+- **Database Migrations** [TODO] - Alembic setup
+
+### Image Processing
+- **Ring Detection** [TODO] - Hough circle transform
+- **Focus Measurement** [TODO] - Laplacian variance
+- **Video Recording** [TODO] - OpenCV integration
+- **Frame Processing Pipeline** [TODO] - Real-time processing
+
+### Testing & Quality
+- **Test Framework** [TODO] - Pytest configuration
+- **Unit Tests** [TODO] - Component tests
+- **Integration Tests** [TODO] - System tests
+- **Safety Tests** [TODO] - FMEA and validation
+
+---
+
 **Last Updated:** 2025-10-22
