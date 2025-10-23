@@ -1,4 +1,14 @@
 repos:
+  - repo: local
+    hooks:
+      - id: presubmit-reminder
+        name: Documentation Reminder
+        entry: python .pre-commit-hooks/show-presubmit-reminder.py
+        language: system
+        always_run: true
+        pass_filenames: false
+        stages: [pre-commit]
+
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
     hooks:

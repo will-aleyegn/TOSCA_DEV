@@ -108,7 +108,7 @@ components/actuator_module/output/
 .mcp.json
 
 # AI Documentation and Session Files (local use only)
-ai/
+presubmit/
 
 # Regulatory/FDA Strategy Documents (archive only)
 docs/regulatory_archive/
