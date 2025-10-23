@@ -1,9 +1,25 @@
 # Xeryon Python Library API Reference
 
 **Library Version**: v1.88
-**Hardware**: XLA Linear Actuators
+**Hardware**: XLA Linear Actuators (TOSCA uses XLA-5-125-10MU)
 **Official Documentation Source**: `C:\Users\wille\Desktop\stage-control\Xeryon.py`
 **Last Updated**: 2025-10-23
+
+---
+
+## ⚠️ CRITICAL: TOSCA Hardware Configuration
+
+**TOSCA XLA-5-125-10MU Actuator is configured with:**
+- **Baudrate**: `9600` (NOT the library default of 115200)
+- **Encoder Resolution**: 1.25 µm (1250 nm)
+- **Working Units**: Micrometers (µm)
+- **Speed Range**: 50-500 µm/s
+
+**Why the different baudrate?**
+- The official Xeryon library default is 115200
+- TOSCA hardware has been pre-configured by the manufacturer for 9600
+- Using 115200 will result in communication failure
+- Always use 9600 for TOSCA hardware
 
 ---
 
@@ -73,15 +89,19 @@ AUTO_SEND_ENBL = False  # Auto-send ENBL=1 on thermal/error events
 ```python
 from Xeryon import Xeryon, Stage, Units
 
-# Initialize controller
+# Official library default (for most hardware)
 controller = Xeryon(COM_port="COM3", baudrate=115200)
+
+# ⚠️ TOSCA HARDWARE - Use 9600!
+controller = Xeryon(COM_port="COM3", baudrate=9600)
 ```
 
 **Parameters**:
 - `COM_port` (str): Serial port name (e.g., "COM3", "COM4")
 - `baudrate` (int): Communication speed
-  - **Default**: `115200` ⚠️
-  - **NOT** 9600 (common serial default)
+  - **Library Default**: `115200`
+  - **TOSCA Hardware**: `9600` ⚠️ (manufacturer pre-configured)
+  - **CRITICAL**: Must match hardware configuration or communication fails
 
 ### 2. Add Axis
 
@@ -459,8 +479,8 @@ value_mu = encoder_units / (10^3 * 1 / encoderResolution_nm)
 ```python
 from Xeryon import Xeryon, Stage, Units
 
-# 1. Initialize
-controller = Xeryon("COM3", 115200)
+# 1. Initialize (TOSCA hardware uses 9600 baud)
+controller = Xeryon("COM3", 9600)
 axis = controller.addAxis(Stage.XLA_1250_3N, "X")
 controller.start()
 
@@ -548,15 +568,21 @@ axis.setSpeed(1000)  # 1000 µm/s = 1 mm/s
 
 ### 1. Baudrate
 
-**CRITICAL**: Must use `115200`, not `9600`
+**CRITICAL**: TOSCA hardware uses `9600`, NOT the library default of `115200`
 
 ```python
-# ✓ Correct
-controller = Xeryon("COM3", 115200)
-
-# ✗ Wrong - will not communicate
+# ✓ Correct for TOSCA XLA-5-125-10MU
 controller = Xeryon("COM3", 9600)
+
+# ✗ Wrong for TOSCA - library default doesn't work
+controller = Xeryon("COM3", 115200)
 ```
+
+**Why 9600?**
+- TOSCA XLA-5-125-10MU was pre-configured by manufacturer for 9600 baud
+- This is stored in device non-volatile memory
+- Official library default (115200) does NOT work with TOSCA hardware
+- Always verify baudrate with actual hardware before changing code
 
 ### 2. Working Units
 
@@ -624,7 +650,7 @@ def connect(auto_home=False):
 
 | Operation | API Call | Units | Notes |
 |-----------|----------|-------|-------|
-| **Connection** | `Xeryon("COM3", 115200)` | - | ⚠️ Baudrate must be 115200 |
+| **Connection** | `Xeryon("COM3", 9600)` | - | ⚠️ TOSCA uses 9600 (NOT 115200) |
 | **Add Axis** | `addAxis(Stage.XLA_1250_3N, "X")` | - | Use correct stage type |
 | **Start** | `controller.start()` | - | Reads settings, enables axes |
 | **Set Units** | `axis.setUnits(Units.mu)` | µm | TOSCA uses micrometers |
