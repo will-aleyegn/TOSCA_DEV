@@ -242,18 +242,18 @@ class ActuatorWidget(QWidget):
         group = QGroupBox("Speed Control")
         layout = QHBoxLayout()
 
-        # Speed slider
+        # Speed slider (µm/s)
         self.speed_slider = QSlider(Qt.Orientation.Horizontal)
-        self.speed_slider.setRange(50, 500)  # 50-500 encoder units/cycle
-        self.speed_slider.setValue(100)  # Default: slow
+        self.speed_slider.setRange(500, 5000)  # 500-5000 µm/s (0.5-5 mm/s)
+        self.speed_slider.setValue(2000)  # Default: medium speed (2 mm/s)
         self.speed_slider.setTickPosition(QSlider.TickPosition.TicksBelow)
-        self.speed_slider.setTickInterval(50)
+        self.speed_slider.setTickInterval(500)
         self.speed_slider.valueChanged.connect(self._on_speed_display_changed)
         self.speed_slider.sliderReleased.connect(self._on_speed_released)
         self.speed_slider.setEnabled(False)
 
-        self.speed_label = QLabel("100")
-        self.speed_label.setMinimumWidth(50)
+        self.speed_label = QLabel("2000 µm/s")
+        self.speed_label.setMinimumWidth(80)
 
         layout.addWidget(QLabel("Slow"))
         layout.addWidget(self.speed_slider)
@@ -477,7 +477,7 @@ class ActuatorWidget(QWidget):
     @pyqtSlot(int)
     def _on_speed_display_changed(self, value: int) -> None:
         """Update speed label (doesn't send to hardware yet)."""
-        self.speed_label.setText(str(value))
+        self.speed_label.setText(f"{value} µm/s")
 
     @pyqtSlot()
     def _on_speed_released(self) -> None:
