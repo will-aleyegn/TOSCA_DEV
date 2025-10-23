@@ -2,6 +2,8 @@
 Treatment control widget.
 """
 
+import logging
+
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
     QDoubleSpinBox,
@@ -14,6 +16,8 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class TreatmentWidget(QWidget):
@@ -29,6 +33,7 @@ class TreatmentWidget(QWidget):
 
     def __init__(self) -> None:
         super().__init__()
+        self.dev_mode = False
         self._init_ui()
 
     def _init_ui(self) -> None:
@@ -72,7 +77,7 @@ class TreatmentWidget(QWidget):
         layout = QVBoxLayout()
 
         position_layout = QHBoxLayout()
-        position_layout.addWidget(QLabel("Position (µm):"))
+        position_layout.addWidget(QLabel("Position (um):"))
         self.position_spinbox = QSpinBox()
         self.position_spinbox.setRange(0, 3000)
         self.position_spinbox.setSingleStep(50)
@@ -122,3 +127,27 @@ class TreatmentWidget(QWidget):
 
         group.setLayout(layout)
         return group
+
+    def set_dev_mode(self, dev_mode: bool) -> None:
+        """
+        Enable/disable developer mode.
+
+        In dev mode, treatment controls are enabled without requiring an active session.
+
+        Args:
+            dev_mode: True to enable dev mode, False to disable
+        """
+        self.dev_mode = dev_mode
+        logger.info(f"Treatment widget dev mode: {dev_mode}")
+
+        if dev_mode:
+            # Enable treatment controls in dev mode
+            self.start_button.setEnabled(True)
+            self.status_label.setText("Status: Developer Mode - Session Optional")
+            self.status_label.setStyleSheet("font-size: 14px; padding: 10px; color: orange;")
+        else:
+            # Disable treatment controls when not in dev mode and no session
+            # TODO: Check for active session and enable accordingly
+            self.start_button.setEnabled(False)
+            self.status_label.setText("Status: Ready - No Active Session")
+            self.status_label.setStyleSheet("font-size: 14px; padding: 10px;")
