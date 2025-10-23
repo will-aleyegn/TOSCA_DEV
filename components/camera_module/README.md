@@ -12,14 +12,136 @@ This module provides isolated camera testing and exploration scripts to fully un
 
 ---
 
+## Visual Examples
+
+> **Note:** Screenshots show the camera module integrated into the TOSCA main application.
+> To capture screenshots, follow the guide in `SCREENSHOT_GUIDE.md`
+
+### Main Interface
+
+![Main Window Overview](screenshots/01_main_window_overview.png)
+*Main TOSCA window with Camera/Alignment tab showing live camera feed at 39-40 FPS*
+
+### Camera Connection
+
+![Connection Success](screenshots/02_connection_success.png)
+*Camera successfully connected - green status indicator and enabled controls*
+
+### Live Streaming
+
+![Live Streaming](screenshots/03_live_streaming.png)
+*Live camera feed at full frame rate (39-40 FPS) with real-time display*
+
+### Exposure Control
+
+<table>
+<tr>
+<td width="50%">
+
+![Manual Exposure](screenshots/04_exposure_manual.png)
+*Manual exposure control with slider and input box*
+
+</td>
+<td width="50%">
+
+![Auto Exposure](screenshots/05_exposure_auto.png)
+*Auto-exposure mode adapts to scene brightness*
+
+</td>
+</tr>
+</table>
+
+### Gain Control
+
+![Gain Control](screenshots/06_gain_control.png)
+*Manual gain adjustment (0-24 dB) with slider and input box controls*
+
+### White Balance
+
+![White Balance Control](screenshots/07_white_balance.png)
+*Auto white balance adapts to lighting conditions*
+
+### Image Capture
+
+<table>
+<tr>
+<td width="50%">
+
+![Image Capture Controls](screenshots/08_image_capture_controls.png)
+*Still image capture with custom filename and path support*
+
+</td>
+<td width="50%">
+
+![Dev Mode Custom Path](screenshots/09_image_capture_dev_mode.png)
+*Developer mode enables custom save directory selection*
+
+</td>
+</tr>
+</table>
+
+### Video Recording
+
+<table>
+<tr>
+<td width="50%">
+
+![Recording Idle](screenshots/10_video_recording_idle.png)
+*Video recording controls in idle state*
+
+</td>
+<td width="50%">
+
+![Recording Active](screenshots/11_video_recording_active.png)
+*Active recording with red indicator and stop button*
+
+</td>
+</tr>
+</table>
+
+### Advanced Features
+
+![All Features Combined](screenshots/12_all_features.png)
+*All features working simultaneously - streaming, auto modes, and recording*
+
+### Performance
+
+![High FPS Performance](screenshots/14_performance_high_fps.png)
+*Sustained 39-40 FPS performance with real-time status indicators*
+
+### Captured Results
+
+<table>
+<tr>
+<td width="50%">
+
+![Captured Image Example](screenshots/15_captured_image_example.png)
+*Example captured image - 1456x1088 PNG with timestamp*
+
+</td>
+<td width="50%">
+
+![Recorded Video Example](screenshots/16_recorded_video_example.png)
+*Example recorded video - 30 FPS MP4 with good quality*
+
+</td>
+</tr>
+</table>
+
+---
+
 ## Directory Structure
 
 ```
 camera_module/
 ├── README.md                      # API documentation and usage guide
 ├── TEST_SUITE.md                  # Complete test suite reference
+├── CAMERA_HAL_TEST_GUIDE.md       # Hardware validation guide (17 tests)
+├── TESTING_QUICK_START.md         # Quick reference for testing
+├── SCREENSHOT_GUIDE.md            # Guide for capturing documentation screenshots
 ├── INTEGRATION_FEATURES.md        # PyQt6 integration patterns
 ├── LESSONS_LEARNED.md             # VmbPy API quirks and best practices
+├── test_hal_integration.py        # Automated HAL validation script
 ├── examples/                      # Test scripts and examples
 │   ├── 01_list_cameras.py        # Custom test scripts
 │   ├── 02_camera_info.py
@@ -37,6 +159,10 @@ camera_module/
 │   └── vmbpy_unit_tests/         # Official VmbPy SDK tests (24+ tests)
 │       ├── basic_tests/
 │       └── real_cam_tests/
+├── screenshots/                   # Documentation screenshots
+│   ├── 01_main_window_overview.png
+│   ├── 02_connection_success.png
+│   └── ... (16 screenshots)
 ├── docs/                          # Feature documentation
 │   └── camera_features.txt       # Camera capability info
 └── output/                        # Test outputs (images, videos)
