@@ -199,7 +199,8 @@ class ActuatorWidget(QWidget):
         self.speed_slider.setValue(100)  # Default: slow
         self.speed_slider.setTickPosition(QSlider.TickPosition.TicksBelow)
         self.speed_slider.setTickInterval(50)
-        self.speed_slider.valueChanged.connect(self._on_speed_changed)
+        self.speed_slider.valueChanged.connect(self._on_speed_display_changed)
+        self.speed_slider.sliderReleased.connect(self._on_speed_released)
         self.speed_slider.setEnabled(False)
 
         self.speed_label = QLabel("100")
@@ -276,8 +277,8 @@ class ActuatorWidget(QWidget):
             self.controller.error_occurred.connect(self._on_error)
             self.controller.homing_progress.connect(self._on_homing_progress)
 
-        # Connect (auto_home=True by default)
-        success = self.controller.connect("COM3")
+        # Connect without auto-homing (user must click Find Home button)
+        success = self.controller.connect("COM3", auto_home=False)
 
         if not success:
             logger.error("Failed to connect to actuator")
@@ -322,9 +323,14 @@ class ActuatorWidget(QWidget):
             self.controller.make_step(step_um)
 
     @pyqtSlot(int)
-    def _on_speed_changed(self, value: int) -> None:
-        """Handle speed slider change."""
+    def _on_speed_display_changed(self, value: int) -> None:
+        """Update speed label (doesn't send to hardware yet)."""
         self.speed_label.setText(str(value))
+
+    @pyqtSlot()
+    def _on_speed_released(self) -> None:
+        """Handle speed slider release (send to hardware)."""
+        value = self.speed_slider.value()
         if self.controller and self.is_connected:
             self.controller.set_speed(value)
             logger.debug(f"Speed set to {value}")
