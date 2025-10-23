@@ -492,10 +492,28 @@ class CameraWidget(QWidget):
 
     def _on_capture_image(self) -> None:
         """Handle capture image button click."""
-        # TODO: Implement actual image capture
-        # For now, just save current frame
-        logger.info("Image capture requested - feature pending implementation")
-        self.last_capture_label.setText("Feature pending implementation")
+        if not self.camera_controller:
+            return
+
+        # Get base filename from input
+        base_filename = self.image_filename_input.text() or "capture"
+
+        # Use custom path if in dev mode
+        output_dir = None
+        if self.dev_mode and self.custom_image_path:
+            output_dir = self.custom_image_path
+            logger.info(f"Using custom image path: {output_dir}")
+
+        # Capture image
+        saved_path = self.camera_controller.capture_image(base_filename, output_dir)
+
+        if saved_path:
+            self.last_capture_label.setText(f"Saved: {saved_path}")
+            self.last_capture_label.setStyleSheet("color: green; font-size: 10px;")
+            logger.info(f"Image captured successfully: {saved_path}")
+        else:
+            self.last_capture_label.setText("Capture failed - check logs")
+            self.last_capture_label.setStyleSheet("color: red; font-size: 10px;")
 
     def _on_record_clicked(self) -> None:
         """Handle record button click."""

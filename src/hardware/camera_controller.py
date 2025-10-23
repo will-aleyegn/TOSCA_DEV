@@ -184,6 +184,9 @@ class CameraController(QObject):
         self.is_streaming = False
         self.is_recording = False
 
+        # Store latest frame for image capture
+        self.latest_frame: Optional[np.ndarray] = None
+
         logger.info("Camera controller initialized")
 
     def connect(self, camera_id: Optional[str] = None) -> bool:
@@ -290,6 +293,9 @@ class CameraController(QObject):
         Args:
             frame: Numpy array frame
         """
+        # Store latest frame for image capture
+        self.latest_frame = frame.copy()
+
         # Emit to GUI
         self.frame_ready.emit(frame)
 
@@ -323,10 +329,36 @@ class CameraController(QObject):
             self.error_occurred.emit("Camera not streaming")
             return None
 
-        # Image will be captured from next frame
-        # For now, we'll use a simple approach - could be enhanced with single-shot capture
-        self.error_occurred.emit("Image capture not yet implemented - use frame from stream")
-        return None
+        if self.latest_frame is None:
+            self.error_occurred.emit("No frame available to capture")
+            return None
+
+        try:
+            # Ensure output directory exists
+            output_dir.mkdir(parents=True, exist_ok=True)
+
+            # Create timestamped filename
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"{base_filename}_{timestamp}.png"
+            output_path = output_dir / filename
+
+            # Convert to BGR if needed (VmbPy gives RGB, OpenCV saves BGR)
+            if len(self.latest_frame.shape) == 3 and self.latest_frame.shape[2] == 3:
+                frame_bgr = cv2.cvtColor(self.latest_frame, cv2.COLOR_RGB2BGR)
+            else:
+                frame_bgr = self.latest_frame
+
+            # Save image
+            cv2.imwrite(str(output_path), frame_bgr)
+
+            logger.info(f"Image captured: {output_path}")
+            return output_path
+
+        except Exception as e:
+            error_msg = f"Failed to capture image: {e}"
+            logger.error(error_msg)
+            self.error_occurred.emit(error_msg)
+            return None
 
     def start_recording(
         self, base_filename: str = "video", output_dir: Optional[Path] = None
