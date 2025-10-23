@@ -155,6 +155,11 @@ class ActuatorController(QObject):
             # Set working units to micrometers
             self.axis.setUnits(self.working_units)
 
+            # Enable non-blocking mode to prevent GUI freezing
+            # DISABLE_WAITING=True makes position commands return immediately
+            self.axis.setSetting("DISABLE_WAITING", True)
+            logger.info("Enabled non-blocking mode (DISABLE_WAITING=True)")
+
             # Settings are automatically sent from settings_user.txt (AUTO_SEND_SETTINGS=True)
             # Do NOT send redundant commands - let hardware use its configured values
             logger.info("Using settings from settings_user.txt (speed, limits, etc.)")
@@ -656,9 +661,9 @@ class ActuatorController(QObject):
 
         try:
             # Query LLIM and HLIM from device
-            # The axis.getParameter() method reads settings from device
-            low_limit = float(self.axis.getParameter("LLIM"))
-            high_limit = float(self.axis.getParameter("HLIM"))
+            # The axis.getSetting() method reads settings from device
+            low_limit = float(self.axis.getSetting("LLIM"))
+            high_limit = float(self.axis.getSetting("HLIM"))
 
             # Update cached values
             self.low_limit_um = low_limit
@@ -685,8 +690,8 @@ class ActuatorController(QObject):
 
         try:
             # Query ACCE and DECE from device
-            acce = int(self.axis.getParameter("ACCE"))
-            dece = int(self.axis.getParameter("DECE"))
+            acce = int(self.axis.getSetting("ACCE"))
+            dece = int(self.axis.getSetting("DECE"))
 
             # Update cached values
             self.acceleration = acce
