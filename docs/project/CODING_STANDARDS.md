@@ -10,6 +10,100 @@
 3. **Documentation is functional** - Comments explain WHY, not WHAT. Code should be self-documenting.
 4. **Every line must have a purpose** - If it doesn't contribute to functionality or safety, remove it
 
+## ⚠️ HARDWARE API USAGE - CRITICAL RULE ⚠️
+
+**ALWAYS use native hardware API capabilities before implementing software workarounds.**
+
+### Rule
+
+When working with hardware devices (cameras, actuators, sensors):
+
+1. **FIRST**: Research what the hardware API provides natively
+2. **SECOND**: Implement using native hardware features
+3. **LAST RESORT**: Only implement software workarounds if hardware doesn't support the feature
+
+### Rationale
+
+- Hardware-level features are more reliable, efficient, and precise
+- Software workarounds add complexity, introduce timing jitter, and waste CPU
+- Hardware APIs are tested by manufacturers and designed for the use case
+- Software workarounds can mask underlying hardware capabilities
+
+### Examples
+
+#### ✅ CORRECT: Use Hardware API
+
+```python
+# Camera frame rate control - use hardware feature
+def start_streaming(self) -> bool:
+    # Set camera acquisition frame rate at hardware level
+    self.set_acquisition_frame_rate(30.0)
+    self.camera.start_streaming(callback)
+```
+
+#### ❌ INCORRECT: Software Workaround
+
+```python
+# DON'T: Throttle frames in software when hardware supports rate control
+def frame_callback(frame):
+    if time_since_last_frame >= throttle_interval:
+        process_frame(frame)  # Throws away frames unnecessarily
+```
+
+#### ✅ CORRECT: Use Hardware API
+
+```python
+# Actuator position control - use hardware feature
+def move_to_position(self, target_mm: float) -> None:
+    # Use actuator's built-in positioning system
+    self.actuator.set_target_position(target_mm)
+    self.actuator.move_absolute()
+```
+
+#### ❌ INCORRECT: Software Workaround
+
+```python
+# DON'T: Implement motion control in software when hardware has it
+def move_to_position(self, target_mm: float) -> None:
+    while abs(current_pos - target_mm) > tolerance:
+        step = calculate_step()  # Reinventing hardware features
+        self.actuator.move_relative(step)
+```
+
+### How to Apply This Rule
+
+1. **Before implementing any feature**, read the hardware API documentation
+2. **Search for relevant features**: Look for keywords like:
+   - Frame rate, acquisition rate, trigger mode (cameras)
+   - Position control, velocity control, acceleration (actuators)
+   - Sampling rate, trigger mode, buffering (sensors)
+3. **Check manufacturer examples** for how they solve similar problems
+4. **Document in LESSONS_LEARNED.md** when you discover native features you initially missed
+
+### Module-Specific Requirements
+
+#### Camera Module (VmbPy API)
+- Use `AcquisitionFrameRate` for frame rate control
+- Use `ExposureAuto`, `GainAuto`, `BalanceWhiteAuto` for automatic adjustments
+- Use trigger modes for synchronized capture
+- Check Allied Vision examples before implementing any camera control feature
+
+#### Actuator Module
+- Use actuator's built-in positioning system (absolute/relative moves)
+- Use hardware acceleration/deceleration profiles
+- Use hardware limit switches and home position features
+- Check actuator SDK documentation before implementing motion control
+
+### Verification
+
+Before committing any hardware control code, ask:
+- ✓ Did I check the hardware API documentation?
+- ✓ Did I look at manufacturer examples?
+- ✓ Am I using native hardware features where available?
+- ✓ Is my software workaround truly necessary?
+
+**If you implement a software workaround, document in code comments WHY the hardware doesn't support the feature.**
+
 ## Code Requirements
 
 ### Functions
@@ -118,6 +212,8 @@ def check_footpedal_active(self) -> bool:
 
 Before committing code, verify:
 
+- [ ] **HARDWARE API**: Used native hardware features instead of software workarounds
+- [ ] **HARDWARE API**: Checked manufacturer documentation and examples
 - [ ] Every function is necessary for current feature
 - [ ] No commented-out code
 - [ ] No TODO comments without tickets
