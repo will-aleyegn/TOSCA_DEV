@@ -74,12 +74,27 @@ class ActuatorController(QObject):
 
     def connect(self, com_port: str = "COM3", baudrate: int = 9600, auto_home: bool = True) -> bool:
         """
-        Connect to Xeryon actuator.
+        Connect to Xeryon actuator using official API.
+
+        CRITICAL API Requirements:
+            - Baudrate: TOSCA hardware uses 9600 (NOT the library default of 115200)
+            - Stage Type: XLA_1250_3N (1.25 µm encoder resolution)
+            - Working Units: Units.mu (micrometers) for TOSCA precision
+            - AUTO_SEND_SETTINGS: False (use device-stored settings)
+
+        Official API Flow (see XERYON_API_REFERENCE.md):
+            1. Xeryon(COM_port, baudrate) - Create controller
+            2. addAxis(Stage, letter) - Add linear actuator
+            3. start() - Start communication, send settings, enable axes
+            4. setUnits(Units.mu) - Set working units to micrometers
+            5. findIndex() - Home the actuator (if auto_home=True)
 
         Args:
             com_port: Serial port name (e.g., "COM3")
-            baudrate: Communication baud rate (default: 9600 per device settings)
-            auto_home: If True, automatically perform homing after connection (default: True)
+            baudrate: Communication baud rate
+                      TOSCA: 9600 (manufacturer pre-configured)
+                      Library default: 115200
+            auto_home: If True, automatically perform homing after connection
 
         Returns:
             True if connected successfully
@@ -151,7 +166,7 @@ class ActuatorController(QObject):
 
                 time.sleep(0.5)  # Let hardware stabilize after start()
 
-                logger.info(f"DEBUG: Pre-homing status check:")
+                logger.info("DEBUG: Pre-homing status check:")
                 logger.info(f"  encoder_valid: {self.axis.isEncoderValid()}")
                 logger.info(f"  searching_index: {self.axis.isSearchingIndex()}")
                 logger.info(f"  position_reached: {self.axis.isPositionReached()}")
@@ -208,10 +223,20 @@ class ActuatorController(QObject):
 
     def find_index(self) -> bool:
         """
-        Find index (home) position.
+        Find encoder index (home the actuator) using official Xeryon API.
 
-        REQUIRED before absolute positioning will work correctly.
-        This is a native hardware feature (Hardware API Usage rule).
+        Official API: axis.findIndex(direction)
+            - Sends INDX=<direction> command to hardware
+            - Direction 0: Bidirectional search (fastest)
+            - Blocking: Waits for isEncoderValid() == True
+            - See: XERYON_API_REFERENCE.md "Homing" section
+
+        Hardware API Usage Rule:
+            Use native Xeryon homing procedure (not manual index search)
+
+        CRITICAL: Actuator must be homed before any position commands.
+            - isEncoderValid() returns False until homing complete
+            - setDPOS() and step() will fail if not homed
 
         Returns:
             True if homing started successfully
@@ -275,9 +300,16 @@ class ActuatorController(QObject):
 
     def set_position(self, position_um: float) -> bool:
         """
-        Move to absolute position.
+        Move to absolute position using official Xeryon API.
 
-        Uses native hardware position control (Hardware API Usage rule).
+        Official API: axis.setDPOS(position, units)
+            - Input: Position in current units (µm for Units.mu)
+            - Conversion: API converts µm → encoder units internally
+            - Blocking: Waits for position reached (unless DISABLE_WAITING=True)
+            - See: XERYON_API_REFERENCE.md "Absolute Positioning" section
+
+        Hardware API Usage Rule:
+            Use native Xeryon position control (not manual encoder calculations)
 
         Args:
             position_um: Target position in micrometers
@@ -334,7 +366,14 @@ class ActuatorController(QObject):
 
     def make_step(self, step_um: float) -> bool:
         """
-        Make relative step from current position.
+        Make relative step from current position using official Xeryon API.
+
+        Official API: axis.step(distance)
+            - Input: Relative distance in current units (µm for Units.mu)
+            - Positive: Move in positive direction
+            - Negative: Move in negative direction
+            - Implementation: Gets current position, calculates target, calls setDPOS()
+            - See: XERYON_API_REFERENCE.md "Relative Movement" section
 
         Args:
             step_um: Step size in micrometers (positive or negative)
@@ -398,23 +437,32 @@ class ActuatorController(QObject):
 
     def set_speed(self, speed: int) -> bool:
         """
-        Set movement speed.
+        Set movement speed using official Xeryon API.
 
-        Uses native hardware speed control (Hardware API Usage rule).
+        CRITICAL: Uses axis.setSpeed() which handles unit conversion.
+        The official API converts input speed (in current units/second) to µm/s.
 
         Args:
-            speed: Scan speed in encoder units per control cycle
-                   Typical range: 100 (slow) to 1000 (fast)
+            speed: Speed in micrometers per second (µm/s)
+                   Since working_units = Units.mu, input is interpreted as µm/s
+                   Typical range: 50 (very slow) to 500 (fast) µm/s
 
         Returns:
             True if successful
+
+        Official API Reference:
+            - Input: Speed in current units/second (µm/s for Units.mu)
+            - Conversion: axis.setSpeed() converts to SSPD setting internally
+            - See: XERYON_API_REFERENCE.md "Speed Control" section
         """
         if not self.axis:
             return False
 
         try:
-            self.axis.sendCommand(f"SSPD={speed}")
-            logger.debug(f"Speed set to {speed}")
+            # Use official API's setSpeed() method
+            # This handles unit conversion: µm/s → SSPD setting
+            self.axis.setSpeed(speed)
+            logger.debug(f"Speed set to {speed} µm/s")
             return True
         except Exception as e:
             logger.error(f"Failed to set speed: {e}")
