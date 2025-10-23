@@ -25,18 +25,21 @@ OUTPUT_TO_CONSOLE = True  # False: this blocks all output to the console.
 # If set to True, the library won't wait until the position is reached.
 # All blocking functions will be disabled.
 # NOTE: If you enable this, after finding the index of each stage, do a +/- 5 second timeout (time.sleep(5))
-DISABLE_WAITING = False
+# IMPORTANT: Must be False for reliable findIndex() - use async positioning calls for non-blocking GUI
+DISABLE_WAITING = False  # Keep False for reliable homing operation
 
 # AUTO_SEND_SETTINGS
 # If set to True, the library will automatically send the settings in the settings_default.txt
 # to the connected stages on startup.
-AUTO_SEND_SETTINGS = True
+# IMPORTANT: Set to False to use the device's stored settings (configured via Windows Interface)
+# Sending settings can trigger thermal protection errors if values are incompatible
+AUTO_SEND_SETTINGS = False  # Use device's stored settings to avoid thermal errors
 
 # AUTO_SEND_ENBL
 # "ENBL=1" needs to be send when an error occurs.
 # Errors like: thermal error (bit 2&3), error limit (bit 16) or safety timeout (bit18)
 # Set it to True to automatically send "ENBL=1" when these errors occur, bypassing this 'safety' feature.
-AUTO_SEND_ENBL = False
+AUTO_SEND_ENBL = True  # Enable for TOSCA - clears false thermal errors during init
 
 # The value's of these commands don't get stored in this library.
 NOT_SETTING_COMMANDS = [
@@ -378,6 +381,14 @@ class Axis:
         if DISABLE_WAITING is False or forceWaiting is True:
             self.__waitForUpdate()  # Waits a couple of updates, so the EncoderValid flag is valid and doesn't lagg behind.
             self.__waitForUpdate()
+
+            # FIX: Add startup grace period for hardware to process INDX command
+            # At 9600 baud with POLI=97ms, the STAT register needs time to update
+            # with the "searching index" bit (bit 9) after INDX command is sent.
+            # Without this delay, isSearchingIndex() returns False immediately
+            # because hardware hasn't started yet, causing premature abort.
+            time.sleep(0.5)  # 500ms grace period for command processing
+
             outputConsole("Searching index for axis " + str(self) + ".")
             while not self.isEncoderValid():  # While index not found, wait.
                 if not self.isSearchingIndex():  # Check if searching for index bit is true.

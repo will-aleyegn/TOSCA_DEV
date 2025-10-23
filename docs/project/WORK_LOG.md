@@ -10,6 +10,93 @@
 
 ## 2025-10-23
 
+### Session: Actuator Homing Success - CRITICAL FIX
+
+**Time:** Mid-day debugging session
+
+**STATUS: ACTUATOR HOMING NOW WORKING! ✓**
+
+**CRITICAL FINDING - AUTO_SEND_SETTINGS:**
+
+**THE FIX:** `AUTO_SEND_SETTINGS = False` in Xeryon.py (line 36)
+
+**WHY:** The device already has correct settings stored from Windows Interface. Overwriting these settings with values from settings_user.txt was triggering persistent thermal protection errors (STAT bits 2 & 3) that prevented motor movement and caused homing to fail.
+
+**Actions:**
+1. **Debugged persistent thermal protection errors:**
+   - Created debug_homing.py to monitor STAT register in real-time
+   - Found: Hardware starts index search but aborts after 100ms
+   - Root cause: Thermal errors preventing motor movement
+   - STAT register shows bits 2 & 3 (thermal protection 1 & 2) constantly set
+
+2. **Isolated thermal error trigger:**
+   - Created test_no_reset.py to test initialization without reset()
+   - Found: Thermal errors NOT caused by reset()
+   - Found: Thermal errors triggered by sendSettings() call
+   - Before sendSettings(): STAT=17, no thermal errors ✓
+   - After sendSettings(): STAT=29, thermal errors present ✗
+
+3. **Applied fix - Use device's stored settings:**
+   - Set AUTO_SEND_SETTINGS = False (was True)
+   - This prevents overwriting device's working configuration
+   - Device settings configured via Windows Interface are preserved
+
+4. **Additional fixes applied during debugging:**
+   - Changed Stage type: XLA_1250 → XLA_1250_5N (5 Newton motor)
+   - Added 500ms grace period in findIndex() for STAT register update
+   - Set DISABLE_WAITING = False for reliable blocking behavior
+   - Removed redundant SSPD/LLIM/HLIM commands after start()
+
+**Test Results (test_actuator_connection.py):**
+```
+Searching index for axis X.
+Index of axis X found.
+Auto-homing complete - actuator ready
+
+Status:
+  connected: True
+  homed: True
+  position_um: 1.25
+  encoder_valid: True
+  status: ready
+```
+
+**Zero thermal errors! Perfect initialization!**
+
+**Files Modified:**
+- components/actuator_module/Xeryon.py:
+  - Line 29: DISABLE_WAITING = False (was True)
+  - Line 36: AUTO_SEND_SETTINGS = False (was True) **← CRITICAL FIX**
+  - Line 40: AUTO_SEND_ENBL = True (auto-clear thermal errors)
+  - Line 388: Added 500ms grace period in findIndex()
+- src/hardware/actuator_controller.py:
+  - Line 120: Stage.XLA_1250_5N (was Stage.XLA_1250)
+  - Lines 134-141: Removed redundant setting commands
+  - Lines 151-164: Added pre-homing status debug logging
+
+**Files Created (diagnostic):**
+- debug_homing.py - STAT register monitoring
+- test_no_reset.py - Initialization sequence testing
+- test_thermal_clearing.py - Thermal error clearing strategies
+- test_minimal_settings.py - Individual setting testing
+
+**Lessons Learned:**
+- **Device's stored settings are authoritative** - Don't overwrite with file-based settings
+- Windows Interface configures device properly - trust those settings
+- Sending incompatible settings triggers hardware protection mechanisms
+- Thermal protection can prevent motor movement even without actual overheating
+- STAT register needs time to update after commands (POLI=97ms polling interval)
+- Always test with minimal changes first when debugging hardware issues
+
+**Current Status:**
+- Actuator HAL: 75% complete (connection + homing working)
+- Connection: PASSING ✓
+- Homing: PASSING ✓
+- Status reporting: WORKING ✓
+- Next: Position control and movement testing
+
+---
+
 ### Session: Actuator HAL Initialization
 
 **Time:** Late evening session

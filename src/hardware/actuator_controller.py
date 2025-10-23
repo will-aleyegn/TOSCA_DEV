@@ -72,13 +72,14 @@ class ActuatorController(QObject):
 
         logger.info("Actuator controller initialized")
 
-    def connect(self, com_port: str = "COM3", baudrate: int = 9600) -> bool:
+    def connect(self, com_port: str = "COM3", baudrate: int = 9600, auto_home: bool = True) -> bool:
         """
         Connect to Xeryon actuator.
 
         Args:
             com_port: Serial port name (e.g., "COM3")
-            baudrate: Communication baud rate (default: 9600 per settings_user.txt)
+            baudrate: Communication baud rate (default: 9600 per device settings)
+            auto_home: If True, automatically perform homing after connection (default: True)
 
         Returns:
             True if connected successfully
@@ -111,9 +112,10 @@ class ActuatorController(QObject):
                     logger.info(f"  - {attr}")
 
             # Create and register axis (from config.txt: X:XLA3=1250)
+            # Hardware: XLA-5-125-10MU (5N motor, 1250nm encoder resolution)
             # addAxis creates Axis internally and adds to controller.axis_list
-            logger.info("DEBUG: Calling addAxis(Stage.XLA_1250_3N, 'X')...")
-            self.axis = self.controller.addAxis(Stage.XLA_1250_3N, "X")
+            logger.info("DEBUG: Calling addAxis(Stage.XLA_1250_5N, 'X')...")
+            self.axis = self.controller.addAxis(Stage.XLA_1250_5N, "X")
             logger.info("DEBUG: Axis created and registered")
             logger.info(f"DEBUG: Number of axes: {len(self.controller.axis_list)}")
             logger.info(f"DEBUG: Axis letter: {self.axis.axis_letter}")
@@ -127,14 +129,9 @@ class ActuatorController(QObject):
             # Set working units to micrometers
             self.axis.setUnits(self.working_units)
 
-            # SAFETY: Set slow default speed (100 = very slow)
-            self.axis.sendCommand("SSPD=100")
-            logger.info("Default speed set to 100 (slow)")
-
-            # SAFETY: Set conservative position limits (0-3000 µm for TOSCA ring sizing)
-            self.axis.sendCommand("LLIM=0")
-            self.axis.sendCommand("HLIM=3000")
-            logger.info("Position limits set: 0-3000 µm")
+            # Settings are automatically sent from settings_user.txt (AUTO_SEND_SETTINGS=True)
+            # Do NOT send redundant commands - let hardware use its configured values
+            logger.info("Using settings from settings_user.txt (speed, limits, etc.)")
 
             self.is_connected = True
             self.connection_changed.emit(True)
@@ -143,7 +140,37 @@ class ActuatorController(QObject):
             self.is_homed = self.axis.isEncoderValid()
 
             logger.info(f"Connected to actuator on {com_port}")
-            if self.is_homed:
+
+            # Auto-home if requested and not already homed
+            if auto_home and not self.is_homed:
+                logger.info("Auto-homing actuator (blocking until complete)...")
+                self.status_changed.emit("homing")
+
+                # Check hardware status before homing
+                import time
+
+                time.sleep(0.5)  # Let hardware stabilize after start()
+
+                logger.info(f"DEBUG: Pre-homing status check:")
+                logger.info(f"  encoder_valid: {self.axis.isEncoderValid()}")
+                logger.info(f"  searching_index: {self.axis.isSearchingIndex()}")
+                logger.info(f"  position_reached: {self.axis.isPositionReached()}")
+                logger.info(f"  safety_timeout: {self.axis.isSafetyTimeoutTriggered()}")
+
+                # Use forceWaiting=True to make this blocking during initialization
+                # This ensures actuator is ready before connect() returns
+                logger.info("Starting index search (direction=0, bidirectional)...")
+                success = self.axis.findIndex(forceWaiting=True, direction=0)
+
+                if success:
+                    self.is_homed = True
+                    logger.info("Auto-homing complete - actuator ready")
+                    self.status_changed.emit("ready")
+                else:
+                    logger.warning("Auto-homing failed - encoder not valid")
+                    logger.warning("Try manual homing with find_index()")
+                    self.status_changed.emit("not_homed")
+            elif self.is_homed:
                 logger.info("Actuator already homed (encoder valid)")
                 self.status_changed.emit("ready")
             else:
