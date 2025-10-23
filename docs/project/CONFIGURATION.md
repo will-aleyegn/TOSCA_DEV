@@ -2,7 +2,7 @@
 
 **Purpose:** Complete guide to all configuration files in the TOSCA project
 
-**Last Updated:** 2025-10-22
+**Last Updated:** 2025-10-23
 
 ---
 
@@ -15,27 +15,16 @@ These files MUST stay in root directory due to tool requirements:
 #### Python Package Configuration
 - **`setup.py`** - Package metadata and installation config
 - **`pyproject.toml`** - Modern Python project configuration (PEP 518)
-- **`requirements.txt`** - Production dependencies
-- **`requirements-dev.txt`** - Development dependencies
+- **`requirements.txt`** - All project dependencies
 
 #### Version Control
 - **`.gitignore`** - Files to exclude from Git
 - **`.git/`** - Git repository data (hidden)
 
-#### Testing
-- **`pytest.ini`** - Pytest configuration
-
 #### Linting & Formatting (Root Required)
 - **`.flake8`** - Flake8 linting rules
 - **`.pylintrc`** - Pylint configuration
 - **`.pre-commit-config.yaml`** - Pre-commit hooks
-
-#### Environment
-- **`.env.example`** - Environment variable template
-- **`.env`** - Actual environment variables (git-ignored)
-
-#### MCP Configuration
-- **`.mcp.json`** - MCP server configuration (git-ignored)
 
 ---
 
@@ -95,7 +84,7 @@ disallow_untyped_defs = true
 ---
 
 ### 3. requirements.txt
-**Purpose:** Production dependencies
+**Purpose:** All project dependencies
 **Location:** Root (required)
 **Used By:** pip install -r requirements.txt
 
@@ -104,6 +93,7 @@ disallow_untyped_defs = true
 # Category comments for organization
 PyQt6>=6.6.0
 opencv-python>=4.8.0
+vmbpy>=1.1.1
 # ... more packages
 ```
 
@@ -112,30 +102,11 @@ opencv-python>=4.8.0
 - Updating package versions
 - Removing unused packages
 
-**Important:** Keep categorized with comments
+**Important:** Keep categorized with comments for clarity
 
 ---
 
-### 4. requirements-dev.txt
-**Purpose:** Development-only dependencies
-**Location:** Root (required)
-**Used By:** pip install -r requirements-dev.txt
-
-**Contents:**
-```
--r requirements.txt  # Include production deps
-ipython>=8.14.0
-ipdb>=0.13.13
-pre-commit>=3.3.0
-```
-
-**When to Edit:**
-- Adding development tools
-- Never for production dependencies
-
----
-
-### 5. .gitignore
+### 4. .gitignore
 **Purpose:** Exclude files from version control
 **Location:** Root (required)
 **Used By:** Git
@@ -147,14 +118,16 @@ __pycache__/
 *.pyc
 venv/
 
-# Medical Device Data - DO NOT COMMIT
+# Data and Logs - DO NOT COMMIT
 data/
 *.db
-*patient*
+*.log
+
+# Development Session Files (Local Only)
+presubmit/
 
 # Secrets
 .env
-.mcp.json
 *.key
 ```
 
@@ -163,36 +136,14 @@ data/
 - Excluding new file types
 - Protecting sensitive data
 
-**Security Critical:** Never commit subject data or secrets
+**Important Notes:**
+- Never commit data files or logs
+- `presubmit/` folder contains local development documentation
+- Always protect secrets and sensitive configuration
 
 ---
 
-### 6. pytest.ini
-**Purpose:** Test configuration
-**Location:** Root (required)
-**Used By:** pytest
-
-**Key Settings:**
-```ini
-[pytest]
-testpaths = tests
-addopts = -v --cov=src --cov-fail-under=80
-
-markers =
-    unit: Unit tests
-    integration: Integration tests
-    safety: Safety-critical tests
-    hardware: Hardware tests
-```
-
-**When to Edit:**
-- Adding custom test markers
-- Changing coverage requirements
-- Modifying test paths
-
----
-
-### 7. .flake8
+### 5. .flake8
 **Purpose:** Linting rules
 **Location:** Root (required by flake8)
 **Used By:** flake8, pre-commit
@@ -212,7 +163,7 @@ extend-ignore = E203, W503
 
 ---
 
-### 8. .pylintrc
+### 6. .pylintrc
 **Purpose:** Advanced code analysis
 **Location:** Root (required by pylint)
 **Used By:** pylint, pre-commit
@@ -234,12 +185,13 @@ max-branches = 12
 
 ---
 
-### 9. .pre-commit-config.yaml
+### 7. .pre-commit-config.yaml
 **Purpose:** Automated code quality checks
 **Location:** Root (required)
 **Used By:** pre-commit hooks
 
 **Hooks Configured:**
+- presubmit-reminder (documentation reminder - displays before every commit)
 - trailing-whitespace
 - end-of-file-fixer
 - check-yaml
@@ -260,70 +212,18 @@ pre-commit run --all-files  # Run manually
 pre-commit autoupdate       # Update versions
 ```
 
----
-
-### 10. .env.example
-**Purpose:** Environment variable template
-**Location:** Root
-**Used By:** Documentation reference
-
-**Structure:**
-```bash
-# Application Settings
-APP_ENV=development
-LOG_LEVEL=DEBUG
-
-# Hardware Configuration
-LASER_SERIAL_PORT=COM3
-CAMERA_ID=DEV_...
-```
-
-**When to Edit:**
-- Adding new environment variables
-- Documenting configuration options
-
-**Usage:**
-```bash
-cp .env.example .env
-# Edit .env with actual values
-```
-
-**Important:** `.env` is git-ignored (contains secrets)
-
----
-
-### 11. .mcp.json
-**Purpose:** MCP server configuration
-**Location:** Root
-**Used By:** Claude Code MCP integration
-**Status:** Git-ignored (contains tokens)
-
-**Structure:**
-```json
-{
-  "mcpServers": {
-    "github": {
-      "env": {
-        "GITHUB_PERSONAL_ACCESS_TOKEN": "token_here"
-      }
-    }
-  }
-}
-```
-
-**When to Edit:**
-- Configuring MCP servers
-- Adding GitHub token
-- Enabling new MCP features
+**Note:** The `presubmit-reminder` hook displays a reminder to update documentation
+in the `presubmit/` folder before each commit. This hook always passes and never
+blocks commits. See `.pre-commit-hooks/show-presubmit-reminder.py` for details.
 
 ---
 
 ## Configuration Best Practices
 
 ### 1. Version Control
-- ✓ Commit all configuration files
-- ✗ Never commit `.env` or `.mcp.json`
-- ✓ Keep `.env.example` updated
+- ✓ Commit all configuration files (except gitignored items)
+- ✗ Never commit data files, logs, or session documentation
+- ✓ `presubmit/` folder stays local (gitignored)
 - ✓ Document all configuration changes
 
 ### 2. Consistency
@@ -332,10 +232,10 @@ cp .env.example .env
 - Document why rules are disabled
 
 ### 3. Security
-- Never commit secrets
-- Use `.env` for sensitive data
-- Keep `.gitignore` strict for medical device data
+- Never commit data files or logs
+- Keep `.gitignore` strict for sensitive data
 - Review `.gitignore` before adding new data types
+- `presubmit/` folder contains session documentation (gitignored)
 
 ### 4. Maintainability
 - Comment configuration choices
@@ -395,17 +295,14 @@ pyproject.toml
      └─ Referenced by: .pre-commit-config.yaml
 
 requirements.txt
-  └─ Lists production dependencies
-     └─ Referenced by: setup.py, Docker, CI/CD
-
-pytest.ini
-  └─ Configures test execution
-     └─ Used by: pytest, coverage tools
+  └─ Lists all project dependencies
+     └─ Referenced by: setup.py
 
 .pre-commit-config.yaml
   └─ Defines pre-commit hooks
-     └─ Runs: Black, Flake8, isort, MyPy
+     └─ Runs: Presubmit reminder, Black, Flake8, isort, MyPy
         └─ Configured by: pyproject.toml, .flake8, .pylintrc
+        └─ Reminder reads: presubmit/REMINDER.txt (gitignored)
 ```
 
 ---
@@ -416,14 +313,11 @@ pytest.ini
 |------|---------|----------------|------|
 | `setup.py` | Package metadata | Rare | pip, setuptools |
 | `pyproject.toml` | Multi-tool config | Rare | Black, isort, MyPy |
-| `requirements.txt` | Dependencies | Often | pip |
-| `requirements-dev.txt` | Dev dependencies | Sometimes | pip |
+| `requirements.txt` | All dependencies | Often | pip |
 | `.gitignore` | Exclude files | Sometimes | Git |
-| `pytest.ini` | Test config | Rare | pytest |
 | `.flake8` | Linting rules | Rare | flake8 |
 | `.pylintrc` | Analysis rules | Rare | pylint |
-| `.pre-commit-config.yaml` | Git hooks | Sometimes | pre-commit |
-| `.env.example` | Env template | Sometimes | Documentation |
+| `.pre-commit-config.yaml` | Git hooks & reminders | Sometimes | pre-commit |
 
 ---
 
@@ -455,10 +349,10 @@ When modifying configurations:
 
 - [ ] Update relevant configuration file(s)
 - [ ] Test with pre-commit hooks
-- [ ] Run full test suite
+- [ ] Run tests if applicable
 - [ ] Update documentation if needed
 - [ ] Commit with descriptive message
-- [ ] Update WORK_LOG.md
+- [ ] Update session documentation in `presubmit/` folder (reminder will prompt)
 
 ---
 
