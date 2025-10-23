@@ -13,7 +13,7 @@ Provides manual control of the Xeryon linear actuator with:
 import logging
 from typing import Optional
 
-from PyQt6.QtCore import Qt, pyqtSlot
+from PyQt6.QtCore import Qt, QTimer, pyqtSlot
 from PyQt6.QtWidgets import (
     QDoubleSpinBox,
     QGroupBox,
@@ -54,6 +54,19 @@ class ActuatorWidget(QWidget):
         self.is_homed = False
         self.current_position_um = 0.0
 
+        # Scan range state
+        self.scan_range_active = False
+        self.scan_range_timer: Optional[QTimer] = None
+        self.scan_current_position = 0.0
+        self.scan_target_position = 0.0
+        self.scan_step_size = 0.0
+        self.scan_dwell_time = 0.0
+        self.scan_loop = False
+        self.scan_from = 0.0
+        self.scan_to = 0.0
+        self.scan_dwell_start_time = 0.0
+        self.scan_in_dwell = False
+
         # Initialize UI
         self._init_ui()
 
@@ -76,6 +89,10 @@ class ActuatorWidget(QWidget):
         # Scan control group
         scan_group = self._create_scan_group()
         layout.addWidget(scan_group)
+
+        # Advanced scan range group
+        scan_range_group = self._create_scan_range_group()
+        layout.addWidget(scan_range_group)
 
         # Speed control group
         speed_group = self._create_speed_group()
@@ -233,6 +250,90 @@ class ActuatorWidget(QWidget):
         info_label.setWordWrap(True)
         info_label.setStyleSheet("font-size: 9pt; color: gray;")
         layout.addWidget(info_label)
+
+        group.setLayout(layout)
+        return group
+
+    def _create_scan_range_group(self) -> QGroupBox:
+        """Create advanced scan range control group."""
+        group = QGroupBox("Scan Range (Automated)")
+        layout = QVBoxLayout()
+
+        # From/To position inputs
+        range_layout = QHBoxLayout()
+        range_layout.addWidget(QLabel("From:"))
+        self.scan_from_input = QDoubleSpinBox()
+        self.scan_from_input.setRange(-45000.0, 45000.0)
+        self.scan_from_input.setValue(-1000.0)
+        self.scan_from_input.setSuffix(" µm")
+        self.scan_from_input.setDecimals(2)
+        self.scan_from_input.setSingleStep(100.0)
+        self.scan_from_input.setEnabled(False)
+        range_layout.addWidget(self.scan_from_input)
+
+        range_layout.addWidget(QLabel("To:"))
+        self.scan_to_input = QDoubleSpinBox()
+        self.scan_to_input.setRange(-45000.0, 45000.0)
+        self.scan_to_input.setValue(1000.0)
+        self.scan_to_input.setSuffix(" µm")
+        self.scan_to_input.setDecimals(2)
+        self.scan_to_input.setSingleStep(100.0)
+        self.scan_to_input.setEnabled(False)
+        range_layout.addWidget(self.scan_to_input)
+
+        layout.addLayout(range_layout)
+
+        # Step size and dwell time
+        params_layout = QHBoxLayout()
+        params_layout.addWidget(QLabel("Step:"))
+        self.scan_step_input = QDoubleSpinBox()
+        self.scan_step_input.setRange(1.0, 10000.0)
+        self.scan_step_input.setValue(100.0)
+        self.scan_step_input.setSuffix(" µm")
+        self.scan_step_input.setDecimals(2)
+        self.scan_step_input.setSingleStep(10.0)
+        self.scan_step_input.setEnabled(False)
+        params_layout.addWidget(self.scan_step_input)
+
+        params_layout.addWidget(QLabel("Dwell:"))
+        self.scan_dwell_input = QDoubleSpinBox()
+        self.scan_dwell_input.setRange(0.0, 10.0)
+        self.scan_dwell_input.setValue(0.5)
+        self.scan_dwell_input.setSuffix(" sec")
+        self.scan_dwell_input.setDecimals(2)
+        self.scan_dwell_input.setSingleStep(0.1)
+        self.scan_dwell_input.setEnabled(False)
+        params_layout.addWidget(self.scan_dwell_input)
+
+        layout.addLayout(params_layout)
+
+        # Loop checkbox
+        from PyQt6.QtWidgets import QCheckBox
+
+        self.scan_loop_checkbox = QCheckBox("Loop continuously")
+        self.scan_loop_checkbox.setEnabled(False)
+        layout.addWidget(self.scan_loop_checkbox)
+
+        # Control buttons
+        button_layout = QHBoxLayout()
+        self.scan_range_start_btn = QPushButton("Start Scan Range")
+        self.scan_range_start_btn.clicked.connect(self._on_scan_range_start)
+        self.scan_range_start_btn.setEnabled(False)
+        self.scan_range_start_btn.setStyleSheet("background-color: #4CAF50;")
+        button_layout.addWidget(self.scan_range_start_btn)
+
+        self.scan_range_stop_btn = QPushButton("Stop Scan Range")
+        self.scan_range_stop_btn.clicked.connect(self._on_scan_range_stop)
+        self.scan_range_stop_btn.setEnabled(False)
+        self.scan_range_stop_btn.setStyleSheet("background-color: #f44336;")
+        button_layout.addWidget(self.scan_range_stop_btn)
+
+        layout.addLayout(button_layout)
+
+        # Status label
+        self.scan_range_status_label = QLabel("Status: Ready")
+        self.scan_range_status_label.setWordWrap(True)
+        layout.addWidget(self.scan_range_status_label)
 
         group.setLayout(layout)
         return group
@@ -425,6 +526,16 @@ class ActuatorWidget(QWidget):
         self.scan_negative_btn.setEnabled(controls_enabled)
         self.scan_positive_btn.setEnabled(controls_enabled)
         self.scan_stop_btn.setEnabled(controls_enabled)
+
+        # Scan range controls
+        scan_range_enabled = controls_enabled and not self.scan_range_active
+        self.scan_from_input.setEnabled(scan_range_enabled)
+        self.scan_to_input.setEnabled(scan_range_enabled)
+        self.scan_step_input.setEnabled(scan_range_enabled)
+        self.scan_dwell_input.setEnabled(scan_range_enabled)
+        self.scan_loop_checkbox.setEnabled(scan_range_enabled)
+        self.scan_range_start_btn.setEnabled(scan_range_enabled)
+        self.scan_range_stop_btn.setEnabled(controls_enabled and self.scan_range_active)
 
         self.speed_slider.setEnabled(controls_enabled)
         self.fast_speed_checkbox.setEnabled(controls_enabled)
@@ -688,8 +799,133 @@ class ActuatorWidget(QWidget):
         self.limit_warning_label.setVisible(True)
         logger.warning(warning_text)
 
+    @pyqtSlot()
+    def _on_scan_range_start(self) -> None:
+        """Handle scan range start button click."""
+        if not self.controller or not self.is_homed:
+            return
+
+        # Get parameters
+        self.scan_from = self.scan_from_input.value()
+        self.scan_to = self.scan_to_input.value()
+        self.scan_step_size = self.scan_step_input.value()
+        self.scan_dwell_time = self.scan_dwell_input.value()
+        self.scan_loop = self.scan_loop_checkbox.isChecked()
+
+        # Validate range
+        if abs(self.scan_to - self.scan_from) < self.scan_step_size:
+            logger.error("Scan range too small for step size")
+            self.scan_range_status_label.setText("Error: Range too small for step size")
+            return
+
+        # Initialize scan
+        self.scan_range_active = True
+        self.scan_current_position = self.scan_from
+        direction = 1 if self.scan_to > self.scan_from else -1
+        self.scan_step_size = abs(self.scan_step_size) * direction
+
+        # Move to start position
+        logger.info(
+            f"Starting scan range: {self.scan_from:.0f} to {self.scan_to:.0f} µm, "
+            f"step {abs(self.scan_step_size):.0f} µm, dwell {self.scan_dwell_time}s, "
+            f"loop={self.scan_loop}"
+        )
+        self.controller.set_position(self.scan_from)
+        self.scan_range_status_label.setText(f"Moving to start: {self.scan_from:.0f} µm")
+
+        # Create timer for stepping (check position reached every 100ms)
+        self.scan_range_timer = QTimer()
+        self.scan_range_timer.timeout.connect(self._on_scan_range_step)
+        self.scan_range_timer.start(100)  # Check every 100ms
+
+        self.scan_in_dwell = False
+        self._update_ui_state()
+
+    @pyqtSlot()
+    def _on_scan_range_stop(self) -> None:
+        """Handle scan range stop button click."""
+        if self.scan_range_timer:
+            self.scan_range_timer.stop()
+            self.scan_range_timer = None
+
+        self.scan_range_active = False
+        self.scan_in_dwell = False
+        self.scan_range_status_label.setText("Status: Stopped")
+        logger.info("Scan range stopped")
+        self._update_ui_state()
+
+    def _on_scan_range_step(self) -> None:
+        """Timer callback for scan range stepping."""
+        if not self.controller or not self.is_homed:
+            self._on_scan_range_stop()
+            return
+
+        # Check if position reached
+        if not self.controller.axis.isPositionReached():
+            return  # Still moving to current position
+
+        # Handle dwell time (non-blocking)
+        if not self.scan_in_dwell:
+            # Just reached position - start dwell
+            import time
+
+            self.scan_dwell_start_time = time.time()
+            self.scan_in_dwell = True
+            return
+        else:
+            # Check if dwell time elapsed
+            import time
+
+            elapsed = time.time() - self.scan_dwell_start_time
+            if elapsed < self.scan_dwell_time:
+                return  # Still dwelling
+
+            # Dwell complete
+            self.scan_in_dwell = False
+
+        # Calculate next position
+        next_pos = self.scan_current_position + self.scan_step_size
+
+        # Check if we've reached the end
+        if self.scan_step_size > 0:
+            at_end = next_pos >= self.scan_to
+        else:
+            at_end = next_pos <= self.scan_to
+
+        if at_end:
+            # At end position - move to exact end if not already there
+            if abs(self.scan_current_position - self.scan_to) > 1.0:
+                self.controller.set_position(self.scan_to)
+                self.scan_current_position = self.scan_to
+                self.scan_in_dwell = False  # Will dwell on next callback
+                return
+
+            # Check if we should loop
+            if self.scan_loop:
+                # Restart from beginning
+                logger.info("Scan range complete - looping")
+                self.scan_current_position = self.scan_from
+                self.controller.set_position(self.scan_from)
+                self.scan_range_status_label.setText(f"Loop: Moving to {self.scan_from:.0f} µm")
+                self.scan_in_dwell = False
+            else:
+                # Stop scanning
+                logger.info("Scan range complete - stopping")
+                self._on_scan_range_stop()
+        else:
+            # Move to next position
+            self.scan_current_position = next_pos
+            self.controller.set_position(next_pos)
+            progress = abs(next_pos - self.scan_from) / abs(self.scan_to - self.scan_from) * 100
+            self.scan_range_status_label.setText(f"Scanning: {next_pos:.0f} µm ({progress:.0f}%)")
+
     def cleanup(self) -> None:
         """Cleanup resources."""
+        # Stop scan range if active
+        if self.scan_range_timer:
+            self.scan_range_timer.stop()
+            self.scan_range_timer = None
+
         if self.controller:
             self.controller.disconnect()
             self.controller = None
