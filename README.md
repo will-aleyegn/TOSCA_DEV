@@ -210,23 +210,16 @@ TOSCA-dev/
 │
 ├── 📁 venv/                                    ✓ Virtual Environment (git-ignored)
 │
-├── 📄 Configuration Files                      ✓ Project Configuration
+├── 📄 Root Configuration Files                  ✓ Project Configuration
 │   ├── .gitignore                              ✓ Git ignore rules
 │   ├── .pre-commit-config.yaml                 ✓ Pre-commit hooks (black, flake8, mypy, isort)
-│   ├── .flake8                                 ✓ Linting configuration
+│   ├── .flake8                                 ✓ Flake8 linting configuration
 │   ├── .pylintrc                               ✓ Pylint configuration
-│   ├── pyproject.toml                          ✓ Black and project settings
-│   ├── pytest.ini                              ✓ Pytest configuration
-│   ├── setup.py                                ✓ Package setup
-│   ├── requirements.txt                        ✓ Python dependencies (100+ packages)
-│   └── .env.example                            ✓ Environment variables template
+│   ├── pyproject.toml                          ✓ Python project metadata + tool configs (black, mypy, pytest, coverage)
+│   ├── setup.py                                ✓ Package installation configuration
+│   └── requirements.txt                        ✓ All dependencies (production + development tools)
 │
-├── 📄 Documentation Files                      ✓ Root Documentation
-│   ├── README.md                               ✓ This file (you are here)
-│   └── NEW_SESSION_GUIDE.md                    ✓ AI session onboarding guide
-│
-└── 📄 Hidden Files
-    └── .mcp.json                               ✓ MCP server config (git-ignored)
+└── 📄 README.md                                ✓ Project documentation (this file)
 ```
 
 ## Component Status Summary
@@ -487,12 +480,8 @@ python src/main.py
 
 ## Documentation
 
-**NEW_SESSION_GUIDE.md** ⭐ - How to onboard new AI instances (START HERE)
-
 **Project Management:** `docs/project/`
-- START_HERE.md - New AI session quick start
 - PROJECT_STATUS.md - Current project state
-- WORK_LOG.md - Real-time session tracking
 - CODING_STANDARDS.md - Development rules
 - CONFIGURATION.md - Config file reference
 
