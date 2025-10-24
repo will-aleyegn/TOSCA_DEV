@@ -1128,36 +1128,56 @@ class ActuatorWidget(QWidget):
         if action_type == ActionType.MOVE_ABSOLUTE:
             self.seq_pos_label.setText("Position (µm):")
             for i in range(self.seq_pos_layout.count()):
-                self.seq_pos_layout.itemAt(i).widget().show()
+                widget = self.seq_pos_layout.itemAt(i).widget()
+                if widget:
+                    widget.show()
             for i in range(self.seq_speed_layout.count()):
-                self.seq_speed_layout.itemAt(i).widget().show()
+                widget = self.seq_speed_layout.itemAt(i).widget()
+                if widget:
+                    widget.show()
 
         elif action_type == ActionType.MOVE_RELATIVE:
             self.seq_pos_label.setText("Distance (µm):")
             for i in range(self.seq_pos_layout.count()):
-                self.seq_pos_layout.itemAt(i).widget().show()
+                widget = self.seq_pos_layout.itemAt(i).widget()
+                if widget:
+                    widget.show()
             for i in range(self.seq_speed_layout.count()):
-                self.seq_speed_layout.itemAt(i).widget().show()
+                widget = self.seq_speed_layout.itemAt(i).widget()
+                if widget:
+                    widget.show()
 
         elif action_type == ActionType.HOME:
             for i in range(self.seq_speed_layout.count()):
-                self.seq_speed_layout.itemAt(i).widget().show()
+                widget = self.seq_speed_layout.itemAt(i).widget()
+                if widget:
+                    widget.show()
 
         elif action_type == ActionType.PAUSE:
             for i in range(self.seq_dur_layout.count()):
-                self.seq_dur_layout.itemAt(i).widget().show()
+                widget = self.seq_dur_layout.itemAt(i).widget()
+                if widget:
+                    widget.show()
 
         elif action_type == ActionType.SET_SPEED:
             for i in range(self.seq_speed_layout.count()):
-                self.seq_speed_layout.itemAt(i).widget().show()
+                widget = self.seq_speed_layout.itemAt(i).widget()
+                if widget:
+                    widget.show()
 
         elif action_type == ActionType.SCAN:
             for i in range(self.seq_speed_layout.count()):
-                self.seq_speed_layout.itemAt(i).widget().show()
+                widget = self.seq_speed_layout.itemAt(i).widget()
+                if widget:
+                    widget.show()
             for i in range(self.seq_dir_layout.count()):
-                self.seq_dir_layout.itemAt(i).widget().show()
+                widget = self.seq_dir_layout.itemAt(i).widget()
+                if widget:
+                    widget.show()
             for i in range(self.seq_dur_layout.count()):
-                self.seq_dur_layout.itemAt(i).widget().show()
+                widget = self.seq_dur_layout.itemAt(i).widget()
+                if widget:
+                    widget.show()
 
     @pyqtSlot()
     def _on_seq_add_action(self) -> None:
