@@ -18,7 +18,6 @@ from PyQt6.QtWidgets import (
 )
 
 from ui.widgets.camera_widget import CameraWidget
-from ui.widgets.protocol_builder_widget import ProtocolBuilderWidget
 from ui.widgets.safety_widget import SafetyWidget
 from ui.widgets.subject_widget import SubjectWidget
 from ui.widgets.treatment_widget import TreatmentWidget
@@ -92,9 +91,6 @@ class MainWindow(QMainWindow):
         # Connect dev mode signal to widgets (after widgets are created)
         self.dev_mode_changed.connect(self.camera_widget.set_dev_mode)
         self.dev_mode_changed.connect(self.treatment_widget.set_dev_mode)
-
-        self.protocol_builder_widget = ProtocolBuilderWidget()
-        self.tabs.addTab(self.protocol_builder_widget, "Protocol Builder")
 
         self.safety_widget = SafetyWidget()
         self.tabs.addTab(self.safety_widget, "Safety Status")

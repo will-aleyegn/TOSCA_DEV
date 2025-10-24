@@ -40,32 +40,36 @@ class SequenceAction:
 
     def __str__(self) -> str:
         """Human-readable string representation."""
+        # Get laser power for display
+        laser_power = self.params.get("laser_power", 0)
+        power_str = f" @ {laser_power:.0f}mW" if laser_power > 0 else ""
+
         if self.action_type == ActionType.MOVE_ABSOLUTE:
             pos = self.params.get("position", 0)
             unit = self.params.get("unit", "um")
-            return f"Move to {pos:.1f} {unit}"
+            return f"Move to {pos:.1f} {unit}{power_str}"
 
         elif self.action_type == ActionType.MOVE_RELATIVE:
             dist = self.params.get("distance", 0)
             unit = self.params.get("unit", "um")
-            return f"Move {dist:+.1f} {unit}"
+            return f"Move {dist:+.1f} {unit}{power_str}"
 
         elif self.action_type == ActionType.HOME:
-            return "Home"
+            return f"Home{power_str}"
 
         elif self.action_type == ActionType.PAUSE:
             dur = self.params.get("duration", 0)
-            return f"Pause {dur:.1f}s"
+            return f"Pause {dur:.1f}s{power_str}"
 
         elif self.action_type == ActionType.SET_SPEED:
             speed = self.params.get("speed", 0)
             unit = self.params.get("unit", "um")
-            return f"Set speed {speed:.1f} {unit}/s"
+            return f"Set speed {speed:.1f} {unit}/s{power_str}"
 
         elif self.action_type == ActionType.SCAN:
             direction = self.params.get("direction", "positive")
             dur = self.params.get("duration", 0)
-            return f"Scan {direction} {dur:.1f}s"
+            return f"Scan {direction} {dur:.1f}s{power_str}"
 
         return str(self.action_type.value)
 

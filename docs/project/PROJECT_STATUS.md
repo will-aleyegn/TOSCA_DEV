@@ -1,33 +1,43 @@
 # Project Status
 
 **Project:** TOSCA Laser Control System
-**Last Updated:** 2025-10-23
-**Current Phase:** Phase 2 In Progress - Hardware Abstraction Layer
+**Last Updated:** 2025-10-24
+**Current Phase:** Phase 2 In Progress - Hardware Abstraction Layer (75% Complete)
 
 ---
 
 ## Executive Summary
 
-**Status:** Camera HAL complete, **Actuator HAL complete!** 🎉
+**Status:** Camera HAL complete, Actuator HAL complete, **Laser HAL complete!** 🎉
 
 **Completed:**
-- GUI shell with 5-tab interface
+- GUI shell with 4-tab interface (Protocol Builder removed)
 - Protocol data model and execution engine
 - Camera module API exploration (6 custom tests + 12 official examples + 24+ unit tests)
 - **Camera Hardware Abstraction Layer** - PyQt6-integrated camera controller ✅
 - **Camera Widget Enhancement** - Live streaming, exposure/gain control, capture, recording ✅
-- **Actuator Hardware Abstraction Layer (NEW)** - Complete implementation with GUI ✅
+- **Actuator Hardware Abstraction Layer** - Complete implementation with GUI ✅
   - Connection, homing, position control, speed control
+  - Sequence builder with 6 action types and loop support
   - ActuatorWidget fully integrated into Treatment tab
   - Position control test script
   - Hardware tested and operational
+- **Laser Hardware Abstraction Layer (NEW)** - Arroyo Instruments laser driver control ✅
+  - Serial communication with Arroyo protocol
+  - Power/current control (0-2000 mA)
+  - TEC temperature control and monitoring
+  - Safety limits enforcement
+  - LaserWidget fully integrated into Treatment tab
+  - Comprehensive API documentation
+- **Enhanced Sequence Builder** - Laser power, acceleration, deceleration per step
 - **Critical Fix: AUTO_SEND_SETTINGS** - Use device settings, not file overrides
 - Actuator module API exploration (6 test scripts + 6 diagnostic tools)
+- Laser module documentation (API reference, Computer Interfacing Manual)
 - Comprehensive documentation (architecture, configuration, coding standards)
 - Development environment setup (pre-commit hooks, linting, formatting)
 - **Hardware API Usage Rule** - Project-wide standard for using native hardware features
 
-**Next Priority:** Laser Controller HAL
+**Next Priority:** GPIO Controller HAL for safety interlocks
 
 ---
 
@@ -50,11 +60,11 @@
 
 ---
 
-### Phase 2: Hardware Abstraction Layer (IN PROGRESS - 50% Complete)
+### Phase 2: Hardware Abstraction Layer (IN PROGRESS - 75% Complete)
 
 **Goal:** Create PyQt6-compatible hardware controllers
 
-**Status:** Camera HAL complete, others pending
+**Status:** Camera, Actuator, and Laser HALs complete! GPIO pending.
 
 **Completed Tasks:**
 1. ✅ Camera Hardware Abstraction Layer (100%)
@@ -69,14 +79,22 @@
    - ✅ Real-time metadata display (exposure, gain, resolution, FPS)
    - ✅ Testing documentation (CAMERA_HAL_TEST_GUIDE.md, test scripts)
 
-**Pending Tasks:**
-2. Laser Controller HAL (0%)
-   - Serial communication with Arroyo Instruments
-   - Power control with validation
-   - Temperature monitoring
-   - Status feedback
+2. ✅ Laser Controller HAL (100% - COMPLETE!) ✅ **MILESTONE REACHED**
+   - ✅ Serial communication with Arroyo Instruments protocol
+   - ✅ PyQt6 signal integration (8 signals for status monitoring)
+   - ✅ Current control (0-2000 mA) with safety limits
+   - ✅ Output enable/disable control
+   - ✅ TEC temperature control and monitoring
+   - ✅ Real-time status updates (500ms polling)
+   - ✅ Safety limits enforcement (current, temperature)
+   - ✅ LaserWidget with connection, power, and temperature controls
+   - ✅ Treatment tab integration (3-column layout)
+   - ✅ Sequence integration (laser power per step)
+   - ✅ Comprehensive API documentation (ARROYO_API_REFERENCE.md)
+   - ✅ External resources downloaded (manuals, SDK, examples)
+   - Ready for hardware testing
 
-3. Actuator Controller HAL (100% - COMPLETE!) ✅ **MILESTONE REACHED**
+3. ✅ Actuator Controller HAL (100% - COMPLETE!) ✅ **MILESTONE REACHED**
    - ✅ Xeryon API integration with PyQt6
    - ✅ Hardware connection and initialization
    - ✅ Status monitoring and error handling
@@ -84,7 +102,10 @@
    - ✅ Critical fix: AUTO_SEND_SETTINGS=False
    - ✅ Absolute position control (`set_position()`)
    - ✅ Relative movement (`make_step()`)
-   - ✅ Speed control (50-500 range)
+   - ✅ Speed control (0.5-400 mm/s)
+   - ✅ Sequence builder with 6 action types
+   - ✅ Loop support (1-100 iterations)
+   - ✅ Enhanced sequence parameters (accel, decel, laser power)
    - ✅ GUI integration (ActuatorWidget)
    - ✅ Treatment tab integration
    - ✅ Position control test script
