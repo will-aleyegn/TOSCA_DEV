@@ -399,10 +399,96 @@
   - ⏳ Subject widget integration (next)
   - ⏳ Session-based file organization (next)
 
-**Commit:** Pending
+**Commit:** b7424d5
 **Result:** SUCCESS - Session management foundation complete
 **Status:** Phase 3 Priority 2 at 60% (backend complete, GUI integration pending)
 **Next:** Wire up subject_widget to enable session creation from GUI
+
+#### 33. Integrated Session Management GUI (Phase 3 Priority 2 Complete!)
+**Time:** 07:15-07:45
+**What:** Complete GUI integration for subject selection and session creation
+
+**Components Modified:**
+  - src/ui/widgets/subject_widget.py
+    - Added database and session manager integration
+    - Implemented search subject functionality
+    - Implemented create new subject functionality
+    - Implemented start session functionality
+    - Added "Create New Subject" button
+    - Signal connection for all button clicks
+    - Session started signal for main window
+    - Automatic control disabling after session start
+  - src/ui/main_window.py
+    - Initialize DatabaseManager and SessionManager
+    - Pass managers to subject_widget
+    - Connect session_started signal to safety manager
+    - Added database cleanup in closeEvent
+    - Session valid flag updated on session start
+
+**Subject Widget Features:**
+  - Search existing subjects by ID
+  - Display subject information (created date, session count, notes)
+  - Create new subjects with automatic ID validation
+  - Start treatment sessions with tech authentication
+  - Session folder automatically created
+  - Controls disable after session start to prevent duplicate sessions
+
+**Session Creation Flow:**
+  1. User enters subject ID (e.g., P-2025-0001)
+  2. Click "Search Subject" or "Create New Subject"
+  3. Subject info displayed with previous session count
+  4. User enters technician ID (defaults to "admin")
+  5. Click "Start Session"
+  6. Session created in database
+  7. Session folder created: data/sessions/SUBJECT/TIMESTAMP/
+  8. Safety manager updated (session valid = true)
+  9. Controls disabled until session ends
+
+**Database Integration:**
+  - Subject search with get_subject_by_code()
+  - Subject creation with automatic timestamp
+  - Technician lookup with last_login update
+  - Session creation with full lifecycle tracking
+  - Default admin user (tech_id=1) available
+
+**Safety System Integration:**
+  - Session started signal triggers safety_manager.set_session_valid(True)
+  - Laser enable now requires valid session (unless dev mode)
+  - Complete integration with Phase 3 Priority 1 safety system
+
+**File Organization:**
+  - Session folders: data/sessions/P-2025-0001/2025-10-24_143022/
+  - Automatic folder creation on session start
+  - Path stored in database session record
+  - Ready for video/image recording integration
+
+**Technical Details:**
+  - PyQt6 signal/slot pattern for UI updates
+  - Database operations with context managers
+  - Error handling for missing subjects/technicians
+  - Control state management (enable/disable)
+  - Comprehensive logging throughout
+  - All pre-commit hooks passing
+
+**Testing:**
+  - ✓ Code passes all pre-commit hooks
+  - ✓ Database initialization works
+  - ✓ GUI integration complete
+  - ✓ Session creation flow ready
+  - Functional testing pending (requires running GUI)
+
+**Phase 3 Priority 2 Progress:**
+  - ✅ Database models created
+  - ✅ Database manager with CRUD operations
+  - ✅ Session lifecycle manager
+  - ✅ Subject widget GUI integration (DONE!)
+  - ✅ Session-based file organization (DONE!)
+  - **PRIORITY 2: 100% COMPLETE** 🎉
+
+**Commit:** Pending
+**Result:** SUCCESS - Session management system fully integrated!
+**Status:** Phase 3 Priority 2 COMPLETE - Ready for functional testing
+**Next:** Test GUI and continue with Priority 3: Event Logging System
 
 ---
 
