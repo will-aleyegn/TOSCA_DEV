@@ -175,33 +175,34 @@ components/
 
 src/
 ├── ui/
-│   ├── main_window.py      [DONE] 4-tab interface
+│   ├── main_window.py      [DONE] 4-tab interface with database, event logging
 │   └── widgets/
-│       ├── subject_widget.py         [DONE] Subject selection
+│       ├── subject_widget.py         [DONE] Subject selection and session creation
 │       ├── camera_widget.py          [DONE] Live camera streaming, controls
 │       ├── treatment_widget.py       [DONE] Integrated laser/actuator controls
 │       ├── laser_widget.py           [DONE] Laser power and TEC controls
 │       ├── actuator_widget.py        [DONE] Actuator sequences and positioning
 │       ├── protocol_builder_widget.py [DEPRECATED] Replaced by sequence builder
-│       └── safety_widget.py          [DONE] Safety status
+│       ├── safety_widget.py          [DONE] Safety status with event logging
+│       └── gpio_widget.py            [DONE] GPIO safety interlock display
 │
 ├── core/
 │   ├── protocol.py         [DONE] Action-based data model
 │   ├── protocol_engine.py  [DONE] Async execution engine
-│   ├── safety.py           [TODO] Safety interlock manager
-│   ├── session.py          [TODO] Session management
-│   └── event_logger.py     [TODO] Event logging
+│   ├── safety.py           [DONE] Safety interlock manager (95% complete)
+│   ├── session_manager.py  [DONE] Session lifecycle management
+│   └── event_logger.py     [DONE] Event logging (50% - core done, hw integration pending)
 │
 ├── hardware/
 │   ├── camera_controller.py       [DONE] Camera HAL with PyQt6 integration
 │   ├── laser_controller.py        [DONE] Laser HAL with Arroyo protocol
 │   ├── actuator_controller.py     [DONE] Actuator HAL with Xeryon API
 │   ├── actuator_sequence.py       [DONE] Sequence builder data model
-│   └── gpio_controller.py         [TODO] GPIO HAL
+│   └── gpio_controller.py         [DONE] GPIO HAL with FT232H safety interlocks
 │
 ├── database/
-│   ├── models.py           [TODO] SQLAlchemy models
-│   └── operations.py       [TODO] CRUD operations
+│   ├── models.py           [DONE] SQLAlchemy ORM models
+│   └── db_manager.py       [DONE] Database manager with CRUD operations
 │
 └── image_processing/
     ├── ring_detector.py    [TODO] Hough circle detection
@@ -210,8 +211,9 @@ src/
 
 data/
 ├── protocols/              [DONE] Protocol JSON storage
-├── logs/                   [DONE] Application logs
-└── sessions/               [TODO] Session recordings
+├── logs/                   [DONE] Application logs, event JSONL files
+├── sessions/               [DONE] Session folders (auto-created per session)
+└── tosca.db                [DONE] SQLite database (auto-created)
 
 tests/                      [TODO] Test suite
 ```
@@ -220,86 +222,121 @@ tests/                      [TODO] Test suite
 
 ## Architecture Status
 
-### Hardware Integration (75% Complete - Phase 2)
-- **Camera API Exploration** ✅ [DONE] - VmbPy integration with 6 test scripts
-- **Actuator API Exploration** ✅ [DONE] - Xeryon integration with 6 test scripts
-- **Laser API Documentation** ✅ [DONE] - Arroyo manuals and Python SDK
-- **Camera Hardware Abstraction Layer** ✅ [DONE] - PyQt6 integration with streaming, recording, controls
-- **Laser Hardware Abstraction Layer** ✅ [DONE] - Arroyo serial communication with PyQt6 signals
-- **Actuator Hardware Abstraction Layer** ✅ [DONE] - Xeryon PyQt integration with sequence builder
-- **GPIO Hardware Abstraction Layer** ⏳ [TODO] - FT232H safety interlocks
+### Phase 2: Hardware Integration ✅ COMPLETE
+- **Camera API Exploration** ✅ - VmbPy integration with 6 test scripts
+- **Actuator API Exploration** ✅ - Xeryon integration with 6 test scripts
+- **Laser API Documentation** ✅ - Arroyo manuals and Python SDK
+- **Camera Hardware Abstraction Layer** ✅ - PyQt6 integration with streaming, recording, controls
+- **Laser Hardware Abstraction Layer** ✅ - Arroyo serial communication with PyQt6 signals
+- **Actuator Hardware Abstraction Layer** ✅ - Xeryon PyQt integration with sequence builder
+- **GPIO Hardware Abstraction Layer** ✅ - FT232H safety interlocks complete
 
-### User Interface
-- **Main Window & Tab Navigation** ✅ [DONE] - 4-tab interface (Subject, Camera, Treatment, Safety)
-- **Subject Selection Widget** ✅ [DONE] - Subject search and session start
-- **Camera/Alignment Widget** ✅ [DONE] - Live camera streaming, exposure/gain controls, capture, recording
-- **Treatment Control Widget** ✅ [DONE] - Integrated 3-column layout (laser, treatment, actuator)
-- **Laser Widget** ✅ [DONE] - Connection, current control, TEC temperature, output enable/disable
-- **Actuator Widget** ✅ [DONE] - Sequence builder with 6 action types, homing, positioning
+### Phase 3: Core Business Logic 🔄 60% COMPLETE
+
+**User Interface**
+- **Main Window & Tab Navigation** ✅ - 4-tab interface with database and event logging
+- **Subject Selection Widget** ✅ - Subject search/create, session management, database integration
+- **Camera/Alignment Widget** ✅ - Live streaming, exposure/gain controls, capture, recording
+- **Treatment Control Widget** ✅ - Integrated 3-column layout (laser, treatment, actuator)
+- **Laser Widget** ✅ - Connection, current control, TEC temperature, output enable with safety checks
+- **Actuator Widget** ✅ - Sequence builder with 6 action types, homing, positioning
+- **Safety Status Widget** ✅ - Safety status, event logging, emergency stop, GPIO interlock display
+- **GPIO Widget** ✅ - Motor control, vibration monitoring, photodiode display
 - **Protocol Builder Widget** ⚠️ [DEPRECATED] - Replaced by actuator sequence builder
-- **Safety Status Widget** ✅ [DONE] - Safety indicator placeholder
 
-### Core Business Logic
-- **Protocol Data Model** ✅ [DONE] - 5 action types with validation
-- **Protocol Execution Engine** ✅ [DONE] - Async engine with pause/resume/stop
-- **Actuator Sequence Model** ✅ [DONE] - 6 action types with acceleration, deceleration, laser power
-- **Safety System** ⏳ [TODO] - Interlock manager and state machine
-- **Session Management** ⏳ [TODO] - Session lifecycle and tracking
-- **Event Logger** ⏳ [TODO] - Immutable audit trail
+**Core Business Logic**
+- **Protocol Data Model** ✅ - 5 action types with validation
+- **Protocol Execution Engine** ✅ - Async engine with pause/resume/stop
+- **Actuator Sequence Model** ✅ - 6 action types with accel/decel, laser power
+- **Safety System** ✅ (95%) - SafetyManager with state machine, GPIO integration, laser enforcement
+- **Session Management** ✅ (100%) - Complete session lifecycle, database persistence, folder creation
+- **Event Logger** 🔄 (50%) - EventLogger with 25+ event types, database + file persistence
 
-### Data Layer
-- **Database Schema Design** ✅ [DONE] - Documented in architecture docs
-- **Database Models** ⏳ [TODO] - SQLAlchemy ORM models
-- **Database Operations** ⏳ [TODO] - CRUD operations
-- **Database Migrations** ⏳ [TODO] - Alembic setup
+**Data Layer**
+- **Database Schema Design** ✅ - Comprehensive schema documented
+- **Database Models** ✅ - SQLAlchemy ORM models (TechUser, Subject, Protocol, Session, SafetyLog)
+- **Database Operations** ✅ - DatabaseManager with CRUD operations
+- **Database Migrations** ⏳ - Alembic setup pending
 
-### Image Processing
-- **Ring Detection** ⏳ [TODO] - Hough circle transform
-- **Focus Measurement** ⏳ [TODO] - Laplacian variance
-- **Video Recording** ⏳ [TODO] - OpenCV integration
-- **Frame Processing Pipeline** ⏳ [TODO] - Real-time processing
+**Image Processing** ⏳ TODO
+- **Ring Detection** ⏳ - Hough circle transform
+- **Focus Measurement** ⏳ - Laplacian variance
+- **Video Recording** ⏳ - OpenCV integration
+- **Frame Processing Pipeline** ⏳ - Real-time processing
 
-### Testing & Quality
-- **Test Framework** ⏳ [TODO] - Pytest configuration
-- **Unit Tests** ⏳ [TODO] - Component tests
-- **Integration Tests** ⏳ [TODO] - System tests
-- **Safety Tests** ⏳ [TODO] - FMEA and validation
+**Testing & Quality** ⏳ TODO
+- **Test Framework** ⏳ - Pytest configuration
+- **Unit Tests** ⏳ - Component tests
+- **Integration Tests** ⏳ - System tests
+- **Safety Tests** ⏳ - FMEA and validation
 
 ---
 
-## Recent Updates (2025-10-24)
+## Recent Updates (2025-10-24 08:15)
 
-### Laser Controller Implementation ✅
-- Complete Arroyo Instruments laser driver integration
-- Serial communication with ASCII command protocol (38400 baud)
-- PyQt6 signal-based monitoring (8 signals)
-- Current control (0-2000 mA) with safety limits
-- TEC temperature control and monitoring
-- Output enable/disable with verification
-- Comprehensive API documentation (components/laser_control/)
+### Phase 2: Hardware Abstraction Layer - COMPLETE ✅
+All 4 hardware controllers fully implemented with PyQt6 integration:
 
-### Enhanced Sequence Builder ✅
-- Acceleration control per step (1000-65500)
-- Deceleration control per step (1000-65500)
-- Laser power per step (0-2000 mW)
-- Sequence display shows laser power notation
-- 6 action types: Move Absolute, Move Relative, Home, Pause, Set Speed, Scan
-- Loop support (1-100 iterations)
+1. **Camera HAL** ✅
+   - VmbPy API integration with Allied Vision 1800 U-158c
+   - Thread-safe streaming with Qt signals
+   - Live video display, exposure/gain controls, capture, recording
+
+2. **Laser HAL** ✅
+   - Arroyo Instruments serial communication (38400 baud)
+   - Current control (0-2000 mA), TEC temperature control
+   - Output enable/disable with verification
+   - 8 PyQt6 signals for real-time monitoring
+
+3. **Actuator HAL** ✅
+   - Xeryon linear stage integration
+   - Position control, homing procedures
+   - Sequence builder with 6 action types, loop support
+   - Acceleration/deceleration control per step
+
+4. **GPIO HAL** ✅
+   - FT232H integration with Adafruit Blinka
+   - Smoothing device motor control (digital output)
+   - Vibration sensor monitoring (digital input, debounced)
+   - Photodiode power monitoring (MCP3008 ADC via SPI)
+   - Safety interlock logic (motor ON + vibration detected)
+
+### Phase 3: Core Business Logic - IN PROGRESS (60% complete)
+
+**Priority 1: Safety System** (95% complete) ✅
+- Central SafetyManager with state machine (SAFE/UNSAFE/EMERGENCY_STOP)
+- GPIO interlock integration
+- Laser enable enforcement
+- Safety event logging display
+- Emergency stop UI wiring
+- Session validity checking
+
+**Priority 2: Session Management** (100% complete) ✅
+- SQLite database with SQLAlchemy ORM
+- Database models: TechUser, Subject, Protocol, Session, SafetyLog
+- Session lifecycle manager with automatic folder creation
+- Subject widget GUI integration (search/create subjects, start sessions)
+- Session folders: data/sessions/P-YYYY-NNNN/TIMESTAMP/
+- Safety system integration (session valid flag)
+
+**Priority 3: Event Logging** (50% complete) 🔄
+- EventLogger with 25+ event types (safety, hardware, treatment, user, system)
+- Dual persistence: Database (SafetyLog table) + JSONL file backup
+- Session and technician association
+- PyQt6 signals for real-time UI updates
+- System startup/shutdown event logging
+- Next: Hardware controller integration, safety widget display
 
 ### Treatment Tab Reorganization ✅
 - 3-column layout: Laser (left), Treatment (middle), Actuator (right)
 - Integrated laser and actuator controls in single view
 - Removed redundant Protocol Builder tab
 
-### Phase 2 Progress: 75% Complete
-- ✅ Camera HAL
-- ✅ Actuator HAL
-- ✅ Laser HAL
-- ⏳ GPIO HAL (next priority)
-
 ---
 
-**Last Updated:** 2025-10-24
+**Last Updated:** 2025-10-24 08:15
+**Project Phase:** Phase 3 - Core Business Logic (60% complete)
+**Next Priority:** Complete event logging integration, begin hardware testing
 
 **For current project status and detailed progress, see:**
 - `docs/project/PROJECT_STATUS.md` - Complete project state

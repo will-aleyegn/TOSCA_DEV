@@ -9,7 +9,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-from sqlalchemy import create_engine, select
+from sqlalchemy import create_engine, select, text
 from sqlalchemy.orm import Session, sessionmaker
 
 from database.models import Base, SafetyLog, Subject, TechUser
@@ -52,8 +52,8 @@ class DatabaseManager:
         # Enable foreign keys and WAL mode for SQLite
         if self.engine:
             with self.engine.connect() as conn:
-                conn.execute("PRAGMA foreign_keys = ON")
-                conn.execute("PRAGMA journal_mode = WAL")
+                conn.execute(text("PRAGMA foreign_keys = ON"))
+                conn.execute(text("PRAGMA journal_mode = WAL"))
                 conn.commit()
 
         # Create session factory

@@ -171,7 +171,7 @@ class SubjectWidget(QWidget):
         subject = self.db_manager.create_subject(subject_code=subject_code, tech_id=1)
         self.current_subject = subject
         self.subject_info_display.setText(
-            f"✓ New subject created!\n\n"
+            f"New subject created\n\n"
             f"Subject ID: {subject.subject_code}\n"
             f"Created: {subject.created_date.strftime('%Y-%m-%d %H:%M')}\n"
             f"Previous sessions: 0"
@@ -213,7 +213,7 @@ class SubjectWidget(QWidget):
         )
 
         self.subject_info_display.setText(
-            f"✓ Session started!\n\n"
+            f"Session started\n\n"
             f"Session ID: {session.session_id}\n"
             f"Subject: {self.current_subject.subject_code}\n"
             f"Start Time: {session.start_time.strftime('%Y-%m-%d %H:%M:%S')}\n"
