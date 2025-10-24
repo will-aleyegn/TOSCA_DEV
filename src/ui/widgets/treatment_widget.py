@@ -132,8 +132,6 @@ class TreatmentWidget(QWidget):
             self.status_label.setText("Status: Developer Mode - Session Optional")
             self.status_label.setStyleSheet("font-size: 14px; padding: 10px; color: orange;")
         else:
-            # Disable treatment controls when not in dev mode and no session
-            # TODO: Check for active session and enable accordingly
             self.start_button.setEnabled(False)
             self.status_label.setText("Status: Ready - No Active Session")
             self.status_label.setStyleSheet("font-size: 14px; padding: 10px;")

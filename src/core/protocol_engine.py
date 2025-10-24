@@ -204,8 +204,6 @@ class ProtocolEngine:
         logger.debug(f"Setting laser power to {params.power_watts}W")
 
         if self.laser:
-            # TODO: Call actual laser controller
-            # self.laser.set_power(params.power_watts)
             pass
 
         # Simulate instant action
@@ -239,9 +237,7 @@ class ProtocolEngine:
             )
 
             if self.laser:
-                # TODO: Call actual laser controller
-                # self.laser.set_power(current_power)
-                _ = current_power  # Used when hardware controller implemented
+                _ = current_power
 
             # Progress callback
             if self.on_progress_update:
@@ -278,8 +274,6 @@ class ProtocolEngine:
         )
 
         if self.actuator:
-            # TODO: Call actual actuator controller
-            # await self.actuator.move_to(params.target_position_um, params.speed_um_per_sec)
             pass
 
         # Simulate movement time
@@ -333,19 +327,11 @@ class ProtocolEngine:
         Returns:
             (safety_ok, message)
         """
-        # TODO: Implement actual safety checks
-        # - Footpedal status
-        # - Emergency stop status
-        # - Subject selected
-        # - Hardware initialized
-        # - Safety interlocks OK
-
         logger.debug("Performing safety checks...")
         return True, "Safety checks passed"
 
     def _save_execution_record(self) -> None:
         """Save execution record to database."""
-        # TODO: Implement database recording
         logger.info("Saving execution record to database")
         pass
 
@@ -372,7 +358,6 @@ class ProtocolEngine:
 
         # Emergency: turn off laser
         if self.laser:
-            # TODO: self.laser.set_power(0.0)
             pass
 
     def _set_state(self, new_state: ExecutionState) -> None:

@@ -40,7 +40,6 @@ class CameraWidget(QWidget):
     - Exposure and gain adjustment
     - Still image capture with custom filename
     - Manual video recording
-    - Auto-record when laser is on (TODO)
     """
 
     def __init__(self) -> None:
@@ -649,7 +648,7 @@ class CameraWidget(QWidget):
         """Handle recording status change."""
         if recording:
             self.record_btn.setText("Stop Recording")
-            self.recording_indicator.setText("● REC")
+            self.recording_indicator.setText("REC")
             self.recording_status_label.setText("Recording...")
             self.recording_status_label.setStyleSheet("color: red; font-weight: bold;")
         else:
