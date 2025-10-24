@@ -571,6 +571,9 @@ class ActuatorWidget(QWidget):
         self.accel_slider.setEnabled(controls_enabled)
         self.decel_slider.setEnabled(controls_enabled)
 
+        # Update sequence builder button states
+        self._update_sequence_buttons()
+
     @pyqtSlot()
     def _on_connect_clicked(self) -> None:
         """Handle connect button click."""
