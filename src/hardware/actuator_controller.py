@@ -85,136 +85,57 @@ class ActuatorController(QObject):
 
     def connect(self, com_port: str = "COM3", baudrate: int = 9600, auto_home: bool = True) -> bool:
         """
-        Connect to Xeryon actuator using official API.
+        Connect to Xeryon actuator.
 
-        CRITICAL API Requirements:
-            - Baudrate: TOSCA hardware uses 9600 (NOT the library default of 115200)
-            - Stage Type: XLA_1250_3N (1.25 µm encoder resolution)
-            - Working Units: Units.mu (micrometers) for TOSCA precision
-            - AUTO_SEND_SETTINGS: False (use device-stored settings)
-
-        Official API Flow (see XERYON_API_REFERENCE.md):
-            1. Xeryon(COM_port, baudrate) - Create controller
-            2. addAxis(Stage, letter) - Add linear actuator
-            3. start() - Start communication, send settings, enable axes
-            4. setUnits(Units.mu) - Set working units to micrometers
-            5. findIndex() - Home the actuator (if auto_home=True)
+        TOSCA hardware config: 9600 baud, XLA_1250_5N stage, Units.mu
+        See XERYON_API_REFERENCE.md for API details.
 
         Args:
-            com_port: Serial port name (e.g., "COM3")
-            baudrate: Communication baud rate
-                      TOSCA: 9600 (manufacturer pre-configured)
-                      Library default: 115200
-            auto_home: If True, automatically perform homing after connection
+            com_port: Serial port (e.g., "COM3")
+            baudrate: TOSCA uses 9600 (NOT library default 115200)
+            auto_home: Auto-home after connection
 
         Returns:
             True if connected successfully
         """
         try:
-            logger.info("=== DEBUG: Starting connection ===")
-            logger.info(f"DEBUG: COM port: {com_port}")
-            logger.info(f"DEBUG: Baudrate: {baudrate}")
+            logger.info(f"Connecting to actuator on {com_port} at {baudrate} baud")
 
-            import os
-
-            logger.info(f"DEBUG: Current working directory: {os.getcwd()}")
-            logger.info(f"DEBUG: config.txt exists: {os.path.exists('config.txt')}")
-            logger.info(
-                f"DEBUG: settings_default.txt exists: {os.path.exists('settings_default.txt')}"
-            )
-            logger.info(f"DEBUG: settings_user.txt exists: {os.path.exists('settings_user.txt')}")
-
-            # Create controller
-            logger.info("DEBUG: Creating Xeryon controller...")
             self.controller = Xeryon(COM_port=com_port, baudrate=baudrate)
-            logger.info("DEBUG: Controller created successfully")
-            logger.info(f"DEBUG: Controller type: {type(self.controller)}")
-            logger.info(f"DEBUG: Controller attributes: {dir(self.controller)}")
-
-            # Check available stages
-            logger.info("DEBUG: Available Stage types:")
-            for attr in dir(Stage):
-                if not attr.startswith("_"):
-                    logger.info(f"  - {attr}")
-
-            # Create and register axis (from config.txt: X:XLA3=1250)
-            # Hardware: XLA-5-125-10MU (5N motor, 1250nm encoder resolution)
-            # addAxis creates Axis internally and adds to controller.axis_list
-            logger.info("DEBUG: Calling addAxis(Stage.XLA_1250_5N, 'X')...")
             self.axis = self.controller.addAxis(Stage.XLA_1250_5N, "X")
-            logger.info("DEBUG: Axis created and registered")
-            logger.info(f"DEBUG: Number of axes: {len(self.controller.axis_list)}")
-            logger.info(f"DEBUG: Axis letter: {self.axis.axis_letter}")
-            logger.info(f"DEBUG: Axis stage: {self.axis.stage}")
-
-            # Start controller
-            logger.info("DEBUG: Calling controller.start()...")
             self.controller.start()
-            logger.info("DEBUG: Controller started successfully!")
 
-            # Set working units to micrometers
             self.axis.setUnits(self.working_units)
-
-            # Enable non-blocking mode to prevent GUI freezing
-            # DISABLE_WAITING=True makes position commands return immediately
             self.axis.setSetting("DISABLE_WAITING", True)
-            logger.info("Enabled non-blocking mode (DISABLE_WAITING=True)")
-
-            # Settings are automatically sent from settings_user.txt (AUTO_SEND_SETTINGS=True)
-            # Do NOT send redundant commands - let hardware use its configured values
-            logger.info("Using settings from settings_user.txt (speed, limits, etc.)")
 
             self.is_connected = True
             self.connection_changed.emit(True)
 
-            # Check if already homed
             self.is_homed = self.axis.isEncoderValid()
+            logger.info("Connected successfully")
 
-            logger.info(f"Connected to actuator on {com_port}")
-
-            # Auto-home if requested and not already homed
             if auto_home and not self.is_homed:
-                logger.info("Auto-homing actuator (blocking until complete)...")
                 self.status_changed.emit("homing")
-
-                # Check hardware status before homing
                 import time
 
-                time.sleep(0.5)  # Let hardware stabilize after start()
+                time.sleep(0.5)
 
-                logger.info("DEBUG: Pre-homing status check:")
-                logger.info(f"  encoder_valid: {self.axis.isEncoderValid()}")
-                logger.info(f"  searching_index: {self.axis.isSearchingIndex()}")
-                logger.info(f"  position_reached: {self.axis.isPositionReached()}")
-                logger.info(f"  safety_timeout: {self.axis.isSafetyTimeoutTriggered()}")
-
-                # Use forceWaiting=True to make this blocking during initialization
-                # This ensures actuator is ready before connect() returns
-                logger.info("Starting index search (direction=0, bidirectional)...")
                 success = self.axis.findIndex(forceWaiting=True, direction=0)
 
                 if success:
                     self.is_homed = True
-                    logger.info("Auto-homing complete - actuator ready")
+                    logger.info("Auto-homing complete")
                     self.status_changed.emit("ready")
                 else:
-                    logger.warning("Auto-homing failed - encoder not valid")
-                    logger.warning("Try manual homing with find_index()")
+                    logger.warning("Auto-homing failed")
                     self.status_changed.emit("not_homed")
             elif self.is_homed:
-                logger.info("Actuator already homed (encoder valid)")
                 self.status_changed.emit("ready")
             else:
-                logger.warning("Actuator not homed - call find_index() before positioning")
                 self.status_changed.emit("not_homed")
 
-            # Query hardware limits and acceleration settings
             low_limit, high_limit = self.get_limits()
-            acce, dece = self.get_acceleration_settings()
-            logger.info(
-                f"Hardware limits: {low_limit:.0f} to {high_limit:.0f} µm, "
-                f"ACCE={acce}, DECE={dece}"
-            )
+            self.get_acceleration_settings()
             self.limits_changed.emit(low_limit, high_limit)
 
             # Start position monitoring
@@ -248,20 +169,10 @@ class ActuatorController(QObject):
 
     def find_index(self) -> bool:
         """
-        Find encoder index (home the actuator) using official Xeryon API.
+        Home the actuator (find encoder index).
 
-        Official API: axis.findIndex(direction)
-            - Sends INDX=<direction> command to hardware
-            - Direction 0: Bidirectional search (fastest)
-            - Blocking: Waits for isEncoderValid() == True
-            - See: XERYON_API_REFERENCE.md "Homing" section
-
-        Hardware API Usage Rule:
-            Use native Xeryon homing procedure (not manual index search)
-
-        CRITICAL: Actuator must be homed before any position commands.
-            - isEncoderValid() returns False until homing complete
-            - setDPOS() and step() will fail if not homed
+        Uses native Xeryon API (axis.findIndex).
+        Must complete before position commands work.
 
         Returns:
             True if homing started successfully
@@ -325,16 +236,9 @@ class ActuatorController(QObject):
 
     def set_position(self, position_um: float) -> bool:
         """
-        Move to absolute position using official Xeryon API.
+        Move to absolute position.
 
-        Official API: axis.setDPOS(position, units)
-            - Input: Position in current units (µm for Units.mu)
-            - Conversion: API converts µm → encoder units internally
-            - Blocking: Waits for position reached (unless DISABLE_WAITING=True)
-            - See: XERYON_API_REFERENCE.md "Absolute Positioning" section
-
-        Hardware API Usage Rule:
-            Use native Xeryon position control (not manual encoder calculations)
+        Uses native Xeryon API (axis.setDPOS).
 
         Args:
             position_um: Target position in micrometers
@@ -398,14 +302,9 @@ class ActuatorController(QObject):
 
     def make_step(self, step_um: float) -> bool:
         """
-        Make relative step from current position using official Xeryon API.
+        Make relative step from current position.
 
-        Official API: axis.step(distance)
-            - Input: Relative distance in current units (µm for Units.mu)
-            - Positive: Move in positive direction
-            - Negative: Move in negative direction
-            - Implementation: Gets current position, calculates target, calls setDPOS()
-            - See: XERYON_API_REFERENCE.md "Relative Movement" section
+        Uses native Xeryon API (axis.step).
 
         Args:
             step_um: Step size in micrometers (positive or negative)
@@ -493,23 +392,15 @@ class ActuatorController(QObject):
 
     def set_speed(self, speed: int) -> bool:
         """
-        Set movement speed using official Xeryon API.
+        Set movement speed.
 
-        CRITICAL: Uses axis.setSpeed() which handles unit conversion.
-        The official API converts input speed (in current units/second) to µm/s.
+        Uses native Xeryon API (axis.setSpeed) with unit conversion.
 
         Args:
             speed: Speed in micrometers per second (µm/s)
-                   Since working_units = Units.mu, input is interpreted as µm/s
-                   Typical range: 50 (very slow) to 500 (fast) µm/s
 
         Returns:
             True if successful
-
-        Official API Reference:
-            - Input: Speed in current units/second (µm/s for Units.mu)
-            - Conversion: axis.setSpeed() converts to SSPD setting internally
-            - See: XERYON_API_REFERENCE.md "Speed Control" section
         """
         if not self.axis:
             return False

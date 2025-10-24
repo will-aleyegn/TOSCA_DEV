@@ -375,7 +375,6 @@ class ProtocolBuilderWidget(QWidget):
 
     def _on_new_protocol(self) -> None:
         """Create a new protocol."""
-        # TODO: Prompt to save if current protocol has unsaved changes
         self._create_new_protocol()
         logger.info("Created new protocol")
 
@@ -451,7 +450,6 @@ class ProtocolBuilderWidget(QWidget):
 
     def _on_add_action(self) -> None:
         """Add a new action to the protocol."""
-        # TODO: Show action type selection menu
         logger.info("Add action clicked - not yet implemented")
         QMessageBox.information(
             self, "Not Implemented", "Action editor dialogs coming in next phase"
@@ -459,7 +457,6 @@ class ProtocolBuilderWidget(QWidget):
 
     def _on_edit_action(self, row: int) -> None:
         """Edit an existing action."""
-        # TODO: Show action editor dialog
         logger.info(f"Edit action {row} clicked - not yet implemented")
         QMessageBox.information(
             self, "Not Implemented", "Action editor dialogs coming in next phase"
@@ -545,13 +542,11 @@ class ProtocolBuilderWidget(QWidget):
 
     def _on_execute_protocol(self) -> None:
         """Execute current protocol without recording."""
-        # TODO: Implement protocol execution
         logger.info("Execute protocol clicked - not yet implemented")
         QMessageBox.information(self, "Not Implemented", "Protocol execution coming in next phase")
 
     def _on_execute_and_record(self) -> None:
         """Execute current protocol with recording."""
-        # TODO: Implement protocol execution with recording
         logger.info("Execute and record clicked - not yet implemented")
         QMessageBox.information(
             self, "Not Implemented", "Protocol execution with recording coming in next phase"

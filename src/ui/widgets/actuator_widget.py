@@ -227,19 +227,19 @@ class ActuatorWidget(QWidget):
         # Scan buttons
         button_layout = QHBoxLayout()
 
-        self.scan_negative_btn = QPushButton("◄ Scan Negative")
+        self.scan_negative_btn = QPushButton("Scan Negative")
         self.scan_negative_btn.clicked.connect(lambda: self._on_scan_clicked(-1))
         self.scan_negative_btn.setEnabled(False)
         self.scan_negative_btn.setStyleSheet("background-color: #4CAF50;")
         button_layout.addWidget(self.scan_negative_btn)
 
-        self.scan_stop_btn = QPushButton("■ STOP")
+        self.scan_stop_btn = QPushButton("STOP")
         self.scan_stop_btn.clicked.connect(self._on_scan_stop_clicked)
         self.scan_stop_btn.setEnabled(False)
         self.scan_stop_btn.setStyleSheet("background-color: #f44336; font-weight: bold;")
         button_layout.addWidget(self.scan_stop_btn)
 
-        self.scan_positive_btn = QPushButton("Scan Positive ►")
+        self.scan_positive_btn = QPushButton("Scan Positive")
         self.scan_positive_btn.clicked.connect(lambda: self._on_scan_clicked(1))
         self.scan_positive_btn.setEnabled(False)
         self.scan_positive_btn.setStyleSheet("background-color: #4CAF50;")
@@ -309,7 +309,6 @@ class ActuatorWidget(QWidget):
 
         layout.addLayout(params_layout)
 
-        # Loop checkbox
         from PyQt6.QtWidgets import QCheckBox
 
         self.scan_loop_checkbox = QCheckBox("Loop continuously")
@@ -345,7 +344,6 @@ class ActuatorWidget(QWidget):
         group = QGroupBox("Speed Control")
         layout = QVBoxLayout()
 
-        # Speed range selector
         range_layout = QHBoxLayout()
         from PyQt6.QtWidgets import QCheckBox
 
@@ -648,9 +646,9 @@ class ActuatorWidget(QWidget):
     @pyqtSlot(int)
     def _on_fast_mode_changed(self, state: int) -> None:
         """Handle fast mode checkbox change."""
-        from PyQt6.QtCore import Qt
+        from PyQt6.QtCore import Qt as QtCore
 
-        is_fast = state == Qt.CheckState.Checked.value
+        is_fast = state == QtCore.CheckState.Checked.value
 
         if is_fast:
             # Fast mode: 0.5-400 mm/s (500-400000 µm/s)

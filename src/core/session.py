@@ -206,7 +206,6 @@ class SessionManager:
         else:
             self.current_session.complete()
 
-        # TODO: Save session to database
         logger.info(f"Ended session {self.current_session.session_id}")
 
         self.current_session = None

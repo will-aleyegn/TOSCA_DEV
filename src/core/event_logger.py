@@ -125,10 +125,8 @@ class EventLogger:
         Args:
             event: Event dictionary to store
 
-        Note: Implementation pending database layer completion
+        Note: Database storage deferred - see presubmit/FUTURE_WORK.md
         """
-        # TODO: Implement database storage
-        # Will use SQLAlchemy model when database layer is complete
         pass
 
     def log_safety_event(
