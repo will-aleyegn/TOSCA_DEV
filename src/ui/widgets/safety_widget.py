@@ -12,51 +12,40 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from ui.widgets.gpio_widget import GPIOWidget
+
 
 class SafetyWidget(QWidget):
     """
     Safety system monitoring.
 
     Displays:
-    - Footpedal status
-    - Smoothing device status
-    - Photodiode readings
+    - GPIO safety controls (smoothing device, photodiode)
+    - Footpedal status (future)
     - E-stop status
     - Safety event log
     """
 
     def __init__(self) -> None:
         super().__init__()
+        self.gpio_widget: GPIOWidget = GPIOWidget()
         self._init_ui()
 
     def _init_ui(self) -> None:
         """Initialize UI components."""
-        layout = QVBoxLayout()
+        layout = QHBoxLayout()  # Changed to horizontal for side-by-side
         self.setLayout(layout)
 
-        interlock_layout = QHBoxLayout()
-        interlock_layout.addWidget(self._create_hardware_interlocks())
-        interlock_layout.addWidget(self._create_software_interlocks())
-        layout.addLayout(interlock_layout)
+        # Left side: GPIO controls
+        left_layout = QVBoxLayout()
+        left_layout.addWidget(self.gpio_widget)
+        layout.addLayout(left_layout, 2)
 
-        layout.addWidget(self._create_event_log())
-
-    def _create_hardware_interlocks(self) -> QGroupBox:
-        """Create hardware interlock status group."""
-        group = QGroupBox("Hardware Interlocks")
-        layout = QVBoxLayout()
-
-        self.footpedal_status = self._create_status_indicator("Footpedal", "NOT PRESSED")
-        layout.addWidget(self.footpedal_status)
-
-        self.smoothing_status = self._create_status_indicator("Smoothing Device", "NOT CONNECTED")
-        layout.addWidget(self.smoothing_status)
-
-        self.photodiode_status = self._create_status_indicator("Photodiode", "0.0 V")
-        layout.addWidget(self.photodiode_status)
-
-        group.setLayout(layout)
-        return group
+        # Right side: Software interlocks and event log
+        right_layout = QVBoxLayout()
+        right_layout.addWidget(self._create_software_interlocks())
+        right_layout.addWidget(self._create_event_log())
+        layout.addLayout(right_layout, 1)
 
     def _create_software_interlocks(self) -> QGroupBox:
         """Create software interlock status group."""
@@ -126,3 +115,8 @@ class SafetyWidget(QWidget):
         widget.setLayout(layout)
         setattr(widget, "value_label", value_widget)
         return widget
+
+    def cleanup(self) -> None:
+        """Cleanup resources."""
+        if self.gpio_widget:
+            self.gpio_widget.cleanup()
