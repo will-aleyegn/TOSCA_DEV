@@ -367,31 +367,19 @@ class ActuatorWidget(QWidget):
         group = QGroupBox("Speed Control")
         layout = QVBoxLayout()
 
-        range_layout = QHBoxLayout()
-        from PyQt6.QtWidgets import QCheckBox
-
-        self.fast_speed_checkbox = QCheckBox("Enable Fast Mode (up to 400 mm/s)")
-        self.fast_speed_checkbox.setChecked(False)
-        self.fast_speed_checkbox.stateChanged.connect(self._on_fast_mode_changed)
-        self.fast_speed_checkbox.setEnabled(False)
-        self.fast_speed_checkbox.setStyleSheet("color: #FFC107; font-weight: bold;")
-        range_layout.addWidget(self.fast_speed_checkbox)
-        range_layout.addStretch()
-        layout.addLayout(range_layout)
-
-        # Speed slider (µm/s)
+        # Speed slider (displayed in mm/s, stored as µm/s)
         slider_layout = QHBoxLayout()
         self.speed_slider = QSlider(Qt.Orientation.Horizontal)
-        self.speed_slider.setRange(500, 10000)  # Default: 500-10000 µm/s (0.5-10 mm/s)
-        self.speed_slider.setValue(2000)  # Default: medium speed (2 mm/s)
+        self.speed_slider.setRange(500, 400000)  # 0.5-400 mm/s in µm/s
+        self.speed_slider.setValue(2000)  # Default: 2 mm/s
         self.speed_slider.setTickPosition(QSlider.TickPosition.TicksBelow)
-        self.speed_slider.setTickInterval(1000)
+        self.speed_slider.setTickInterval(50000)
         self.speed_slider.valueChanged.connect(self._on_speed_display_changed)
         self.speed_slider.sliderReleased.connect(self._on_speed_released)
         self.speed_slider.setEnabled(False)
 
-        self.speed_label = QLabel("2000 µm/s (2 mm/s)")
-        self.speed_label.setMinimumWidth(120)
+        self.speed_label = QLabel("2.0 mm/s")
+        self.speed_label.setMinimumWidth(100)
 
         slider_layout.addWidget(QLabel("Slow"))
         slider_layout.addWidget(self.speed_slider)
@@ -400,7 +388,7 @@ class ActuatorWidget(QWidget):
         layout.addLayout(slider_layout)
 
         # Info label
-        self.speed_info_label = QLabel("Normal mode: 0.5-10 mm/s (safe range)")
+        self.speed_info_label = QLabel("Range: 0.5-400 mm/s (hardware maximum)")
         self.speed_info_label.setStyleSheet("font-size: 9pt; color: gray;")
         layout.addWidget(self.speed_info_label)
 
@@ -567,7 +555,6 @@ class ActuatorWidget(QWidget):
         self.scan_range_stop_btn.setEnabled(controls_enabled and self.scan_range_active)
 
         self.speed_slider.setEnabled(controls_enabled)
-        self.fast_speed_checkbox.setEnabled(controls_enabled)
         self.accel_slider.setEnabled(controls_enabled)
         self.decel_slider.setEnabled(controls_enabled)
 
@@ -642,7 +629,7 @@ class ActuatorWidget(QWidget):
     def _on_speed_display_changed(self, value: int) -> None:
         """Update speed label (doesn't send to hardware yet)."""
         mm_per_s = value / 1000.0
-        self.speed_label.setText(f"{value} µm/s ({mm_per_s:.1f} mm/s)")
+        self.speed_label.setText(f"{mm_per_s:.1f} mm/s")
 
     @pyqtSlot()
     def _on_speed_released(self) -> None:
@@ -668,38 +655,6 @@ class ActuatorWidget(QWidget):
             logger.info("Stopping scan")
             self.controller.stop_scan()
             self.motion_status_label.setText("Stopped")
-
-    @pyqtSlot(int)
-    def _on_fast_mode_changed(self, state: int) -> None:
-        """Handle fast mode checkbox change."""
-        from PyQt6.QtCore import Qt as QtCore
-
-        is_fast = state == QtCore.CheckState.Checked.value
-
-        if is_fast:
-            # Fast mode: 0.5-400 mm/s (500-400000 µm/s)
-            self.speed_slider.setRange(500, 400000)
-            self.speed_slider.setTickInterval(50000)
-            self.speed_info_label.setText("Fast mode: 0.5-400 mm/s (USE WITH CAUTION!)")
-            self.speed_info_label.setStyleSheet(
-                "font-size: 9pt; color: #f44336; font-weight: bold;"
-            )
-            logger.warning("Fast speed mode ENABLED - max 400 mm/s")
-        else:
-            # Normal mode: 0.5-10 mm/s (500-10000 µm/s)
-            current_speed = self.speed_slider.value()
-            self.speed_slider.setRange(500, 10000)
-            self.speed_slider.setTickInterval(1000)
-            self.speed_info_label.setText("Normal mode: 0.5-10 mm/s (safe range)")
-            self.speed_info_label.setStyleSheet("font-size: 9pt; color: gray;")
-
-            # Clamp speed if it exceeds new max
-            if current_speed > 10000:
-                self.speed_slider.setValue(10000)
-                if self.controller and self.is_connected:
-                    self.controller.set_speed(10000)
-
-            logger.info("Fast speed mode disabled - max 10 mm/s")
 
     @pyqtSlot(bool)
     def _on_connection_changed(self, connected: bool) -> None:
@@ -983,13 +938,13 @@ class ActuatorWidget(QWidget):
         self.seq_pos_layout.addStretch()
         layout.addLayout(self.seq_pos_layout)
 
-        # Speed
+        # Speed (displayed in mm/s, stored as µm/s)
         self.seq_speed_layout = QHBoxLayout()
-        self.seq_speed_layout.addWidget(QLabel("Speed (µm/s):"))
+        self.seq_speed_layout.addWidget(QLabel("Speed (mm/s):"))
         self.seq_speed_input = QDoubleSpinBox()
-        self.seq_speed_input.setRange(500, 10000)
-        self.seq_speed_input.setValue(2000)
-        self.seq_speed_input.setDecimals(0)
+        self.seq_speed_input.setRange(0.5, 400.0)
+        self.seq_speed_input.setValue(2.0)
+        self.seq_speed_input.setDecimals(1)
         self.seq_speed_layout.addWidget(self.seq_speed_input)
         self.seq_speed_layout.addStretch()
         layout.addLayout(self.seq_speed_layout)
@@ -1197,27 +1152,30 @@ class ActuatorWidget(QWidget):
 
         params = {}
 
+        # Convert speed from mm/s to µm/s
+        speed_um_s = int(self.seq_speed_input.value() * 1000)
+
         if action_type == ActionType.MOVE_ABSOLUTE:
             params = {
                 "position": self.seq_pos_input.value(),
-                "speed": self.seq_speed_input.value(),
+                "speed": speed_um_s,
                 "unit": "um",
             }
         elif action_type == ActionType.MOVE_RELATIVE:
             params = {
                 "distance": self.seq_pos_input.value(),
-                "speed": self.seq_speed_input.value(),
+                "speed": speed_um_s,
                 "unit": "um",
             }
         elif action_type == ActionType.HOME:
-            params = {"speed": self.seq_speed_input.value()}
+            params = {"speed": speed_um_s}
         elif action_type == ActionType.PAUSE:
             params = {"duration": self.seq_dur_input.value()}
         elif action_type == ActionType.SET_SPEED:
-            params = {"speed": self.seq_speed_input.value(), "unit": "um"}
+            params = {"speed": speed_um_s, "unit": "um"}
         elif action_type == ActionType.SCAN:
             params = {
-                "speed": self.seq_speed_input.value(),
+                "speed": speed_um_s,
                 "direction": self.seq_dir_combo.currentText(),
                 "duration": self.seq_dur_input.value(),
                 "unit": "um",
