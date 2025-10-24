@@ -4,19 +4,10 @@ Treatment control widget.
 
 import logging
 
-from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import (
-    QDoubleSpinBox,
-    QGroupBox,
-    QHBoxLayout,
-    QLabel,
-    QPushButton,
-    QSlider,
-    QVBoxLayout,
-    QWidget,
-)
+from PyQt6.QtWidgets import QGroupBox, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
 from ui.widgets.actuator_widget import ActuatorWidget
+from ui.widgets.laser_widget import LaserWidget
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +27,7 @@ class TreatmentWidget(QWidget):
         super().__init__()
         self.dev_mode = False
         self.actuator_widget: ActuatorWidget = ActuatorWidget()
+        self.laser_widget: LaserWidget = LaserWidget()
         self._init_ui()
 
     def _init_ui(self) -> None:
@@ -43,11 +35,15 @@ class TreatmentWidget(QWidget):
         layout = QHBoxLayout()  # Horizontal layout for side-by-side controls
         self.setLayout(layout)
 
-        # Left side: Laser and treatment controls
+        # Left side: Laser controls
         left_layout = QVBoxLayout()
-        left_layout.addWidget(self._create_laser_control())
-        left_layout.addWidget(self._create_treatment_control())
+        left_layout.addWidget(self.laser_widget)
         left_layout.addStretch()
+
+        # Middle: Treatment controls
+        middle_layout = QVBoxLayout()
+        middle_layout.addWidget(self._create_treatment_control())
+        middle_layout.addStretch()
 
         # Right side: Actuator controls
         right_layout = QVBoxLayout()
@@ -55,32 +51,8 @@ class TreatmentWidget(QWidget):
 
         # Add to main layout
         layout.addLayout(left_layout, 1)
+        layout.addLayout(middle_layout, 1)
         layout.addLayout(right_layout, 1)
-
-    def _create_laser_control(self) -> QGroupBox:
-        """Create laser power control group."""
-        group = QGroupBox("Laser Power Control")
-        layout = QVBoxLayout()
-
-        power_layout = QHBoxLayout()
-        power_layout.addWidget(QLabel("Power (mW):"))
-        self.power_spinbox = QDoubleSpinBox()
-        self.power_spinbox.setRange(0, 2000)
-        self.power_spinbox.setSingleStep(10)
-        self.power_spinbox.setValue(0)
-        power_layout.addWidget(self.power_spinbox)
-        layout.addLayout(power_layout)
-
-        self.power_slider = QSlider(Qt.Orientation.Horizontal)
-        self.power_slider.setRange(0, 2000)
-        self.power_slider.setValue(0)
-        layout.addWidget(self.power_slider)
-
-        self.power_spinbox.valueChanged.connect(self.power_slider.setValue)
-        self.power_slider.valueChanged.connect(self.power_spinbox.setValue)
-
-        group.setLayout(layout)
-        return group
 
     def _create_treatment_control(self) -> QGroupBox:
         """Create treatment start/stop controls."""
@@ -140,3 +112,5 @@ class TreatmentWidget(QWidget):
         """Cleanup resources."""
         if self.actuator_widget:
             self.actuator_widget.cleanup()
+        if self.laser_widget:
+            self.laser_widget.cleanup()
