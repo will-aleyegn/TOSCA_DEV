@@ -170,16 +170,19 @@ Comprehensive technical documentation is available in `docs/architecture/`:
 ```
 components/
 ├── camera_module/          [DONE] VmbPy API integration (6 test scripts)
-└── actuator_module/        [DONE] Xeryon API integration (6 test scripts)
+├── actuator_module/        [DONE] Xeryon API integration (6 test scripts)
+└── laser_control/          [DONE] Arroyo API documentation and examples
 
 src/
 ├── ui/
-│   ├── main_window.py      [DONE] 5-tab interface
+│   ├── main_window.py      [DONE] 4-tab interface
 │   └── widgets/
 │       ├── subject_widget.py         [DONE] Subject selection
 │       ├── camera_widget.py          [DONE] Live camera streaming, controls
-│       ├── treatment_widget.py       [DONE] Manual controls
-│       ├── protocol_builder_widget.py [DONE] Protocol creation UI
+│       ├── treatment_widget.py       [DONE] Integrated laser/actuator controls
+│       ├── laser_widget.py           [DONE] Laser power and TEC controls
+│       ├── actuator_widget.py        [DONE] Actuator sequences and positioning
+│       ├── protocol_builder_widget.py [DEPRECATED] Replaced by sequence builder
 │       └── safety_widget.py          [DONE] Safety status
 │
 ├── core/
@@ -190,10 +193,11 @@ src/
 │   └── event_logger.py     [TODO] Event logging
 │
 ├── hardware/
-│   ├── camera_controller.py    [DONE] Camera HAL with PyQt6 integration
-│   ├── laser_controller.py     [TODO] Laser HAL
-│   ├── actuator_controller.py  [TODO] Actuator HAL
-│   └── gpio_controller.py      [TODO] GPIO HAL
+│   ├── camera_controller.py       [DONE] Camera HAL with PyQt6 integration
+│   ├── laser_controller.py        [DONE] Laser HAL with Arroyo protocol
+│   ├── actuator_controller.py     [DONE] Actuator HAL with Xeryon API
+│   ├── actuator_sequence.py       [DONE] Sequence builder data model
+│   └── gpio_controller.py         [TODO] GPIO HAL
 │
 ├── database/
 │   ├── models.py           [TODO] SQLAlchemy models
@@ -216,49 +220,88 @@ tests/                      [TODO] Test suite
 
 ## Architecture Status
 
-### Hardware Integration
-- **Camera API Exploration** [DONE] - VmbPy integration with 6 test scripts
-- **Actuator API Exploration** [DONE] - Xeryon integration with 6 test scripts
-- **Camera Hardware Abstraction Layer** [DONE] - PyQt6 integration with streaming, recording, controls
-- **Laser Hardware Abstraction Layer** [TODO] - Arroyo serial communication
-- **Actuator Hardware Abstraction Layer** [TODO] - Xeryon PyQt integration
-- **GPIO Hardware Abstraction Layer** [TODO] - FT232H safety interlocks
+### Hardware Integration (75% Complete - Phase 2)
+- **Camera API Exploration** ✅ [DONE] - VmbPy integration with 6 test scripts
+- **Actuator API Exploration** ✅ [DONE] - Xeryon integration with 6 test scripts
+- **Laser API Documentation** ✅ [DONE] - Arroyo manuals and Python SDK
+- **Camera Hardware Abstraction Layer** ✅ [DONE] - PyQt6 integration with streaming, recording, controls
+- **Laser Hardware Abstraction Layer** ✅ [DONE] - Arroyo serial communication with PyQt6 signals
+- **Actuator Hardware Abstraction Layer** ✅ [DONE] - Xeryon PyQt integration with sequence builder
+- **GPIO Hardware Abstraction Layer** ⏳ [TODO] - FT232H safety interlocks
 
 ### User Interface
-- **Main Window & Tab Navigation** [DONE] - 5-tab interface
-- **Subject Selection Widget** [DONE] - Subject search and session start
-- **Camera/Alignment Widget** [DONE] - Live camera streaming, exposure/gain controls, capture, recording
-- **Treatment Control Widget** [DONE] - Manual laser/actuator controls (placeholders)
-- **Protocol Builder Widget** [DONE] - Action-based protocol creation
-- **Safety Status Widget** [DONE] - Safety indicator placeholder
+- **Main Window & Tab Navigation** ✅ [DONE] - 4-tab interface (Subject, Camera, Treatment, Safety)
+- **Subject Selection Widget** ✅ [DONE] - Subject search and session start
+- **Camera/Alignment Widget** ✅ [DONE] - Live camera streaming, exposure/gain controls, capture, recording
+- **Treatment Control Widget** ✅ [DONE] - Integrated 3-column layout (laser, treatment, actuator)
+- **Laser Widget** ✅ [DONE] - Connection, current control, TEC temperature, output enable/disable
+- **Actuator Widget** ✅ [DONE] - Sequence builder with 6 action types, homing, positioning
+- **Protocol Builder Widget** ⚠️ [DEPRECATED] - Replaced by actuator sequence builder
+- **Safety Status Widget** ✅ [DONE] - Safety indicator placeholder
 
 ### Core Business Logic
-- **Protocol Data Model** [DONE] - 5 action types with validation
-- **Protocol Execution Engine** [DONE] - Async engine with pause/resume/stop
-- **Safety System** [TODO] - Interlock manager and state machine
-- **Session Management** [TODO] - Session lifecycle and tracking
-- **Event Logger** [TODO] - Immutable audit trail
+- **Protocol Data Model** ✅ [DONE] - 5 action types with validation
+- **Protocol Execution Engine** ✅ [DONE] - Async engine with pause/resume/stop
+- **Actuator Sequence Model** ✅ [DONE] - 6 action types with acceleration, deceleration, laser power
+- **Safety System** ⏳ [TODO] - Interlock manager and state machine
+- **Session Management** ⏳ [TODO] - Session lifecycle and tracking
+- **Event Logger** ⏳ [TODO] - Immutable audit trail
 
 ### Data Layer
-- **Database Schema Design** [DONE] - Documented in architecture docs
-- **Database Models** [TODO] - SQLAlchemy ORM models
-- **Database Operations** [TODO] - CRUD operations
-- **Database Migrations** [TODO] - Alembic setup
+- **Database Schema Design** ✅ [DONE] - Documented in architecture docs
+- **Database Models** ⏳ [TODO] - SQLAlchemy ORM models
+- **Database Operations** ⏳ [TODO] - CRUD operations
+- **Database Migrations** ⏳ [TODO] - Alembic setup
 
 ### Image Processing
-- **Ring Detection** [TODO] - Hough circle transform
-- **Focus Measurement** [TODO] - Laplacian variance
-- **Video Recording** [TODO] - OpenCV integration
-- **Frame Processing Pipeline** [TODO] - Real-time processing
+- **Ring Detection** ⏳ [TODO] - Hough circle transform
+- **Focus Measurement** ⏳ [TODO] - Laplacian variance
+- **Video Recording** ⏳ [TODO] - OpenCV integration
+- **Frame Processing Pipeline** ⏳ [TODO] - Real-time processing
 
 ### Testing & Quality
-- **Test Framework** [TODO] - Pytest configuration
-- **Unit Tests** [TODO] - Component tests
-- **Integration Tests** [TODO] - System tests
-- **Safety Tests** [TODO] - FMEA and validation
+- **Test Framework** ⏳ [TODO] - Pytest configuration
+- **Unit Tests** ⏳ [TODO] - Component tests
+- **Integration Tests** ⏳ [TODO] - System tests
+- **Safety Tests** ⏳ [TODO] - FMEA and validation
 
 ---
 
-**Last Updated:** 2025-10-23
+## Recent Updates (2025-10-24)
 
-**For current project status and TODO list, see:** [TODO.md](TODO.md)
+### Laser Controller Implementation ✅
+- Complete Arroyo Instruments laser driver integration
+- Serial communication with ASCII command protocol (38400 baud)
+- PyQt6 signal-based monitoring (8 signals)
+- Current control (0-2000 mA) with safety limits
+- TEC temperature control and monitoring
+- Output enable/disable with verification
+- Comprehensive API documentation (components/laser_control/)
+
+### Enhanced Sequence Builder ✅
+- Acceleration control per step (1000-65500)
+- Deceleration control per step (1000-65500)
+- Laser power per step (0-2000 mW)
+- Sequence display shows laser power notation
+- 6 action types: Move Absolute, Move Relative, Home, Pause, Set Speed, Scan
+- Loop support (1-100 iterations)
+
+### Treatment Tab Reorganization ✅
+- 3-column layout: Laser (left), Treatment (middle), Actuator (right)
+- Integrated laser and actuator controls in single view
+- Removed redundant Protocol Builder tab
+
+### Phase 2 Progress: 75% Complete
+- ✅ Camera HAL
+- ✅ Actuator HAL
+- ✅ Laser HAL
+- ⏳ GPIO HAL (next priority)
+
+---
+
+**Last Updated:** 2025-10-24
+
+**For current project status and detailed progress, see:**
+- `docs/project/PROJECT_STATUS.md` - Complete project state
+- `presubmit/WORK_LOG.md` - Real-time session tracking
+- `components/laser_control/README.md` - Laser controller documentation
