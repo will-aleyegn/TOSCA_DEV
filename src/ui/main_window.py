@@ -153,6 +153,10 @@ class MainWindow(QMainWindow):
 
     def _connect_safety_system(self) -> None:
         """Connect safety system components."""
+        # Connect safety manager to safety widget for display
+        self.safety_widget.set_safety_manager(self.safety_manager)
+        logger.info("Safety manager connected to safety widget")
+
         # Connect GPIO safety interlock to safety manager
         if hasattr(self.safety_widget, "gpio_widget") and self.safety_widget.gpio_widget:
             gpio_widget = self.safety_widget.gpio_widget
@@ -170,7 +174,7 @@ class MainWindow(QMainWindow):
             laser_widget.safety_manager = self.safety_manager
             logger.info("Safety manager connected to laser widget")
 
-        # Connect safety manager signals to safety widget for display
+        # Log safety events (in addition to widget display)
         self.safety_manager.safety_state_changed.connect(
             lambda state: logger.info(f"Safety state: {state.value}")
         )

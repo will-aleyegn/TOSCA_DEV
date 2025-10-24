@@ -2,6 +2,10 @@
 Safety status monitoring widget.
 """
 
+from datetime import datetime
+from typing import Optional
+
+from PyQt6.QtCore import pyqtSlot
 from PyQt6.QtWidgets import (
     QGroupBox,
     QHBoxLayout,
@@ -12,6 +16,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from core.safety import SafetyManager, SafetyState
 from ui.widgets.gpio_widget import GPIOWidget
 
 
@@ -29,6 +34,7 @@ class SafetyWidget(QWidget):
     def __init__(self) -> None:
         super().__init__()
         self.gpio_widget: GPIOWidget = GPIOWidget()
+        self.safety_manager: Optional[SafetyManager] = None
         self._init_ui()
 
     def _init_ui(self) -> None:
@@ -115,6 +121,140 @@ class SafetyWidget(QWidget):
         widget.setLayout(layout)
         setattr(widget, "value_label", value_widget)
         return widget
+
+    def set_safety_manager(self, safety_manager: SafetyManager) -> None:
+        """
+        Connect safety manager and wire up signals.
+
+        Args:
+            safety_manager: The SafetyManager instance to connect
+        """
+        self.safety_manager = safety_manager
+
+        # Connect safety manager signals
+        safety_manager.safety_state_changed.connect(self._on_safety_state_changed)
+        safety_manager.laser_enable_changed.connect(self._on_laser_enable_changed)
+        safety_manager.safety_event.connect(self._on_safety_event)
+
+        # Wire emergency stop button
+        self.estop_button.clicked.connect(self._on_estop_clicked)
+
+        # Log initial connection
+        self._log_event("Safety system initialized")
+
+    @pyqtSlot()
+    def _on_estop_clicked(self) -> None:
+        """Handle emergency stop button click."""
+        if self.safety_manager:
+            self.safety_manager.trigger_emergency_stop()
+            self.estop_button.setEnabled(False)
+            self.estop_button.setText("E-STOP ACTIVE")
+
+    @pyqtSlot(SafetyState)
+    def _on_safety_state_changed(self, state: SafetyState) -> None:
+        """
+        Handle safety state changes.
+
+        Args:
+            state: New safety state
+        """
+        if state == SafetyState.SAFE:
+            color = "#4CAF50"
+            text = "SAFE"
+        elif state == SafetyState.UNSAFE:
+            color = "#FF9800"
+            text = "UNSAFE"
+        else:  # EMERGENCY_STOP
+            color = "#f44336"
+            text = "EMERGENCY STOP"
+
+        # Update E-stop status indicator
+        estop_label = getattr(self.estop_status, "value_label", None)
+        if estop_label:
+            if state == SafetyState.EMERGENCY_STOP:
+                estop_label.setText("ACTIVE")
+                estop_label.setStyleSheet(
+                    f"padding: 5px; background-color: {color}; color: white; font-weight: bold;"
+                )
+            else:
+                estop_label.setText("CLEAR")
+                estop_label.setStyleSheet(
+                    "padding: 5px; background-color: #f0f0f0; font-weight: bold;"
+                )
+
+        self._log_event(f"Safety state: {text}", urgent=(state == SafetyState.EMERGENCY_STOP))
+
+    @pyqtSlot(bool)
+    def _on_laser_enable_changed(self, enabled: bool) -> None:
+        """
+        Handle laser enable permission changes.
+
+        Args:
+            enabled: True if laser enable permitted
+        """
+        status = "PERMITTED" if enabled else "DENIED"
+        self._log_event(f"Laser enable: {status}", urgent=not enabled)
+
+    @pyqtSlot(str, str)
+    def _on_safety_event(self, event_type: str, message: str) -> None:
+        """
+        Handle safety events.
+
+        Args:
+            event_type: Type of event (interlock_gpio, session, power_limit, etc.)
+            message: Event message
+        """
+        # Update relevant status indicators
+        if event_type == "session":
+            session_label = getattr(self.session_status, "value_label", None)
+            if session_label:
+                session_label.setText(message)
+                if message == "VALID":
+                    session_label.setStyleSheet(
+                        "padding: 5px; background-color: #4CAF50; color: white; font-weight: bold;"
+                    )
+                else:
+                    session_label.setStyleSheet(
+                        "padding: 5px; background-color: #f0f0f0; font-weight: bold;"
+                    )
+
+        elif event_type == "power_limit":
+            power_label = getattr(self.power_limit_status, "value_label", None)
+            if power_label:
+                power_label.setText(message)
+                if message == "OK":
+                    power_label.setStyleSheet(
+                        "padding: 5px; background-color: #4CAF50; color: white; font-weight: bold;"
+                    )
+                else:
+                    power_label.setStyleSheet(
+                        "padding: 5px; background-color: #f44336; color: white; font-weight: bold;"
+                    )
+
+        # Log all events
+        urgent = event_type in ["emergency_stop", "power_limit"] and message in [
+            "ACTIVATED",
+            "EXCEEDED",
+        ]
+        self._log_event(f"[{event_type}] {message}", urgent=urgent)
+
+    def _log_event(self, message: str, urgent: bool = False) -> None:
+        """
+        Log a safety event to the event log.
+
+        Args:
+            message: Event message
+            urgent: If True, format as urgent (red/bold)
+        """
+        timestamp = datetime.now().strftime("%H:%M:%S")
+        if urgent:
+            formatted_msg = (
+                f'<span style="color: red; font-weight: bold;">[{timestamp}] {message}</span>'
+            )
+        else:
+            formatted_msg = f"[{timestamp}] {message}"
+
+        self.event_log.append(formatted_msg)
 
     def cleanup(self) -> None:
         """Cleanup resources."""
