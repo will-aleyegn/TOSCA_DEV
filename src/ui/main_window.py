@@ -149,9 +149,13 @@ class MainWindow(QMainWindow):
         if hasattr(self, "camera_widget") and self.camera_widget:
             self.camera_widget.cleanup()
 
-        # Cleanup actuator
+        # Cleanup treatment (actuator + laser)
         if hasattr(self, "treatment_widget") and self.treatment_widget:
             self.treatment_widget.cleanup()
+
+        # Cleanup safety (GPIO)
+        if hasattr(self, "safety_widget") and self.safety_widget:
+            self.safety_widget.cleanup()
 
         logger.info("Cleanup complete")
         event.accept()
