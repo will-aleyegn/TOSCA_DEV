@@ -17,6 +17,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from core.event_logger import EventLogger, EventSeverity, EventType
 from core.safety import SafetyManager
 from core.session_manager import SessionManager
 from database.db_manager import DatabaseManager
@@ -54,7 +55,13 @@ class MainWindow(QMainWindow):
         self.db_manager = DatabaseManager()
         self.db_manager.initialize()
         self.session_manager = SessionManager(self.db_manager)
-        logger.info("Database and session managers initialized")
+        self.event_logger = EventLogger(self.db_manager)
+        logger.info("Database, session, and event logger initialized")
+
+        # Log system startup
+        self.event_logger.log_system_event(
+            EventType.SYSTEM_STARTUP, "TOSCA system started", EventSeverity.INFO
+        )
 
         self._init_ui()
         self._init_status_bar()
@@ -110,6 +117,9 @@ class MainWindow(QMainWindow):
         self.safety_manager = SafetyManager()
         self._connect_safety_system()
         logger.info("Safety manager initialized and connected")
+
+        # Connect event logger to widgets
+        self._connect_event_logger()
 
     def _init_status_bar(self) -> None:
         """Initialize status bar with connection indicators."""
@@ -195,6 +205,50 @@ class MainWindow(QMainWindow):
             lambda event_type, message: logger.info(f"Safety event [{event_type}]: {message}")
         )
 
+    def _connect_event_logger(self) -> None:
+        """Connect event logger to system components."""
+        # Connect session manager signals
+        self.session_manager.session_started.connect(self._on_event_logger_session_started)
+        self.session_manager.session_ended.connect(self._on_event_logger_session_ended)
+
+        # Connect event logger to safety widget for display
+        if hasattr(self.safety_widget, "event_log"):
+            self.event_logger.event_logged.connect(
+                lambda event_type, severity, desc: logger.info(
+                    f"Event: [{severity}] {event_type} - {desc}"
+                )
+            )
+
+        logger.info("Event logger connected to system")
+
+    def _on_event_logger_session_started(self, session_id: int) -> None:
+        """
+        Handle session started for event logging.
+
+        Args:
+            session_id: ID of started session
+        """
+        # Set session in event logger
+        session = self.session_manager.get_current_session()
+        if session:
+            self.event_logger.set_session(session_id, session.tech_id)
+            self.event_logger.log_treatment_event(
+                EventType.TREATMENT_SESSION_START,
+                f"Treatment session {session_id} started for subject {session.subject_id}",
+            )
+
+    def _on_event_logger_session_ended(self, session_id: int) -> None:
+        """
+        Handle session ended for event logging.
+
+        Args:
+            session_id: ID of ended session
+        """
+        self.event_logger.log_treatment_event(
+            EventType.TREATMENT_SESSION_END, f"Treatment session {session_id} ended"
+        )
+        self.event_logger.clear_session()
+
     def _on_session_started(self, session_id: int) -> None:
         """
         Handle session started event.
@@ -209,6 +263,12 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event: QCloseEvent) -> None:
         """Handle window close event and cleanup resources."""
         logger.info("Application closing, cleaning up resources...")
+
+        # Log system shutdown
+        if hasattr(self, "event_logger") and self.event_logger:
+            self.event_logger.log_system_event(
+                EventType.SYSTEM_SHUTDOWN, "TOSCA system shutting down", EventSeverity.INFO
+            )
 
         # Cleanup camera
         if hasattr(self, "camera_widget") and self.camera_widget:

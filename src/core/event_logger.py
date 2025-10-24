@@ -1,8 +1,8 @@
 """
-Event logging system for immutable audit trail.
+Event logger for TOSCA treatment system.
 
-Logs all safety-critical events, user actions, and system state changes
-to both file and database for regulatory compliance and debugging.
+Provides immutable audit trail for all safety-critical and operational events.
+Integrates with database SafetyLog table for persistence and emits PyQt6 signals.
 """
 
 import json
@@ -10,210 +10,314 @@ import logging
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Optional
+
+from PyQt6.QtCore import QObject, pyqtSignal
+
+from database.db_manager import DatabaseManager
 
 logger = logging.getLogger(__name__)
 
 
 class EventType(Enum):
-    """Event classification for audit trail."""
+    """Event type categories."""
 
     # Safety events
-    SAFETY_INTERLOCK_TRIGGERED = "safety_interlock_triggered"
-    SAFETY_INTERLOCK_CLEARED = "safety_interlock_cleared"
-    EMERGENCY_STOP = "emergency_stop"
-
-    # Session events
-    SESSION_STARTED = "session_started"
-    SESSION_ENDED = "session_ended"
-    SUBJECT_SELECTED = "subject_selected"
-
-    # Treatment events
-    PROTOCOL_STARTED = "protocol_started"
-    PROTOCOL_PAUSED = "protocol_paused"
-    PROTOCOL_RESUMED = "protocol_resumed"
-    PROTOCOL_STOPPED = "protocol_stopped"
-    PROTOCOL_COMPLETED = "protocol_completed"
-    ACTION_EXECUTED = "action_executed"
+    SAFETY_EMERGENCY_STOP = "e_stop_pressed"
+    SAFETY_EMERGENCY_CLEAR = "e_stop_released"
+    SAFETY_INTERLOCK_FAIL = "interlock_failure"
+    SAFETY_INTERLOCK_OK = "interlock_recovery"
+    SAFETY_POWER_LIMIT = "power_limit_exceeded"
+    SAFETY_GPIO_FAIL = "gpio_interlock_failure"
+    SAFETY_GPIO_OK = "gpio_interlock_ok"
 
     # Hardware events
-    LASER_POWER_CHANGED = "laser_power_changed"
-    ACTUATOR_MOVED = "actuator_moved"
-    CAMERA_FRAME_CAPTURED = "camera_frame_captured"
+    HARDWARE_CAMERA_CONNECT = "camera_connected"
+    HARDWARE_CAMERA_DISCONNECT = "camera_disconnected"
+    HARDWARE_LASER_CONNECT = "laser_connected"
+    HARDWARE_LASER_DISCONNECT = "laser_disconnected"
+    HARDWARE_ACTUATOR_CONNECT = "actuator_connected"
+    HARDWARE_ACTUATOR_DISCONNECT = "actuator_disconnected"
+    HARDWARE_GPIO_CONNECT = "gpio_connected"
+    HARDWARE_GPIO_DISCONNECT = "gpio_disconnected"
+
+    # Treatment events
+    TREATMENT_SESSION_START = "session_started"
+    TREATMENT_SESSION_END = "session_ended"
+    TREATMENT_SESSION_ABORT = "session_aborted"
+    TREATMENT_LASER_ON = "laser_enabled"
+    TREATMENT_LASER_OFF = "laser_disabled"
+    TREATMENT_POWER_CHANGE = "laser_power_changed"
+    TREATMENT_PROTOCOL_START = "protocol_started"
+    TREATMENT_PROTOCOL_END = "protocol_completed"
+
+    # User events
+    USER_LOGIN = "user_login"
+    USER_ACTION = "user_action"
+    USER_OVERRIDE = "user_override"
 
     # System events
     SYSTEM_STARTUP = "system_startup"
     SYSTEM_SHUTDOWN = "system_shutdown"
-    ERROR_OCCURRED = "error_occurred"
+    SYSTEM_ERROR = "system_error"
 
 
-class EventLogger:
+class EventSeverity(Enum):
+    """Event severity levels."""
+
+    INFO = "info"
+    WARNING = "warning"
+    CRITICAL = "critical"
+    EMERGENCY = "emergency"
+
+
+class EventLogger(QObject):
     """
-    Centralized event logging for audit trail.
+    Central event logging system.
 
-    Logs events to both file and database (when available).
-    All logged events are immutable and timestamped.
+    Provides immutable audit trail for all system events.
+    Events are persisted to database and emitted as signals for real-time display.
+    Also logs to JSONL file for backup.
     """
 
-    def __init__(
-        self,
-        log_file: Optional[Path] = None,
-        db_connection: Optional[Any] = None,
-    ) -> None:
+    # Signals
+    event_logged = pyqtSignal(str, str, str)  # (event_type, severity, description)
+
+    def __init__(self, db_manager: DatabaseManager, log_file: Optional[Path] = None) -> None:
         """
         Initialize event logger.
 
         Args:
-            log_file: Path to event log file (defaults to data/logs/events.jsonl)
-            db_connection: Database connection for event storage (optional)
+            db_manager: Database manager instance
+            log_file: Optional path to JSONL log file (defaults to data/logs/events.jsonl)
         """
+        super().__init__()
+        self.db_manager = db_manager
         self.log_file = log_file or Path("data/logs/events.jsonl")
-        self.db_connection = db_connection
+        self.current_session_id: Optional[int] = None
+        self.current_tech_id: Optional[int] = None
 
         # Ensure log directory exists
         self.log_file.parent.mkdir(parents=True, exist_ok=True)
 
-        logger.info(f"Event logger initialized: {self.log_file}")
+        logger.info(f"Event logger initialized: DB + file ({self.log_file})")
+
+    def set_session(self, session_id: int, tech_id: int) -> None:
+        """
+        Set current session and technician for event logging.
+
+        Args:
+            session_id: Current session ID
+            tech_id: Current technician ID
+        """
+        self.current_session_id = session_id
+        self.current_tech_id = tech_id
+        logger.info(f"Event logger session set: session={session_id}, tech={tech_id}")
+
+    def clear_session(self) -> None:
+        """Clear current session (called when session ends)."""
+        self.current_session_id = None
+        self.current_tech_id = None
+        logger.info("Event logger session cleared")
 
     def log_event(
         self,
         event_type: EventType,
-        details: Dict[str, Any],
-        session_id: Optional[str] = None,
-        severity: str = "INFO",
+        description: str,
+        severity: EventSeverity = EventSeverity.INFO,
+        system_state: Optional[str] = None,
+        laser_state: Optional[str] = None,
+        footpedal_state: Optional[bool] = None,
+        smoothing_device_state: Optional[bool] = None,
+        photodiode_voltage: Optional[float] = None,
+        action_taken: Optional[str] = None,
+        details: Optional[dict[str, Any]] = None,
     ) -> None:
         """
-        Log an event to file and database.
+        Log an event to database, file, and emit signal.
 
         Args:
-            event_type: Type of event being logged
-            details: Event-specific details (dict)
-            session_id: Optional session identifier
-            severity: Event severity (INFO, WARNING, ERROR, CRITICAL)
+            event_type: Type of event
+            description: Human-readable description
+            severity: Event severity level
+            system_state: Optional system state (idle, ready, armed, treating, fault)
+            laser_state: Optional laser state
+            footpedal_state: Optional footpedal state
+            smoothing_device_state: Optional smoothing device state
+            photodiode_voltage: Optional photodiode voltage
+            action_taken: Optional action taken in response
+            details: Optional additional details (will be JSON-encoded)
         """
-        event = {
-            "timestamp": datetime.now().isoformat(),
-            "event_type": event_type.value,
-            "severity": severity,
-            "session_id": session_id,
-            "details": details,
-        }
-
-        # Log to file (JSONL format - one JSON object per line)
+        # Log to database
         try:
-            with open(self.log_file, "a") as f:
-                f.write(json.dumps(event) + "\n")
+            self.db_manager.log_safety_event(
+                event_type=event_type.value,
+                severity=severity.value,
+                description=description,
+                session_id=self.current_session_id,
+                tech_id=self.current_tech_id,
+                system_state=system_state,
+                action_taken=action_taken,
+            )
         except Exception as e:
-            logger.error(f"Failed to write event to file: {e}")
+            logger.error(f"Failed to log event to database: {e}")
 
-        # Log to database (when available)
-        if self.db_connection:
-            try:
-                self._log_to_database(event)
-            except Exception as e:
-                logger.error(f"Failed to write event to database: {e}")
+        # Log to file (JSONL format)
+        try:
+            event_data = {
+                "timestamp": datetime.now().isoformat(),
+                "event_type": event_type.value,
+                "severity": severity.value,
+                "description": description,
+                "session_id": self.current_session_id,
+                "tech_id": self.current_tech_id,
+                "system_state": system_state,
+                "laser_state": laser_state,
+                "action_taken": action_taken,
+                "details": details,
+            }
+            with open(self.log_file, "a", encoding="utf-8") as f:
+                f.write(json.dumps(event_data) + "\n")
+        except Exception as e:
+            logger.error(f"Failed to log event to file: {e}")
 
-        # Also log to standard logger
-        log_message = f"{event_type.value}: {details}"
-        log_level = getattr(logging, severity, logging.INFO)
-        logger.log(log_level, log_message)
+        # Emit signal for real-time UI update
+        self.event_logged.emit(event_type.value, severity.value, description)
 
-    def _log_to_database(self, event: Dict[str, Any]) -> None:
-        """
-        Write event to database.
+        logger.info(f"Event logged: [{severity.value}] {event_type.value} - {description}")
 
-        Args:
-            event: Event dictionary to store
-
-        Note: Database storage deferred - see presubmit/FUTURE_WORK.md
-        """
-        pass
+    # Convenience methods for common events
 
     def log_safety_event(
         self,
-        interlock_name: str,
-        triggered: bool,
-        details: Optional[Dict[str, Any]] = None,
+        event_type: EventType,
+        description: str,
+        severity: EventSeverity = EventSeverity.WARNING,
+        action_taken: Optional[str] = None,
     ) -> None:
         """
-        Log safety interlock event.
+        Log a safety-related event.
 
         Args:
-            interlock_name: Name of the interlock (e.g., "footpedal", "photodiode")
-            triggered: True if triggered, False if cleared
-            details: Additional event details
+            event_type: Safety event type
+            description: Event description
+            severity: Event severity
+            action_taken: Action taken in response
         """
-        event_type = (
-            EventType.SAFETY_INTERLOCK_TRIGGERED
-            if triggered
-            else EventType.SAFETY_INTERLOCK_CLEARED
-        )
-
-        event_details = {
-            "interlock": interlock_name,
-            **(details or {}),
-        }
-
         self.log_event(
             event_type=event_type,
-            details=event_details,
-            severity="CRITICAL" if triggered else "INFO",
+            description=description,
+            severity=severity,
+            action_taken=action_taken,
         )
 
-    def log_protocol_event(
+    def log_hardware_event(self, event_type: EventType, description: str, device_name: str) -> None:
+        """
+        Log a hardware connection event.
+
+        Args:
+            event_type: Hardware event type
+            description: Event description
+            device_name: Name of hardware device
+        """
+        self.log_event(
+            event_type=event_type,
+            description=description,
+            severity=EventSeverity.INFO,
+            details={"device": device_name},
+        )
+
+    def log_treatment_event(
         self,
-        protocol_name: str,
-        action: str,
-        session_id: Optional[str] = None,
-        details: Optional[Dict[str, Any]] = None,
+        event_type: EventType,
+        description: str,
+        laser_power: Optional[float] = None,
+        position: Optional[float] = None,
     ) -> None:
         """
-        Log protocol execution event.
+        Log a treatment-related event.
 
         Args:
-            protocol_name: Name of the protocol
-            action: Action taken (started, paused, resumed, stopped, completed)
-            session_id: Session identifier
-            details: Additional event details
+            event_type: Treatment event type
+            description: Event description
+            laser_power: Optional laser power in watts
+            position: Optional actuator position
         """
-        event_type_map = {
-            "started": EventType.PROTOCOL_STARTED,
-            "paused": EventType.PROTOCOL_PAUSED,
-            "resumed": EventType.PROTOCOL_RESUMED,
-            "stopped": EventType.PROTOCOL_STOPPED,
-            "completed": EventType.PROTOCOL_COMPLETED,
-        }
-
-        event_type = event_type_map.get(action.lower())
-        if not event_type:
-            logger.warning(f"Unknown protocol action: {action}")
-            return
-
-        event_details = {
-            "protocol_name": protocol_name,
-            **(details or {}),
-        }
+        details = {}
+        if laser_power is not None:
+            details["laser_power_watts"] = laser_power
+        if position is not None:
+            details["actuator_position_um"] = position
 
         self.log_event(
             event_type=event_type,
-            details=event_details,
-            session_id=session_id,
-            severity="INFO",
+            description=description,
+            severity=EventSeverity.INFO,
+            details=details if details else None,
         )
 
+    def log_user_action(
+        self,
+        description: str,
+        action_type: str,
+        details: Optional[dict[str, Any]] = None,
+    ) -> None:
+        """
+        Log a user action.
 
-# Global event logger instance
-_event_logger: Optional[EventLogger] = None
+        Args:
+            description: Action description
+            action_type: Type of action
+            details: Optional action details
+        """
+        if details is None:
+            details = {}
+        details["action_type"] = action_type
 
+        self.log_event(
+            event_type=EventType.USER_ACTION,
+            description=description,
+            severity=EventSeverity.INFO,
+            details=details,
+        )
 
-def get_event_logger() -> EventLogger:
-    """
-    Get global event logger instance.
+    def log_system_event(
+        self,
+        event_type: EventType,
+        description: str,
+        severity: EventSeverity = EventSeverity.INFO,
+    ) -> None:
+        """
+        Log a system event.
 
-    Returns:
-        EventLogger instance
-    """
-    global _event_logger
-    if _event_logger is None:
-        _event_logger = EventLogger()
-    return _event_logger
+        Args:
+            event_type: System event type
+            description: Event description
+            severity: Event severity
+        """
+        self.log_event(event_type=event_type, description=description, severity=severity)
+
+    def log_error(
+        self,
+        component: str,
+        error_message: str,
+        details: Optional[dict[str, Any]] = None,
+    ) -> None:
+        """
+        Log an error event.
+
+        Args:
+            component: Component where error occurred
+            error_message: Error message
+            details: Optional error details
+        """
+        if details is None:
+            details = {}
+        details["component"] = component
+
+        self.log_event(
+            event_type=EventType.SYSTEM_ERROR,
+            description=f"{component}: {error_message}",
+            severity=EventSeverity.CRITICAL,
+            details=details,
+        )
