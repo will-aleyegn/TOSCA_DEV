@@ -1,8 +1,8 @@
 # TOSCA Project Status & AI Onboarding
 
-**Last Updated:** 2025-10-24 07:45
+**Last Updated:** 2025-10-24 08:15
 **Current Phase:** Phase 3 IN PROGRESS - Core Business Logic
-**Project Status:** Initial Setup ✓ → Camera HAL ✓ → Actuator HAL ✓ → Laser HAL ✓ → GPIO HAL ✓ → Safety (95%) → Session Mgmt ✓
+**Project Status:** Initial Setup ✓ → HALs ✓ → Safety (95%) → Session Mgmt ✓ → Event Logging (50%)
 
 ---
 
@@ -437,13 +437,14 @@ Speed Range: 50-500 µm/s
 5. ✅ Wire up subject_widget to database and session creation (DONE)
 6. ✅ Add session-based file organization for recordings (DONE)
 
-**Priority 3: Event Logging System**
-1. Create `src/core/event_logger.py` - Immutable audit trail
-2. Implement event types (safety, treatment, hardware, user)
-3. Integrate with all hardware controllers
-4. Add event display in Safety tab
-5. Implement session event association
-6. Add event export functionality
+**Priority 3: Event Logging System** 🔄 50% COMPLETE
+1. ✅ Create `src/core/event_logger.py` - Immutable audit trail (DONE)
+2. ✅ Implement event types (safety, treatment, hardware, user, system) (DONE)
+3. ✅ Integrate with database SafetyLog table (DONE)
+4. ✅ Implement session event association (DONE)
+5. ⏳ Integrate with hardware controllers (NEXT)
+6. ⏳ Add event display in Safety tab from database (pending)
+7. ⏳ Add event export functionality (CSV/JSON) (pending)
 
 **Priority 4: Hardware Integration Testing**
 1. Test all 4 HALs with physical hardware
