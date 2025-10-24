@@ -17,6 +17,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from core.safety import SafetyManager
 from ui.widgets.camera_widget import CameraWidget
 from ui.widgets.safety_widget import SafetyWidget
 from ui.widgets.subject_widget import SubjectWidget
@@ -95,6 +96,11 @@ class MainWindow(QMainWindow):
         self.safety_widget = SafetyWidget()
         self.tabs.addTab(self.safety_widget, "Safety Status")
 
+        # Initialize safety manager
+        self.safety_manager = SafetyManager()
+        self._connect_safety_system()
+        logger.info("Safety manager initialized and connected")
+
     def _init_status_bar(self) -> None:
         """Initialize status bar with connection indicators."""
         status_bar = QStatusBar()
@@ -137,9 +143,43 @@ class MainWindow(QMainWindow):
         if dev_mode:
             self.setWindowTitle("TOSCA Laser Control System - DEVELOPER MODE")
             self.subject_widget.setEnabled(False)  # Disable subject selection in dev mode
+            # In dev mode, bypass session requirement for safety
+            self.safety_manager.set_session_valid(True)
         else:
             self.setWindowTitle("TOSCA Laser Control System")
             self.subject_widget.setEnabled(True)
+            # In normal mode, require valid session
+            self.safety_manager.set_session_valid(False)
+
+    def _connect_safety_system(self) -> None:
+        """Connect safety system components."""
+        # Connect GPIO safety interlock to safety manager
+        if hasattr(self.safety_widget, "gpio_widget") and self.safety_widget.gpio_widget:
+            gpio_widget = self.safety_widget.gpio_widget
+            if hasattr(gpio_widget, "controller") and gpio_widget.controller:
+                gpio_widget.controller.safety_interlock_changed.connect(
+                    self.safety_manager.set_gpio_interlock_status
+                )
+                logger.info("GPIO safety interlocks connected to safety manager")
+
+        # Connect safety manager to treatment widgets
+        # Laser widget will check safety manager before enabling
+        if hasattr(self.treatment_widget, "laser_widget"):
+            laser_widget = self.treatment_widget.laser_widget
+            # Store reference to safety manager in laser widget
+            laser_widget.safety_manager = self.safety_manager
+            logger.info("Safety manager connected to laser widget")
+
+        # Connect safety manager signals to safety widget for display
+        self.safety_manager.safety_state_changed.connect(
+            lambda state: logger.info(f"Safety state: {state.value}")
+        )
+        self.safety_manager.laser_enable_changed.connect(
+            lambda enabled: logger.info(f"Laser enable: {'PERMITTED' if enabled else 'DENIED'}")
+        )
+        self.safety_manager.safety_event.connect(
+            lambda event_type, message: logger.info(f"Safety event [{event_type}]: {message}")
+        )
 
     def closeEvent(self, event: QCloseEvent) -> None:
         """Handle window close event and cleanup resources."""

@@ -260,8 +260,21 @@ class LaserWidget(QWidget):
     @pyqtSlot(bool)
     def _on_output_clicked(self, enable: bool) -> None:
         """Handle output enable/disable button click."""
-        if self.controller:
-            self.controller.set_output(enable)
+        if not self.controller:
+            return
+
+        # Check safety manager before enabling
+        if enable:
+            if hasattr(self, "safety_manager") and self.safety_manager:
+                if not self.safety_manager.is_laser_enable_permitted():
+                    status = self.safety_manager.get_safety_status_text()
+                    logger.error(f"Laser enable denied: {status}")
+                    self.controller.error_occurred.emit(f"Safety check failed: {status}")
+                    return
+            else:
+                logger.warning("No safety manager - enabling laser without safety checks")
+
+        self.controller.set_output(enable)
 
     @pyqtSlot(bool)
     def _on_connection_changed(self, connected: bool) -> None:
