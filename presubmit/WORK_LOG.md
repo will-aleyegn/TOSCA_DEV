@@ -239,10 +239,84 @@
     - ⏳ Emergency stop button wiring (pending)
     - ⏳ Full integration testing (pending)
 
-**Commit:** Pending
+**Commit:** 7461e06
 **Result:** SUCCESS - Safety system core implementation complete
 **Status:** Phase 3 Priority 1 at 60% (state machine + integration done)
 **Next:** Implement safety event logging display and wire emergency stop button
+
+#### 31. Implemented Safety Event Logging and Emergency Stop
+**Time:** 05:20-05:45
+**What:** Complete safety system with event logging display and emergency stop wiring
+
+**Components Modified:**
+  - src/ui/widgets/safety_widget.py
+    - Added SafetyManager integration with set_safety_manager() method
+    - Connected all safety manager signals to UI updates
+    - Implemented _on_safety_state_changed() - Updates E-stop indicator
+    - Implemented _on_laser_enable_changed() - Logs laser enable changes
+    - Implemented _on_safety_event() - Updates session/power status displays
+    - Implemented _log_event() - Timestamp-based event logging with urgency formatting
+    - Wired emergency stop button to safety_manager.trigger_emergency_stop()
+  - src/ui/main_window.py
+    - Updated _connect_safety_system() to call set_safety_manager()
+    - Safety widget now receives all safety events for display
+
+**Event Logging Features:**
+  - Timestamped event log (HH:MM:SS format)
+  - Urgent events displayed in red bold (emergency stop, power limit exceeded)
+  - Normal events displayed in standard text
+  - Real-time status indicator updates:
+    - E-Stop: CLEAR/ACTIVE with color coding
+    - Session: INVALID/VALID with color coding
+    - Power Limit: OK/EXCEEDED with color coding
+  - HTML-formatted event log for rich text display
+
+**Emergency Stop Features:**
+  - Large red button wired to safety_manager.trigger_emergency_stop()
+  - Button disables and changes text to "E-STOP ACTIVE" when pressed
+  - E-stop status indicator updates immediately
+  - All safety events logged with timestamp
+  - Emergency stop overrides all other safety conditions
+
+**Status Indicator Color Coding:**
+  - Green (#4CAF50): Safe/OK/Valid states
+  - Red (#f44336): Emergency stop/Exceeded/Failed states
+  - Gray (#f0f0f0): Neutral/Cleared states
+  - Orange (#FF9800): Unsafe state
+
+**Signal Flow:**
+  - SafetyManager emits signals → SafetyWidget receives and displays
+  - GPIO controller → SafetyManager → SafetyWidget event log
+  - Session changes → SafetyManager → SafetyWidget status display
+  - Power limit changes → SafetyManager → SafetyWidget status display
+  - Emergency stop button → SafetyManager → All connected systems notified
+
+**Technical Details:**
+  - PyQt6 signal/slot pattern throughout
+  - HTML formatting in QTextEdit for colored events
+  - getattr() for safe widget attribute access
+  - Type annotations complete
+  - All pre-commit hooks passing
+
+**Testing:**
+  - ✓ Code passes all pre-commit hooks
+  - ✓ Emergency stop button wired correctly
+  - ✓ Event log display implemented
+  - ✓ Status indicators update properly
+  - Hardware testing pending (requires GPIO hardware)
+
+**Phase 3 Priority 1 Progress:**
+  - ✅ Central safety manager created
+  - ✅ GPIO interlocks integrated
+  - ✅ Laser enable enforcement
+  - ✅ Safety event logging display
+  - ✅ Emergency stop button wired
+  - ⏳ Full integration testing (next)
+
+**Commit:** Pending
+**Result:** SUCCESS - Safety event logging and E-stop complete
+**Status:** Phase 3 Priority 1 at 95% (only hardware testing remains)
+**Next:** Commit changes, then proceed with Priority 2: Session Management System
 
 ---
 
