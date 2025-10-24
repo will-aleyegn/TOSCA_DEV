@@ -18,6 +18,8 @@ from PyQt6.QtWidgets import (
 )
 
 from core.safety import SafetyManager
+from core.session_manager import SessionManager
+from database.db_manager import DatabaseManager
 from ui.widgets.camera_widget import CameraWidget
 from ui.widgets.safety_widget import SafetyWidget
 from ui.widgets.subject_widget import SubjectWidget
@@ -48,6 +50,12 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("TOSCA Laser Control System")
         self.setGeometry(100, 100, 1400, 900)
 
+        # Initialize database and session managers
+        self.db_manager = DatabaseManager()
+        self.db_manager.initialize()
+        self.session_manager = SessionManager(self.db_manager)
+        logger.info("Database and session managers initialized")
+
         self._init_ui()
         self._init_status_bar()
 
@@ -70,6 +78,8 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.tabs)
 
         self.subject_widget = SubjectWidget()
+        self.subject_widget.set_managers(self.db_manager, self.session_manager)
+        self.subject_widget.session_started.connect(self._on_session_started)
         self.tabs.addTab(self.subject_widget, "Subject Selection")
 
         self.camera_widget = CameraWidget()
@@ -185,6 +195,17 @@ class MainWindow(QMainWindow):
             lambda event_type, message: logger.info(f"Safety event [{event_type}]: {message}")
         )
 
+    def _on_session_started(self, session_id: int) -> None:
+        """
+        Handle session started event.
+
+        Args:
+            session_id: ID of started session
+        """
+        logger.info(f"Session {session_id} started - updating safety system")
+        # Mark session as valid for safety system
+        self.safety_manager.set_session_valid(True)
+
     def closeEvent(self, event: QCloseEvent) -> None:
         """Handle window close event and cleanup resources."""
         logger.info("Application closing, cleaning up resources...")
@@ -200,6 +221,10 @@ class MainWindow(QMainWindow):
         # Cleanup safety (GPIO)
         if hasattr(self, "safety_widget") and self.safety_widget:
             self.safety_widget.cleanup()
+
+        # Cleanup database
+        if hasattr(self, "db_manager") and self.db_manager:
+            self.db_manager.close()
 
         logger.info("Cleanup complete")
         event.accept()
