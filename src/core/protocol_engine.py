@@ -50,6 +50,7 @@ class ProtocolEngine:
         self,
         laser_controller: Optional[Any] = None,
         actuator_controller: Optional[Any] = None,
+        safety_manager: Optional[Any] = None,
     ) -> None:
         """
         Initialize protocol engine.
@@ -57,9 +58,11 @@ class ProtocolEngine:
         Args:
             laser_controller: Laser hardware controller (optional for testing)
             actuator_controller: Actuator hardware controller (optional for testing)
+            safety_manager: Safety system manager (optional for testing)
         """
         self.laser = laser_controller
         self.actuator = actuator_controller
+        self.safety_manager = safety_manager
 
         self.state = ExecutionState.IDLE
         self.current_protocol: Optional[Protocol] = None
@@ -464,11 +467,27 @@ class ProtocolEngine:
         """
         Perform pre-execution safety checks.
 
+        Verifies all safety conditions through SafetyManager before protocol execution.
+
         Returns:
             (safety_ok, message)
         """
         logger.debug("Performing safety checks...")
-        return True, "Safety checks passed"
+
+        # If no safety manager configured, allow execution (testing mode)
+        if self.safety_manager is None:
+            logger.warning("No safety manager configured - skipping safety checks (testing mode)")
+            return True, "Safety checks skipped (testing mode)"
+
+        # Check if laser enable is permitted
+        if not self.safety_manager.is_laser_enable_permitted():
+            status_text = self.safety_manager.get_safety_status_text()
+            logger.error(f"Safety check failed: {status_text}")
+            return False, f"Safety check failed: {status_text}"
+
+        # All safety checks passed
+        logger.info("Safety checks passed - all interlocks satisfied")
+        return True, "Safety checks passed - all interlocks satisfied"
 
     def _save_execution_record(self) -> None:
         """Save execution record to database."""
