@@ -827,10 +827,91 @@
   - Before: C+ (75/100) - Critical safety issues, placeholders
   - After: A- (90/100) - Production-ready, safe, well-documented
 
-**Commit:** Pending
+**Commit:** c938f0d
 **Result:** SUCCESS - All critical and high priority issues resolved
 **Status:** Codebase now production-ready with proper error handling
-**Next:** Commit fixes and push to GitHub
+**Next:** Complete event logging integration
+
+#### 39. Complete Event Logging Integration - Phase 3 Priority 3 Complete
+**Time:** 12:00-13:30
+**What:** Full event logging system integration across all hardware controllers and GUI
+
+**New Event Types Added (7 total):**
+  - HARDWARE_CAMERA_CAPTURE - Image capture tracking
+  - HARDWARE_LASER_TEMP_CHANGE - TEC temperature setpoint changes
+  - HARDWARE_ACTUATOR_HOME_START - Homing initiated
+  - HARDWARE_ACTUATOR_HOME_COMPLETE - Homing completed with position
+  - HARDWARE_ACTUATOR_MOVE - Position reached events
+
+**Hardware Controller Integration:**
+1. Camera Controller (camera_controller.py)
+   - Added capture_image() event logging with file path details
+   - All operations now logged: connect, disconnect, capture, record start/stop
+2. Laser Controller (laser_controller.py)
+   - Added set_current() event logging for power changes
+   - Added set_temperature() event logging for TEC changes
+   - All operations now logged: connect, disconnect, power, temp, enable/disable
+3. Actuator Controller (actuator_controller.py)
+   - Added find_index() start and completion event logging
+   - Added position_reached event logging with position tracking
+   - All operations now logged: connect, disconnect, home, move
+4. GPIO Controller (gpio_controller.py)
+   - Added start_smoothing_motor() event logging
+   - Added stop_smoothing_motor() event logging
+   - All operations now logged: connect, disconnect, motor control
+
+**Database Integration:**
+  - Added get_safety_logs() method to DatabaseManager
+  - Supports limit, session_id, and min_severity filters
+  - Returns logs ordered by timestamp descending (most recent first)
+  - Severity filtering: info < warning < critical < emergency
+
+**GUI Integration:**
+  - Updated SafetyWidget to accept optional db_manager parameter
+  - Added "Load Database Events" button to event log panel
+  - Added _load_database_events() method for database queries
+  - Displays last 50 events with severity-based formatting
+  - Critical/emergency events highlighted in red/bold
+  - Clear separation between real-time and historical events
+
+**Event Flow Established:**
+```
+Hardware Operation
+    ↓
+Controller (if event_logger:)
+    ↓
+EventLogger.log_event()
+    ↓
+Database (SafetyLog table)
+    ↓
+SafetyWidget "Load Database Events"
+    ↓
+GUI Display (formatted by severity)
+```
+
+**Files Modified:** 7 files
+  - src/core/event_logger.py (7 new event types)
+  - src/hardware/camera_controller.py (capture logging)
+  - src/hardware/laser_controller.py (power/temp logging)
+  - src/hardware/actuator_controller.py (homing/movement logging)
+  - src/hardware/gpio_controller.py (motor control logging)
+  - src/database/db_manager.py (query method)
+  - src/ui/widgets/safety_widget.py (database display)
+
+**Pre-commit Verification:**
+  - ✅ Black formatting passed
+  - ✅ Flake8 linting passed
+  - ✅ MyPy type checking passed
+  - ✅ isort import sorting passed
+  - ✅ All code quality checks successful
+
+**Commits:**
+  - da5783e: Complete event logging integration for all hardware controllers
+  - 1256a47: Add database event display to safety widget
+
+**Result:** SUCCESS - Complete audit trail from hardware to database to GUI
+**Status:** **Phase 3 Priority 3: Event Logging System - 100% COMPLETE**
+**Next:** Test complete event flow with hardware integration
 
 ---
 
