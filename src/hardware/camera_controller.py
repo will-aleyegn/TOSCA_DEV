@@ -437,6 +437,17 @@ class CameraController(QObject):
             cv2.imwrite(str(output_path), frame_bgr)
 
             logger.info(f"Image captured: {output_path}")
+
+            # Log event
+            if self.event_logger:
+                from ..core.event_logger import EventType
+
+                self.event_logger.log_event(
+                    event_type=EventType.HARDWARE_CAMERA_CAPTURE,
+                    description=f"Image captured: {filename}",
+                    details={"output_path": str(output_path)},
+                )
+
             return output_path
 
         except Exception as e:

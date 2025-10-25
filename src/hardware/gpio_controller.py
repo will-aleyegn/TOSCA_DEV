@@ -225,6 +225,16 @@ class GPIOController(QObject):
             self.motor_enabled = True
             self.smoothing_motor_changed.emit(True)
             logger.info("Smoothing motor started")
+
+            # Log event
+            if self.event_logger:
+                from ..core.event_logger import EventType
+
+                self.event_logger.log_event(
+                    event_type=EventType.SAFETY_GPIO_OK,
+                    description="Smoothing motor started",
+                )
+
             self._update_safety_status()
             return True
 
@@ -249,6 +259,16 @@ class GPIOController(QObject):
             self.motor_enabled = False
             self.smoothing_motor_changed.emit(False)
             logger.info("Smoothing motor stopped")
+
+            # Log event
+            if self.event_logger:
+                from ..core.event_logger import EventType
+
+                self.event_logger.log_event(
+                    event_type=EventType.SAFETY_GPIO_FAIL,
+                    description="Smoothing motor stopped (safety interlock inactive)",
+                )
+
             self._update_safety_status()
             return True
 
