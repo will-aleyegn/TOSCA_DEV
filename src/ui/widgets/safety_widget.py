@@ -3,7 +3,7 @@ Safety status monitoring widget.
 """
 
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional
 
 from PyQt6.QtCore import pyqtSlot
 from PyQt6.QtWidgets import (
@@ -31,10 +31,11 @@ class SafetyWidget(QWidget):
     - Safety event log
     """
 
-    def __init__(self) -> None:
+    def __init__(self, db_manager: Optional[Any] = None) -> None:
         super().__init__()
         self.gpio_widget: GPIOWidget = GPIOWidget()
         self.safety_manager: Optional[SafetyManager] = None
+        self.db_manager = db_manager
         self._init_ui()
 
     def _init_ui(self) -> None:
@@ -81,6 +82,14 @@ class SafetyWidget(QWidget):
         """Create safety event log."""
         group = QGroupBox("Safety Event Log")
         layout = QVBoxLayout()
+
+        # Add refresh button
+        self.refresh_button = QPushButton("Load Database Events")
+        self.refresh_button.clicked.connect(self._load_database_events)
+        if not self.db_manager:
+            self.refresh_button.setEnabled(False)
+            self.refresh_button.setToolTip("Database not available")
+        layout.addWidget(self.refresh_button)
 
         self.event_log = QTextEdit()
         self.event_log.setReadOnly(True)
@@ -255,6 +264,55 @@ class SafetyWidget(QWidget):
             formatted_msg = f"[{timestamp}] {message}"
 
         self.event_log.append(formatted_msg)
+
+    @pyqtSlot()
+    def _load_database_events(self) -> None:
+        """Load and display events from database."""
+        if not self.db_manager:
+            self._log_event("Database not available", urgent=True)
+            return
+
+        try:
+            # Get recent safety logs from database (last 50 events)
+            logs = self.db_manager.get_safety_logs(limit=50)
+
+            if not logs:
+                self._log_event("No database events found", urgent=False)
+                return
+
+            # Clear existing log
+            self.event_log.clear()
+
+            # Display database events
+            self._log_event(f"=== Loaded {len(logs)} events from database ===", urgent=False)
+
+            for log in reversed(logs):  # Reverse to show oldest first
+                # Format timestamp
+                timestamp_str = log.timestamp.strftime("%H:%M:%S")
+
+                # Determine if urgent based on severity
+                urgent = log.severity in ["critical", "emergency"]
+
+                # Format event description
+                event_msg = f"{log.description}"
+                if log.severity != "info":
+                    event_msg = f"[{log.severity.upper()}] {event_msg}"
+
+                # Log the event
+                if urgent:
+                    formatted_msg = (
+                        f'<span style="color: red; font-weight: bold;">'
+                        f"[{timestamp_str}] {event_msg}</span>"
+                    )
+                else:
+                    formatted_msg = f"[{timestamp_str}] {event_msg}"
+
+                self.event_log.append(formatted_msg)
+
+            self._log_event("=== End of database events ===", urgent=False)
+
+        except Exception as e:
+            self._log_event(f"Failed to load database events: {e}", urgent=True)
 
     def cleanup(self) -> None:
         """Cleanup resources."""
