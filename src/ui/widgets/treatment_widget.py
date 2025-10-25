@@ -218,7 +218,7 @@ class TreatmentWidget(QWidget):
 
         test_protocol = Protocol(
             protocol_name="Test Treatment",
-            protocol_version="1.0.0",
+            version="1.0.0",
             actions=[
                 ProtocolAction(
                     action_id=1,
