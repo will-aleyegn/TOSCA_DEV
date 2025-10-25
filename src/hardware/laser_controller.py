@@ -338,7 +338,7 @@ class LaserController(QObject):
             # This is a placeholder for future implementation
             self.power_setpoint_mw = power_mw
             logger.warning("Power mode not yet implemented, using current mode")
-            # TODO: Implement power mode when available
+            # TODO(#128): Implement power mode when available (hardware may not support)
             return False
 
         except Exception as e:

@@ -123,8 +123,8 @@ class CameraStreamThread(QThread):
         finally:
             try:
                 self.camera.stop_streaming()
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(f"Ignoring error during camera stream shutdown: {e}")
 
     def stop(self) -> None:
         """Stop streaming."""
@@ -294,14 +294,14 @@ class CameraController(QObject):
         if self.camera:
             try:
                 self.camera.__exit__(None, None, None)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(f"Ignoring error during camera cleanup: {e}")
             self.camera = None
 
         try:
             self.vmb.__exit__(None, None, None)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"Ignoring error during VmbPy cleanup: {e}")
 
         self.is_connected = False
         self.connection_changed.emit(False)

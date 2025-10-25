@@ -324,7 +324,10 @@ class Protocol:
 
             return True, ""
 
-        return True, ""
+        else:
+            # Unknown action type - fail validation to prevent unsafe protocols
+            param_type = type(action.parameters).__name__
+            return False, f"Validation logic not implemented for action type: {param_type}"
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert protocol to dictionary for JSON serialization."""

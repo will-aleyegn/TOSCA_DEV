@@ -710,7 +710,8 @@ class ActuatorWidget(QWidget):
                 self.controller.set_deceleration(decel)
                 logger.debug(f"Set accel={accel}, decel={decel}")
 
-            # TODO: Set laser power when laser controller is implemented
+            # TODO(#124): Set laser power when laser controller is integrated
+            # with sequence execution
             laser_power = action.params.get("laser_power", 0)
             if laser_power > 0:
                 logger.info(f"Laser power set to {laser_power:.0f} mW")
@@ -729,29 +730,49 @@ class ActuatorWidget(QWidget):
                 self.controller.find_index()
 
             elif action.action_type == ActionType.PAUSE:
-                import time
-
-                time.sleep(action.params.get("duration", 1.0))
+                # Non-blocking pause using QTimer
+                duration_ms = int(action.params.get("duration", 1.0) * 1000)
+                self.sequence_timer.stop()
+                QTimer.singleShot(duration_ms, self._resume_sequence_after_pause)
+                return  # Return early, don't increment step yet
 
             elif action.action_type == ActionType.SET_SPEED:
                 self.controller.set_speed(int(action.params.get("speed", 2000)))
 
             elif action.action_type == ActionType.SCAN:
+                # Non-blocking scan using QTimer
                 speed = int(action.params.get("speed", 2000))
                 direction = 1 if action.params.get("direction") == "positive" else -1
-                duration = action.params.get("duration", 1.0)
+                duration_ms = int(action.params.get("duration", 1.0) * 1000)
                 self.controller.set_speed(speed)
                 self.controller.start_scan(direction)
-                import time
-
-                time.sleep(duration)
-                self.controller.stop_scan()
+                self.sequence_timer.stop()
+                QTimer.singleShot(duration_ms, self._resume_sequence_after_scan)
+                return  # Return early, don't increment step yet
 
             self.sequence_current_step += 1
 
         except Exception as e:
             logger.error(f"Error executing sequence step: {e}")
             self._on_seq_stop()
+
+    def _resume_sequence_after_pause(self) -> None:
+        """Resume sequence execution after a pause action completes."""
+        if not self.sequence_running:
+            return
+        self.sequence_current_step += 1
+        self.sequence_timer.start()
+
+    def _resume_sequence_after_scan(self) -> None:
+        """Resume sequence execution after a scan action completes."""
+        if not self.sequence_running:
+            return
+        try:
+            self.controller.stop_scan()
+        except Exception as e:
+            logger.error(f"Error stopping scan: {e}")
+        self.sequence_current_step += 1
+        self.sequence_timer.start()
 
     def _update_sequence_buttons(self) -> None:
         """Update sequence button states."""
