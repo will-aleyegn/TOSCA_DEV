@@ -22,6 +22,11 @@ from core.protocol import (
 
 logger = logging.getLogger(__name__)
 
+# Configuration constants
+MAX_RETRIES = 3  # Maximum number of retries for hardware operations
+RETRY_DELAY = 1.0  # Delay between retries in seconds
+ACTION_TIMEOUT = 60.0  # Maximum time for any single action in seconds
+
 
 class ExecutionState(Enum):
     """Protocol execution states."""
@@ -74,13 +79,16 @@ class ProtocolEngine:
         self.on_progress_update: Optional[Callable[[float], None]] = None
         self.on_state_change: Optional[Callable[[ExecutionState], None]] = None
 
-    async def execute_protocol(self, protocol: Protocol, record: bool = False) -> tuple[bool, str]:
+    async def execute_protocol(
+        self, protocol: Protocol, record: bool = False, stop_on_error: bool = True
+    ) -> tuple[bool, str]:
         """
         Execute protocol from start to finish.
 
         Args:
             protocol: Protocol to execute
             record: Whether to record execution to database
+            stop_on_error: If False, continue with next action on non-critical failures
 
         Returns:
             (success, message)
@@ -105,24 +113,42 @@ class ProtocolEngine:
         self.end_time = None
         self._stop_requested = False
         self._set_state(ExecutionState.RUNNING)
+        self.stop_on_error = stop_on_error
 
         logger.info(f"Starting protocol execution: {protocol.protocol_name}")
 
+        failed_actions = []
         try:
             # Execute all actions
-            await self._execute_actions(protocol.actions)
+            failed_actions = await self._execute_actions_with_recovery(protocol.actions)
 
-            # Execution completed successfully
+            # Execution completed
             self.end_time = datetime.now()
-            self._set_state(ExecutionState.COMPLETED)
 
-            duration = (self.end_time - self.start_time).total_seconds()
-            logger.info(f"Protocol completed successfully in {duration:.1f} seconds")
-
-            if record:
-                self._save_execution_record()
-
-            return True, "Protocol completed successfully"
+            # Determine final state based on failures
+            if failed_actions and stop_on_error:
+                self._set_state(ExecutionState.ERROR)
+                error_msg = f"Protocol failed with {len(failed_actions)} errors"
+                logger.error(error_msg)
+                return False, error_msg
+            elif failed_actions:
+                self._set_state(ExecutionState.COMPLETED)
+                duration = (self.end_time - self.start_time).total_seconds()
+                warning_msg = (
+                    f"Protocol completed with warnings in {duration:.1f} seconds. "
+                    f"{len(failed_actions)} non-critical actions failed."
+                )
+                logger.warning(warning_msg)
+                if record:
+                    self._save_execution_record()
+                return True, warning_msg
+            else:
+                self._set_state(ExecutionState.COMPLETED)
+                duration = (self.end_time - self.start_time).total_seconds()
+                logger.info(f"Protocol completed successfully in {duration:.1f} seconds")
+                if record:
+                    self._save_execution_record()
+                return True, "Protocol completed successfully"
 
         except Exception as e:
             self.end_time = datetime.now()
@@ -131,8 +157,12 @@ class ProtocolEngine:
             logger.error(error_msg)
             return False, error_msg
 
-    async def _execute_actions(self, actions: List[ProtocolAction]) -> None:
-        """Execute list of actions sequentially."""
+    async def _execute_actions_with_recovery(
+        self, actions: List[ProtocolAction]
+    ) -> List[ProtocolAction]:
+        """Execute actions with optional error recovery."""
+        failed_actions = []
+
         for action in actions:
             # Check for stop request
             if self._stop_requested:
@@ -142,11 +172,30 @@ class ProtocolEngine:
             # Handle pause
             await self._pause_event.wait()
 
-            # Execute action
-            await self._execute_action(action)
+            try:
+                # Execute action
+                await self._execute_action(action)
+
+            except Exception as e:
+                # Check if this is a critical action (laser/actuator operations are critical)
+                is_critical = isinstance(
+                    action.parameters,
+                    (SetLaserPowerParams, RampLaserPowerParams, MoveActuatorParams),
+                )
+
+                if self.stop_on_error or is_critical:
+                    logger.error(f"Critical action {action.action_id} failed: {e}")
+                    raise  # Re-raise to stop protocol
+                else:
+                    logger.warning(
+                        f"Non-critical action {action.action_id} failed: {e}. Continuing..."
+                    )
+                    failed_actions.append(action)
+
+        return failed_actions
 
     async def _execute_action(self, action: ProtocolAction) -> None:
-        """Execute single protocol action."""
+        """Execute single protocol action with timeout and error handling."""
         self.current_action_id = action.action_id
         logger.info(f"Executing action {action.action_id}: {action.action_type.value}")
 
@@ -165,21 +214,8 @@ class ProtocolEngine:
         )
 
         try:
-            # Execute based on action type
-            if isinstance(action.parameters, SetLaserPowerParams):
-                await self._execute_set_laser_power(action.parameters)
-
-            elif isinstance(action.parameters, RampLaserPowerParams):
-                await self._execute_ramp_laser_power(action.parameters)
-
-            elif isinstance(action.parameters, MoveActuatorParams):
-                await self._execute_move_actuator(action.parameters)
-
-            elif isinstance(action.parameters, WaitParams):
-                await self._execute_wait(action.parameters)
-
-            elif isinstance(action.parameters, LoopParams):
-                await self._execute_loop(action.parameters)
+            # Execute with timeout protection
+            await asyncio.wait_for(self._execute_action_with_retry(action), timeout=ACTION_TIMEOUT)
 
             # Log action complete
             self.execution_log.append(
@@ -195,9 +231,81 @@ class ProtocolEngine:
             if self.on_action_complete:
                 self.on_action_complete(action)
 
+        except asyncio.TimeoutError:
+            error_msg = f"Action {action.action_id} timed out after {ACTION_TIMEOUT}s"
+            logger.error(error_msg)
+            self.execution_log.append(
+                {
+                    "action_id": action.action_id,
+                    "action_type": action.action_type.value,
+                    "timestamp": datetime.now().isoformat(),
+                    "event": "timeout",
+                    "error": error_msg,
+                }
+            )
+            raise RuntimeError(error_msg)
+
         except Exception as e:
             logger.error(f"Action {action.action_id} failed: {str(e)}")
+            self.execution_log.append(
+                {
+                    "action_id": action.action_id,
+                    "action_type": action.action_type.value,
+                    "timestamp": datetime.now().isoformat(),
+                    "event": "error",
+                    "error": str(e),
+                }
+            )
             raise
+
+    async def _execute_action_with_retry(self, action: ProtocolAction) -> None:
+        """Execute action with retry logic for hardware operations."""
+        # Actions that don't need retry (wait, loop)
+        if isinstance(action.parameters, (WaitParams, LoopParams)):
+            await self._execute_action_internal(action)
+            return
+
+        # Hardware operations with retry logic
+        last_error = None
+        for attempt in range(MAX_RETRIES):
+            try:
+                await self._execute_action_internal(action)
+                return  # Success, exit retry loop
+
+            except RuntimeError as e:
+                last_error = e
+                if attempt < MAX_RETRIES - 1:
+                    logger.warning(
+                        f"Action {action.action_id} attempt {attempt + 1} failed: {e}. "
+                        f"Retrying in {RETRY_DELAY}s..."
+                    )
+                    await asyncio.sleep(RETRY_DELAY)
+                else:
+                    logger.error(f"Action {action.action_id} failed after {MAX_RETRIES} attempts")
+
+        # All retries failed
+        if last_error:
+            raise last_error
+        else:
+            raise RuntimeError(f"Action {action.action_id} failed without error details")
+
+    async def _execute_action_internal(self, action: ProtocolAction) -> None:
+        """Internal action execution without retry logic."""
+        # Execute based on action type
+        if isinstance(action.parameters, SetLaserPowerParams):
+            await self._execute_set_laser_power(action.parameters)
+
+        elif isinstance(action.parameters, RampLaserPowerParams):
+            await self._execute_ramp_laser_power(action.parameters)
+
+        elif isinstance(action.parameters, MoveActuatorParams):
+            await self._execute_move_actuator(action.parameters)
+
+        elif isinstance(action.parameters, WaitParams):
+            await self._execute_wait(action.parameters)
+
+        elif isinstance(action.parameters, LoopParams):
+            await self._execute_loop(action.parameters)
 
     async def _execute_set_laser_power(self, params: SetLaserPowerParams) -> None:
         """Execute SetLaserPower action."""
@@ -341,7 +449,7 @@ class ProtocolEngine:
             while not self._stop_requested:
                 iteration += 1
                 logger.debug(f"Loop iteration {iteration}")
-                await self._execute_actions(params.actions)
+                await self._execute_actions_with_recovery(params.actions)
         else:
             # Finite loop
             logger.debug(f"Starting loop: {params.repeat_count} iterations")
@@ -350,7 +458,7 @@ class ProtocolEngine:
                     raise RuntimeError("Execution stopped")
 
                 logger.debug(f"Loop iteration {i+1}/{params.repeat_count}")
-                await self._execute_actions(params.actions)
+                await self._execute_actions_with_recovery(params.actions)
 
     def _perform_safety_checks(self) -> tuple[bool, str]:
         """
