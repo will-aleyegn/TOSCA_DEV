@@ -232,7 +232,9 @@ class MainWindow(QMainWindow):
 
         # Initialize protocol engine with available controllers
         self.protocol_engine = ProtocolEngine(
-            laser_controller=laser_controller, actuator_controller=actuator_controller
+            laser_controller=laser_controller,
+            actuator_controller=actuator_controller,
+            safety_manager=self.safety_manager,
         )
 
         # Pass protocol engine to treatment widget for UI integration
@@ -241,7 +243,8 @@ class MainWindow(QMainWindow):
 
         logger.info(
             f"Protocol engine initialized (laser: {laser_controller is not None}, "
-            f"actuator: {actuator_controller is not None})"
+            f"actuator: {actuator_controller is not None}, "
+            f"safety: {self.safety_manager is not None})"
         )
 
     def _connect_event_logger(self) -> None:
