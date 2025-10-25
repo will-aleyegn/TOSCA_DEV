@@ -5,10 +5,12 @@ GPIO hardware abstraction layer for Arduino Nano safety interlocks.
 Provides PyQt6-integrated GPIO control for:
 - Smoothing device control and monitoring
 - Photodiode laser power monitoring
+- Aiming laser control
 
 Arduino Nano Pin Configuration:
 - Digital Pin 2: Smoothing motor control (output)
 - Digital Pin 3: Smoothing vibration sensor (input with pullup)
+- Digital Pin 4: Aiming laser control (output)
 - Analog Pin A0: Photodiode laser power monitoring (0-5V)
 """
 
@@ -39,6 +41,7 @@ class GPIOController(QObject):
     - Smoothing device motor control (digital output)
     - Smoothing device vibration sensor (digital input)
     - Photodiode laser power monitoring (analog input)
+    - Aiming laser control (digital output)
     """
 
     # Signals
@@ -46,6 +49,7 @@ class GPIOController(QObject):
     smoothing_vibration_changed = pyqtSignal(bool)  # Vibration detected
     photodiode_voltage_changed = pyqtSignal(float)  # Voltage in V
     photodiode_power_changed = pyqtSignal(float)  # Calculated power in mW
+    aiming_laser_changed = pyqtSignal(bool)  # Aiming laser state (on/off)
     connection_changed = pyqtSignal(bool)  # Connection status
     error_occurred = pyqtSignal(str)  # Error message
     safety_interlock_changed = pyqtSignal(bool)  # Safety OK status
@@ -68,16 +72,19 @@ class GPIOController(QObject):
         # Pin configuration
         self.motor_pin_number = 2  # Digital pin 2
         self.vibration_pin_number = 3  # Digital pin 3
+        self.aiming_laser_pin_number = 4  # Digital pin 4
         self.photodiode_pin_number = 0  # Analog pin A0 (0 in pyfirmata)
 
         # Pin objects (will be set during connect)
         self.motor_pin = None
         self.vibration_pin = None
+        self.aiming_laser_pin = None
         self.photodiode_pin = None
 
         # State tracking
         self.is_connected = False
         self.motor_enabled = False
+        self.aiming_laser_enabled = False
         self.vibration_detected = False
         self.photodiode_voltage = 0.0
         self.photodiode_power_mw = 0.0
@@ -101,6 +108,7 @@ class GPIOController(QObject):
         Arduino Nano Pin Configuration:
         - Digital Pin 2: Smoothing motor control (output)
         - Digital Pin 3: Smoothing vibration sensor (input with pullup)
+        - Digital Pin 4: Aiming laser control (output)
         - Analog Pin A0: Photodiode input (0-5V, 10-bit ADC)
 
         Args:
@@ -134,6 +142,12 @@ class GPIOController(QObject):
             if self.vibration_pin:
                 self.vibration_pin.enable_reporting()
             logger.info(f"Vibration sensor pin initialized (D{self.vibration_pin_number})")
+
+            # Configure aiming laser control pin (digital output)
+            self.aiming_laser_pin = self.board.get_pin(f"d:{self.aiming_laser_pin_number}:o")
+            if self.aiming_laser_pin:
+                self.aiming_laser_pin.write(0)  # Start with aiming laser off
+            logger.info(f"Aiming laser control pin initialized (D{self.aiming_laser_pin_number})")
 
             # Configure photodiode pin (analog input)
             self.photodiode_pin = self.board.get_pin(f"a:{self.photodiode_pin_number}:i")
@@ -181,6 +195,7 @@ class GPIOController(QObject):
     def disconnect(self) -> None:
         """Disconnect from Arduino."""
         self.stop_smoothing_motor()
+        self.stop_aiming_laser()
         self.monitor_timer.stop()
 
         if self.board:
@@ -193,6 +208,7 @@ class GPIOController(QObject):
         self.iterator = None
         self.motor_pin = None
         self.vibration_pin = None
+        self.aiming_laser_pin = None
         self.photodiode_pin = None
 
         self.is_connected = False
@@ -363,3 +379,70 @@ class GPIOController(QObject):
             Power in mW
         """
         return self.photodiode_power_mw
+
+    def start_aiming_laser(self) -> bool:
+        """
+        Start aiming laser (GPIO voltage output).
+
+        Returns:
+            True if aiming laser started successfully
+        """
+        if not self.is_connected or not self.aiming_laser_pin:
+            self.error_occurred.emit("GPIO not connected")
+            return False
+
+        try:
+            self.aiming_laser_pin.write(1)
+            self.aiming_laser_enabled = True
+            self.aiming_laser_changed.emit(True)
+            logger.info("Aiming laser enabled")
+
+            if self.event_logger:
+                from ..core.event_logger import EventType
+
+                self.event_logger.log_event(
+                    event_type=EventType.TREATMENT_LASER_ON,
+                    description="Aiming laser enabled",
+                    details={"laser_type": "aiming"},
+                )
+
+            return True
+
+        except Exception as e:
+            error_msg = f"Failed to enable aiming laser: {e}"
+            logger.error(error_msg)
+            self.error_occurred.emit(error_msg)
+            return False
+
+    def stop_aiming_laser(self) -> bool:
+        """
+        Stop aiming laser (GPIO voltage output).
+
+        Returns:
+            True if aiming laser stopped successfully
+        """
+        if not self.is_connected or not self.aiming_laser_pin:
+            return False
+
+        try:
+            self.aiming_laser_pin.write(0)
+            self.aiming_laser_enabled = False
+            self.aiming_laser_changed.emit(False)
+            logger.info("Aiming laser disabled")
+
+            if self.event_logger:
+                from ..core.event_logger import EventType
+
+                self.event_logger.log_event(
+                    event_type=EventType.TREATMENT_LASER_OFF,
+                    description="Aiming laser disabled",
+                    details={"laser_type": "aiming"},
+                )
+
+            return True
+
+        except Exception as e:
+            error_msg = f"Failed to disable aiming laser: {e}"
+            logger.error(error_msg)
+            self.error_occurred.emit(error_msg)
+            return False

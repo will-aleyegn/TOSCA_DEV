@@ -103,6 +103,12 @@ Desktop.ini
 dmypy.json
 components/actuator_module/output/
 
+# Security scan outputs
+bandit_report.json
+safety_report.json
+*.bandit
+*.safety
+
 # AI Configuration (required in root for Claude Code/MCP)
 .claude/
 .mcp.json
