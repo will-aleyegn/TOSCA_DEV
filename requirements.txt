@@ -19,12 +19,12 @@ Pillow>=10.0.0
 # Hardware Interfaces
 # ===================================================================
 pyserial>=3.5
-adafruit-blinka>=8.20.0
-adafruit-circuitpython-busdevice>=5.2.0
+pyfirmata2>=2.2.0
 
 # Note: Install these separately from vendor SDKs:
 # - Xeryon actuator library (vendor-specific)
 # - VmbPy (Allied Vision camera SDK)
+# - Arduino Nano must be flashed with StandardFirmata (see components/gpio_arduino/)
 
 # ===================================================================
 # Database & ORM

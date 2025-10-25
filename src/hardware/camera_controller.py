@@ -200,7 +200,7 @@ class CameraController(QObject):
     error_occurred = pyqtSignal(str)
     recording_status_changed = pyqtSignal(bool)  # True=recording, False=stopped
 
-    def __init__(self) -> None:
+    def __init__(self, event_logger: Optional[Any] = None) -> None:
         super().__init__()
 
         if not VMBPY_AVAILABLE:
@@ -213,6 +213,7 @@ class CameraController(QObject):
         self.is_connected = False
         self.is_streaming = False
         self.is_recording = False
+        self.event_logger = event_logger
 
         # Store latest frame for image capture
         self.latest_frame: Optional[np.ndarray] = None
@@ -246,7 +247,18 @@ class CameraController(QObject):
             self.is_connected = True
             self.connection_changed.emit(True)
 
-            logger.info(f"Connected to camera: {self.camera.get_id()}")
+            camera_id_str = self.camera.get_id()
+            logger.info(f"Connected to camera: {camera_id_str}")
+
+            # Log event
+            if self.event_logger:
+                from ..core.event_logger import EventType
+
+                self.event_logger.log_hardware_event(
+                    event_type=EventType.HARDWARE_CAMERA_CONNECT,
+                    description=f"Camera connected: {camera_id_str}",
+                    device_name="Allied Vision Camera",
+                )
 
             # Log frame rate capabilities
             fps_info = self.get_acquisition_frame_rate_info()
@@ -261,6 +273,18 @@ class CameraController(QObject):
             error_msg = f"Camera connection failed: {e}"
             logger.error(error_msg)
             self.error_occurred.emit(error_msg)
+
+            # Log error event
+            if self.event_logger:
+                from ..core.event_logger import EventSeverity, EventType
+
+                self.event_logger.log_event(
+                    event_type=EventType.HARDWARE_ERROR,
+                    description=error_msg,
+                    severity=EventSeverity.WARNING,
+                    details={"device": "Allied Vision Camera"},
+                )
+
             return False
 
     def disconnect(self) -> None:
@@ -282,6 +306,16 @@ class CameraController(QObject):
         self.is_connected = False
         self.connection_changed.emit(False)
         logger.info("Camera disconnected")
+
+        # Log event
+        if self.event_logger:
+            from ..core.event_logger import EventType
+
+            self.event_logger.log_hardware_event(
+                event_type=EventType.HARDWARE_CAMERA_DISCONNECT,
+                description="Camera disconnected",
+                device_name="Allied Vision Camera",
+            )
 
     def start_streaming(self) -> bool:
         """
@@ -444,12 +478,35 @@ class CameraController(QObject):
             self.recording_status_changed.emit(True)
 
             logger.info(f"Video recording started: {output_path}")
+
+            # Log event
+            if self.event_logger:
+                from ..core.event_logger import EventType
+
+                self.event_logger.log_event(
+                    event_type=EventType.HARDWARE_CAMERA_RECORDING_START,
+                    description=f"Video recording started: {filename}",
+                    details={"output_path": str(output_path)},
+                )
+
             return True
 
         except Exception as e:
             error_msg = f"Failed to start recording: {e}"
             logger.error(error_msg)
             self.error_occurred.emit(error_msg)
+
+            # Log error event
+            if self.event_logger:
+                from ..core.event_logger import EventSeverity, EventType
+
+                self.event_logger.log_event(
+                    event_type=EventType.HARDWARE_ERROR,
+                    description=error_msg,
+                    severity=EventSeverity.WARNING,
+                    details={"device": "Allied Vision Camera", "operation": "start_recording"},
+                )
+
             return False
 
     def stop_recording(self) -> None:
@@ -464,6 +521,15 @@ class CameraController(QObject):
         self.is_recording = False
         self.recording_status_changed.emit(False)
         logger.info("Video recording stopped")
+
+        # Log event
+        if self.event_logger:
+            from ..core.event_logger import EventType
+
+            self.event_logger.log_event(
+                event_type=EventType.HARDWARE_CAMERA_RECORDING_STOP,
+                description="Video recording stopped",
+            )
 
     def set_exposure(self, exposure_us: float) -> bool:
         """

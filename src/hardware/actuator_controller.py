@@ -12,7 +12,7 @@ Provides PyQt6-integrated actuator control with:
 
 import logging
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 from PyQt6.QtCore import QObject, QTimer, pyqtSignal
 
@@ -52,7 +52,7 @@ class ActuatorController(QObject):
     limits_changed = pyqtSignal(float, float)  # (low_limit_um, high_limit_um)
     limit_warning = pyqtSignal(str, float)  # (direction, distance_from_limit)
 
-    def __init__(self) -> None:
+    def __init__(self, event_logger: Optional[Any] = None) -> None:
         super().__init__()
 
         if not XERYON_AVAILABLE:
@@ -62,6 +62,7 @@ class ActuatorController(QObject):
         self.axis: Optional[Axis] = None
         self.is_connected = False
         self.is_homed = False
+        self.event_logger = event_logger
 
         # Position monitoring timer
         self.position_timer = QTimer()
@@ -138,6 +139,17 @@ class ActuatorController(QObject):
             self.get_acceleration_settings()
             self.limits_changed.emit(low_limit, high_limit)
 
+            # Log event
+            if self.event_logger:
+                from ..core.event_logger import EventType
+
+                status = "homed" if self.is_homed else "not homed"
+                self.event_logger.log_hardware_event(
+                    event_type=EventType.HARDWARE_ACTUATOR_CONNECT,
+                    description=f"Actuator connected on {com_port} ({status})",
+                    device_name="Xeryon Linear Stage",
+                )
+
             # Start position monitoring
             self.position_timer.start()
 
@@ -147,6 +159,18 @@ class ActuatorController(QObject):
             error_msg = f"Actuator connection failed: {e}"
             logger.error(error_msg)
             self.error_occurred.emit(error_msg)
+
+            # Log error event
+            if self.event_logger:
+                from ..core.event_logger import EventSeverity, EventType
+
+                self.event_logger.log_event(
+                    event_type=EventType.HARDWARE_ERROR,
+                    description=error_msg,
+                    severity=EventSeverity.WARNING,
+                    details={"device": "Xeryon Linear Stage", "port": com_port},
+                )
+
             return False
 
     def disconnect(self) -> None:
@@ -166,6 +190,16 @@ class ActuatorController(QObject):
         self.is_homed = False
         self.connection_changed.emit(False)
         logger.info("Actuator disconnected")
+
+        # Log event
+        if self.event_logger:
+            from ..core.event_logger import EventType
+
+            self.event_logger.log_hardware_event(
+                event_type=EventType.HARDWARE_ACTUATOR_DISCONNECT,
+                description="Actuator disconnected",
+                device_name="Xeryon Linear Stage",
+            )
 
     def find_index(self) -> bool:
         """

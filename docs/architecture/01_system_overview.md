@@ -40,8 +40,7 @@ pillow                  # Image saving/conversion
 
 # Hardware Interfaces
 pyserial               # Arroyo laser serial communication
-adafruit-blinka        # FT232H GPIO/ADC support
-board, busio           # Adafruit pin definitions
+pyfirmata              # Arduino Nano GPIO/ADC support
 # Xeryon library        # Linear actuator control (existing)
 # VmbPy SDK            # Allied Vision camera interface (existing)
 
@@ -88,17 +87,12 @@ jsonschema            # Protocol validation
 ┌─────────────────────────────────────────────────────────────────┐
 │         Hardware Abstraction Layer (HAL)                        │
 │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐          │
-│  │  Laser   │ │ Actuator │ │  Camera  │ │ GPIO-1   │          │
-│  │ (Arroyo) │ │ (Xeryon) │ │ (VmbPy)  │ │(FT232H)  │          │
-│  │  Serial  │ │   API    │ │   SDK    │ │ Footpedal│          │
+│  │  Laser   │ │ Actuator │ │  Camera  │ │   GPIO   │          │
+│  │ (Arroyo) │ │ (Xeryon) │ │ (VmbPy)  │ │(Arduino) │          │
+│  │  Serial  │ │   API    │ │   SDK    │ │ Firmata  │          │
 │  │          │ │          │ │          │ │ Smoothing│          │
+│  │          │ │          │ │          │ │Photodiode│          │
 │  └──────────┘ └──────────┘ └──────────┘ └──────────┘          │
-│  ┌──────────┐                                                   │
-│  │ GPIO-2   │                                                   │
-│  │(FT232H)  │                                                   │
-│  │Photodiode│                                                   │
-│  │   ADC    │                                                   │
-│  └──────────┘                                                   │
 └─────────────────────────────────────────────────────────────────┘
                               ↕
 ┌─────────────────────────────────────────────────────────────────┐
@@ -131,18 +125,19 @@ jsonschema            # Protocol validation
   - Focus quality measurement
   - Treatment recording
 
-### 4. GPIO Controller 1 - Safety Interlocks (FT232H)
-- **Device:** Adafruit FT232H Breakout (USB-C)
-- **Library:** adafruit-blinka, board, busio
-- **Connections:**
-  - **Footpedal Input:** Deadman switch - MUST be depressed to enable laser firing
-  - **Hotspot Smoothing Device:** Signal monitoring - MUST be present and healthy for laser operation
-
-### 5. GPIO Controller 2 - Photodiode Monitoring (FT232H)
-- **Device:** Adafruit FT232H Breakout (USB-C)
-- **Function:** ADC reading of photodiode voltage
-- **Purpose:** Real-time measurement of laser output via optical pickoff
-- **Monitoring:** Validates expected power output, detects anomalies
+### 4. GPIO Controller - Safety Interlocks and Monitoring (Arduino Nano)
+- **Device:** Arduino Nano (ATmega328P)
+- **Library:** pyfirmata (StandardFirmata protocol)
+- **Communication:** USB (power + data)
+- **Digital I/O:**
+  - **Pin D2 (Output):** Smoothing device motor control
+  - **Pin D3 (Input):** Smoothing device vibration sensor
+- **Analog Input:**
+  - **Pin A0 (ADC):** Photodiode voltage monitoring (0-5V, 10-bit)
+- **Functions:**
+  - Safety interlock monitoring (motor + vibration detection)
+  - Real-time laser power measurement via photodiode
+  - Cross-platform support (Windows/Linux/macOS)
 
 ## Safety Architecture
 
