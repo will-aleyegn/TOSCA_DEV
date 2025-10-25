@@ -5,7 +5,7 @@ Provides laser driver control interface.
 """
 
 import logging
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 from PyQt6.QtCore import Qt, pyqtSlot
 from PyQt6.QtWidgets import (
@@ -22,6 +22,9 @@ from PyQt6.QtWidgets import (
 
 from src.hardware.laser_controller import LaserController
 
+if TYPE_CHECKING:
+    from src.hardware.gpio_controller import GPIOController
+
 logger = logging.getLogger(__name__)
 
 
@@ -35,10 +38,12 @@ class LaserWidget(QWidget):
 
         # Create controller
         self.controller: Optional[LaserController] = None
+        self.gpio_controller: Optional["GPIOController"] = None
 
         # State tracking
         self.is_connected = False
         self.is_output_enabled = False
+        self.is_aiming_laser_enabled = False
         self.current_ma = 0.0
         self.temperature_c = 0.0
 
@@ -64,6 +69,10 @@ class LaserWidget(QWidget):
         # Temperature control
         temp_group = self._create_temperature_group()
         layout.addWidget(temp_group)
+
+        # Aiming laser control
+        aiming_group = self._create_aiming_laser_group()
+        layout.addWidget(aiming_group)
 
         layout.addStretch()
 
@@ -196,6 +205,30 @@ class LaserWidget(QWidget):
         group.setLayout(layout)
         return group
 
+    def _create_aiming_laser_group(self) -> QGroupBox:
+        """Create aiming laser control group."""
+        group = QGroupBox("Aiming Laser")
+        layout = QHBoxLayout()
+
+        self.aiming_laser_on_btn = QPushButton("Aiming ON")
+        self.aiming_laser_on_btn.setStyleSheet(
+            "font-size: 14px; font-weight: bold; background-color: #2196F3; color: white;"
+        )
+        self.aiming_laser_on_btn.clicked.connect(lambda: self._on_aiming_laser_clicked(True))
+        self.aiming_laser_on_btn.setEnabled(False)
+        layout.addWidget(self.aiming_laser_on_btn)
+
+        self.aiming_laser_off_btn = QPushButton("Aiming OFF")
+        self.aiming_laser_off_btn.setStyleSheet(
+            "font-size: 14px; font-weight: bold; background-color: #9E9E9E; color: white;"
+        )
+        self.aiming_laser_off_btn.clicked.connect(lambda: self._on_aiming_laser_clicked(False))
+        self.aiming_laser_off_btn.setEnabled(False)
+        layout.addWidget(self.aiming_laser_off_btn)
+
+        group.setLayout(layout)
+        return group
+
     def _update_ui_state(self) -> None:
         """Update UI element states based on connection status."""
         # Connection buttons
@@ -212,6 +245,11 @@ class LaserWidget(QWidget):
         # Output buttons
         self.enable_btn.setEnabled(controls_enabled and not self.is_output_enabled)
         self.disable_btn.setEnabled(controls_enabled and self.is_output_enabled)
+
+        # Aiming laser buttons (enabled when GPIO is connected)
+        gpio_connected = bool(self.gpio_controller and self.gpio_controller.is_connected)
+        self.aiming_laser_on_btn.setEnabled(gpio_connected and not self.is_aiming_laser_enabled)
+        self.aiming_laser_off_btn.setEnabled(gpio_connected and self.is_aiming_laser_enabled)
 
     @pyqtSlot()
     def _on_connect_clicked(self) -> None:
@@ -315,6 +353,40 @@ class LaserWidget(QWidget):
     def _on_error(self, error_msg: str) -> None:
         """Handle error from controller."""
         logger.error(f"Laser error: {error_msg}")
+
+    @pyqtSlot(bool)
+    def _on_aiming_laser_clicked(self, enable: bool) -> None:
+        """Handle aiming laser on/off button click."""
+        if not self.gpio_controller:
+            logger.warning("GPIO controller not available")
+            return
+
+        if enable:
+            self.gpio_controller.start_aiming_laser()
+        else:
+            self.gpio_controller.stop_aiming_laser()
+
+    @pyqtSlot(bool)
+    def _on_aiming_laser_changed(self, enabled: bool) -> None:
+        """Handle aiming laser state change from GPIO controller."""
+        self.is_aiming_laser_enabled = enabled
+        logger.info(f"Aiming laser: {'ON' if enabled else 'OFF'}")
+        self._update_ui_state()
+
+    def set_gpio_controller(self, gpio_controller: Optional["GPIOController"]) -> None:
+        """
+        Set the GPIO controller for aiming laser control.
+
+        Args:
+            gpio_controller: GPIOController instance
+        """
+        self.gpio_controller = gpio_controller
+
+        if gpio_controller:
+            gpio_controller.aiming_laser_changed.connect(self._on_aiming_laser_changed)
+            logger.info("GPIO controller connected to laser widget")
+
+        self._update_ui_state()
 
     def cleanup(self) -> None:
         """Cleanup resources."""

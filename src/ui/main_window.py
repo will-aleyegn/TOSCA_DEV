@@ -190,6 +190,12 @@ class MainWindow(QMainWindow):
                 )
                 logger.info("GPIO safety interlocks connected to safety manager")
 
+                # Connect GPIO controller to laser widget for aiming laser control
+                if hasattr(self.treatment_widget, "laser_widget"):
+                    laser_widget = self.treatment_widget.laser_widget
+                    laser_widget.set_gpio_controller(gpio_widget.controller)
+                    logger.info("GPIO controller connected to laser widget for aiming laser")
+
         # Connect safety manager to treatment widgets
         # Laser widget will check safety manager before enabling
         if hasattr(self.treatment_widget, "laser_widget"):

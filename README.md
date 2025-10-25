@@ -231,14 +231,14 @@ tests/                      [TODO] Test suite
 - **Actuator Hardware Abstraction Layer** ✅ - Xeryon PyQt integration with sequence builder
 - **GPIO Hardware Abstraction Layer** ✅ - FT232H safety interlocks complete
 
-### Phase 3: Core Business Logic 🔄 60% COMPLETE
+### Phase 3: Core Business Logic ✅ 100% COMPLETE
 
 **User Interface**
 - **Main Window & Tab Navigation** ✅ - 4-tab interface with database and event logging
 - **Subject Selection Widget** ✅ - Subject search/create, session management, database integration
 - **Camera/Alignment Widget** ✅ - Live streaming, exposure/gain controls, capture, recording
 - **Treatment Control Widget** ✅ - Integrated 3-column layout (laser, treatment, actuator)
-- **Laser Widget** ✅ - Connection, current control, TEC temperature, output enable with safety checks
+- **Laser Widget** ✅ - Connection, current control, TEC temperature, output enable, **aiming laser control**
 - **Actuator Widget** ✅ - Sequence builder with 6 action types, homing, positioning
 - **Safety Status Widget** ✅ - Safety status, event logging, emergency stop, GPIO interlock display
 - **GPIO Widget** ✅ - Motor control, vibration monitoring, photodiode display
@@ -246,11 +246,11 @@ tests/                      [TODO] Test suite
 
 **Core Business Logic**
 - **Protocol Data Model** ✅ - 5 action types with validation
-- **Protocol Execution Engine** ✅ - Async engine with pause/resume/stop
+- **Protocol Execution Engine** ✅ - Async engine with pause/resume/stop, hardware integration, retry logic
 - **Actuator Sequence Model** ✅ - 6 action types with accel/decel, laser power
-- **Safety System** ✅ (95%) - SafetyManager with state machine, GPIO integration, laser enforcement
+- **Safety System** ✅ (100%) - SafetyManager with state machine, GPIO integration, laser enforcement
 - **Session Management** ✅ (100%) - Complete session lifecycle, database persistence, folder creation
-- **Event Logger** 🔄 (50%) - EventLogger with 25+ event types, database + file persistence
+- **Event Logger** ✅ (100%) - EventLogger with 25+ event types, database + file persistence, hardware integration
 
 **Data Layer**
 - **Database Schema Design** ✅ - Comprehensive schema documented
@@ -272,7 +272,13 @@ tests/                      [TODO] Test suite
 
 ---
 
-## Recent Updates (2025-10-24 08:15)
+## Recent Updates (2025-10-25)
+
+### Latest: Aiming Laser Control ✅ NEW
+- Added separate aiming laser control to GPIO controller (Pin D4)
+- Aiming laser ON/OFF buttons in Laser Widget
+- Independent control from treatment laser (Arroyo)
+- Event logging integration for aiming laser state changes
 
 ### Phase 2: Hardware Abstraction Layer - COMPLETE ✅
 All 4 hardware controllers fully implemented with PyQt6 integration:
@@ -295,15 +301,18 @@ All 4 hardware controllers fully implemented with PyQt6 integration:
    - Acceleration/deceleration control per step
 
 4. **GPIO HAL** ✅
-   - FT232H integration with Adafruit Blinka
-   - Smoothing device motor control (digital output)
-   - Vibration sensor monitoring (digital input, debounced)
-   - Photodiode power monitoring (MCP3008 ADC via SPI)
+   - **Migrated to Arduino Nano** with StandardFirmata (from FT232H)
+   - pyfirmata2 library for Python 3.12 compatibility
+   - Smoothing device motor control (D2 digital output)
+   - Vibration sensor monitoring (D3 digital input, debounced)
+   - **Aiming laser control (D4 digital output)** - NEW!
+   - Photodiode power monitoring (A0 analog input, 0-5V)
    - Safety interlock logic (motor ON + vibration detected)
+   - Hardware tested and validated on COM4
 
-### Phase 3: Core Business Logic - IN PROGRESS (60% complete)
+### Phase 3: Core Business Logic - 100% COMPLETE ✅
 
-**Priority 1: Safety System** (95% complete) ✅
+**Priority 1: Safety System** (100% complete) ✅
 - Central SafetyManager with state machine (SAFE/UNSAFE/EMERGENCY_STOP)
 - GPIO interlock integration
 - Laser enable enforcement
@@ -319,13 +328,22 @@ All 4 hardware controllers fully implemented with PyQt6 integration:
 - Session folders: data/sessions/P-YYYY-NNNN/TIMESTAMP/
 - Safety system integration (session valid flag)
 
-**Priority 3: Event Logging** (50% complete) 🔄
+**Priority 3: Event Logging** (100% complete) ✅
 - EventLogger with 25+ event types (safety, hardware, treatment, user, system)
 - Dual persistence: Database (SafetyLog table) + JSONL file backup
 - Session and technician association
 - PyQt6 signals for real-time UI updates
 - System startup/shutdown event logging
-- Next: Hardware controller integration, safety widget display
+- Complete hardware controller integration
+- Safety widget database event display with severity-based formatting
+
+**Priority 4: Protocol Execution** (100% complete) ✅
+- ProtocolEngine wired to MainWindow and hardware controllers
+- Hardware integration for laser power and actuator movement
+- Real-time execution feedback with progress bar and status updates
+- Comprehensive error handling with retry logic (3 retries, 1s delay, 60s timeout)
+- Pause/resume/stop functionality tested and validated
+- Complete test suite: basic execution, pause/resume, emergency stop
 
 ### Treatment Tab Reorganization ✅
 - 3-column layout: Laser (left), Treatment (middle), Actuator (right)
@@ -334,11 +352,35 @@ All 4 hardware controllers fully implemented with PyQt6 integration:
 
 ---
 
-**Last Updated:** 2025-10-24 08:15
-**Project Phase:** Phase 3 - Core Business Logic (60% complete)
-**Next Priority:** Complete event logging integration, begin hardware testing
+---
+
+## Phase 4: Architectural Improvements (NEXT PRIORITY)
+
+Comprehensive architectural improvements identified (2025-10-25):
+
+### Critical Priority
+1. **Safety Watchdog Timer** - Hardware watchdog to detect GUI freeze (CRITICAL)
+   - See `docs/architecture/IMPLEMENTATION_PLAN_WATCHDOG.md`
+   - Must complete before clinical testing
+
+2. **Configuration Management** - Pydantic config system for safety limits (HIGH)
+   - See `docs/architecture/IMPLEMENTATION_PLAN_CONFIG.md`
+   - Replaces hardcoded calibration constants
+
+3. **Hardware Controller ABC** - Abstract base class for type safety (MEDIUM)
+   - See `docs/architecture/ARCHITECTURAL_DEBT.md`
+   - Improves maintainability
+
+**Full details:** See `docs/project/NEXT_STEPS.md` for week-by-week implementation plan
+
+---
+
+**Last Updated:** 2025-10-25
+**Project Phase:** Phase 3 COMPLETE (100%), Phase 4 Planning
+**Next Priority:** Safety Watchdog Timer implementation (3-5 days)
 
 **For current project status and detailed progress, see:**
+- `docs/project/NEXT_STEPS.md` - Week-by-week roadmap for Phase 4
+- `docs/architecture/ARCHITECTURAL_DEBT.md` - Complete analysis of improvements
 - `docs/project/PROJECT_STATUS.md` - Complete project state
 - `presubmit/WORK_LOG.md` - Real-time session tracking
-- `components/laser_control/README.md` - Laser controller documentation
