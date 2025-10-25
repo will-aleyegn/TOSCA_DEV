@@ -1,41 +1,44 @@
 # -*- coding: utf-8 -*-
 """
-GPIO hardware abstraction layer for FT232H safety interlocks.
+GPIO hardware abstraction layer for Arduino Nano safety interlocks.
 
 Provides PyQt6-integrated GPIO control for:
 - Smoothing device control and monitoring
 - Photodiode laser power monitoring
+
+Arduino Nano Pin Configuration:
+- Digital Pin 2: Smoothing motor control (output)
+- Digital Pin 3: Smoothing vibration sensor (input with pullup)
+- Analog Pin A0: Photodiode laser power monitoring (0-5V)
 """
 
+from __future__ import annotations
+
 import logging
-from typing import Optional
+from typing import Any, Optional
 
 from PyQt6.QtCore import QObject, QTimer, pyqtSignal
 
 logger = logging.getLogger(__name__)
 
-# Try to import Adafruit libraries
+# Try to import pyfirmata2
 try:
-    import board
-    import busio
-    import digitalio
-    from adafruit_mcp3xxx.analog_in import AnalogIn
-    from adafruit_mcp3xxx.mcp3008 import MCP3008
+    from pyfirmata2 import Arduino, util
 
-    ADAFRUIT_AVAILABLE = True
+    PYFIRMATA_AVAILABLE = True
 except ImportError:
-    ADAFRUIT_AVAILABLE = False
-    logger.warning("Adafruit libraries not available - GPIO features disabled")
+    PYFIRMATA_AVAILABLE = False
+    logger.warning("pyfirmata2 not available - GPIO features disabled")
 
 
 class GPIOController(QObject):
     """
-    FT232H GPIO controller with PyQt6 integration.
+    Arduino Nano GPIO controller with PyQt6 integration.
 
     Manages safety interlocks:
     - Smoothing device motor control (digital output)
     - Smoothing device vibration sensor (digital input)
-    - Photodiode laser power monitoring (analog input via MCP3008)
+    - Photodiode laser power monitoring (analog input)
     """
 
     # Signals
@@ -47,18 +50,30 @@ class GPIOController(QObject):
     error_occurred = pyqtSignal(str)  # Error message
     safety_interlock_changed = pyqtSignal(bool)  # Safety OK status
 
-    def __init__(self) -> None:
+    def __init__(self, event_logger: Optional[Any] = None) -> None:
         super().__init__()
 
-        if not ADAFRUIT_AVAILABLE:
-            raise ImportError("Adafruit libraries not installed - GPIO features unavailable")
+        self.hardware_available = PYFIRMATA_AVAILABLE
+        self.event_logger = event_logger
+
+        if not PYFIRMATA_AVAILABLE:
+            logger.warning(
+                "GPIO controller initialized in DISABLED mode - pyfirmata2 not available"
+            )
 
         # Hardware objects
-        self.smoothing_motor_pin: Optional[digitalio.DigitalInOut] = None
-        self.smoothing_sensor_pin: Optional[digitalio.DigitalInOut] = None
-        self.spi: Optional[busio.SPI] = None
-        self.mcp: Optional[MCP3008] = None
-        self.photodiode_channel: Optional[AnalogIn] = None
+        self.board: Optional[Arduino] = None
+        self.iterator: Optional[util.Iterator] = None
+
+        # Pin configuration
+        self.motor_pin_number = 2  # Digital pin 2
+        self.vibration_pin_number = 3  # Digital pin 3
+        self.photodiode_pin_number = 0  # Analog pin A0 (0 in pyfirmata)
+
+        # Pin objects (will be set during connect)
+        self.motor_pin = None
+        self.vibration_pin = None
+        self.photodiode_pin = None
 
         # State tracking
         self.is_connected = False
@@ -79,39 +94,65 @@ class GPIOController(QObject):
 
         logger.info("GPIO controller initialized")
 
-    def connect(self) -> bool:
+    def connect(self, port: str = "COM4") -> bool:
         """
-        Connect to FT232H and initialize GPIO pins and ADC.
+        Connect to Arduino Nano and initialize GPIO pins.
 
-        Pin Configuration:
-        - C0: Smoothing motor control (digital output)
-        - C1: Smoothing vibration sensor (digital input)
-        - MCP3008 Ch0: Photodiode input (analog via SPI)
+        Arduino Nano Pin Configuration:
+        - Digital Pin 2: Smoothing motor control (output)
+        - Digital Pin 3: Smoothing vibration sensor (input with pullup)
+        - Analog Pin A0: Photodiode input (0-5V, 10-bit ADC)
+
+        Args:
+            port: Serial port (e.g., 'COM3' on Windows, '/dev/ttyUSB0' on Linux)
 
         Returns:
             True if connected successfully
         """
+        if not self.hardware_available:
+            self.error_occurred.emit("GPIO hardware not available - pyfirmata2 not installed")
+            logger.warning("Cannot connect - pyfirmata2 not available")
+            return False
+
         try:
-            # Initialize smoothing motor control (digital output)
-            self.smoothing_motor_pin = digitalio.DigitalInOut(board.C0)
-            self.smoothing_motor_pin.direction = digitalio.Direction.OUTPUT
-            self.smoothing_motor_pin.value = False  # Start with motor off
-            logger.info("Smoothing motor pin initialized (C0)")
+            # Connect to Arduino
+            self.board = Arduino(port)
+            logger.info(f"Connected to Arduino on {port}")
 
-            # Initialize smoothing vibration sensor (digital input)
-            self.smoothing_sensor_pin = digitalio.DigitalInOut(board.C1)
-            self.smoothing_sensor_pin.direction = digitalio.Direction.INPUT
-            logger.info("Smoothing sensor pin initialized (C1)")
+            # Start iterator for analog/digital read
+            self.iterator = util.Iterator(self.board)
+            self.iterator.start()
 
-            # Initialize SPI for MCP3008 ADC
-            self.spi = busio.SPI(clock=board.SCK, MISO=board.MISO, MOSI=board.MOSI)
-            cs = digitalio.DigitalInOut(board.C2)  # Chip select on C2
-            self.mcp = MCP3008(self.spi, cs)
-            self.photodiode_channel = AnalogIn(self.mcp, 0)  # Channel 0
-            logger.info("MCP3008 ADC initialized on SPI with CS on C2")
+            # Configure motor control pin (digital output)
+            self.motor_pin = self.board.get_pin(f"d:{self.motor_pin_number}:o")
+            if self.motor_pin:
+                self.motor_pin.write(0)  # Start with motor off
+            logger.info(f"Motor control pin initialized (D{self.motor_pin_number})")
+
+            # Configure vibration sensor pin (digital input with pullup)
+            self.vibration_pin = self.board.get_pin(f"d:{self.vibration_pin_number}:i")
+            if self.vibration_pin:
+                self.vibration_pin.enable_reporting()
+            logger.info(f"Vibration sensor pin initialized (D{self.vibration_pin_number})")
+
+            # Configure photodiode pin (analog input)
+            self.photodiode_pin = self.board.get_pin(f"a:{self.photodiode_pin_number}:i")
+            if self.photodiode_pin:
+                self.photodiode_pin.enable_reporting()
+            logger.info(f"Photodiode pin initialized (A{self.photodiode_pin_number})")
 
             self.is_connected = True
             self.connection_changed.emit(True)
+
+            # Log event
+            if self.event_logger:
+                from ..core.event_logger import EventType
+
+                self.event_logger.log_hardware_event(
+                    event_type=EventType.HARDWARE_GPIO_CONNECT,
+                    description=f"Arduino GPIO connected on {port}",
+                    device_name="Arduino Nano",
+                )
 
             # Start monitoring
             self.monitor_timer.start()
@@ -120,179 +161,185 @@ class GPIOController(QObject):
             return True
 
         except Exception as e:
-            logger.error(f"Failed to connect GPIO: {e}")
-            self.error_occurred.emit(f"GPIO connection failed: {e}")
-            self.is_connected = False
-            self.connection_changed.emit(False)
+            error_msg = f"Arduino connection failed: {e}"
+            logger.error(error_msg)
+            self.error_occurred.emit(error_msg)
+
+            # Log error event
+            if self.event_logger:
+                from ..core.event_logger import EventSeverity, EventType
+
+                self.event_logger.log_event(
+                    event_type=EventType.HARDWARE_ERROR,
+                    description=error_msg,
+                    severity=EventSeverity.WARNING,
+                    details={"device": "Arduino Nano", "port": port},
+                )
+
             return False
 
     def disconnect(self) -> None:
-        """Disconnect from GPIO and cleanup resources."""
-        if not self.is_connected:
-            return
+        """Disconnect from Arduino."""
+        self.stop_smoothing_motor()
+        self.monitor_timer.stop()
 
-        try:
-            # Stop monitoring
-            self.monitor_timer.stop()
+        if self.board:
+            try:
+                self.board.exit()
+            except Exception as e:
+                logger.warning(f"Error closing Arduino connection: {e}")
+            self.board = None
 
-            # Turn off smoothing motor
-            if self.smoothing_motor_pin:
-                self.smoothing_motor_pin.value = False
-                self.motor_enabled = False
-                self.smoothing_motor_changed.emit(False)
+        self.iterator = None
+        self.motor_pin = None
+        self.vibration_pin = None
+        self.photodiode_pin = None
 
-            # Cleanup pins
-            if self.smoothing_motor_pin:
-                self.smoothing_motor_pin.deinit()
-            if self.smoothing_sensor_pin:
-                self.smoothing_sensor_pin.deinit()
+        self.is_connected = False
+        self.connection_changed.emit(False)
+        logger.info("GPIO controller disconnected")
 
-            # Cleanup SPI
-            if self.spi:
-                self.spi.deinit()
+        # Log event
+        if self.event_logger:
+            from ..core.event_logger import EventType
 
-            self.is_connected = False
-            self.connection_changed.emit(False)
-            logger.info("GPIO controller disconnected")
+            self.event_logger.log_hardware_event(
+                event_type=EventType.HARDWARE_GPIO_DISCONNECT,
+                description="Arduino GPIO disconnected",
+                device_name="Arduino Nano",
+            )
 
-        except Exception as e:
-            logger.error(f"Error during GPIO disconnect: {e}")
-            self.error_occurred.emit(f"Disconnect error: {e}")
-
-    def set_smoothing_motor(self, enabled: bool) -> bool:
+    def start_smoothing_motor(self) -> bool:
         """
-        Enable or disable smoothing device motor.
-
-        Args:
-            enabled: True to turn motor on, False to turn off
+        Start smoothing device motor.
 
         Returns:
-            True if successful
+            True if motor started successfully
         """
-        if not self.is_connected:
-            logger.error("Not connected to GPIO")
+        if not self.is_connected or not self.motor_pin:
+            self.error_occurred.emit("GPIO not connected")
             return False
 
         try:
-            self.smoothing_motor_pin.value = enabled
-            self.motor_enabled = enabled
-            self.smoothing_motor_changed.emit(enabled)
-            logger.info(f"Smoothing motor {'enabled' if enabled else 'disabled'}")
+            self.motor_pin.write(1)
+            self.motor_enabled = True
+            self.smoothing_motor_changed.emit(True)
+            logger.info("Smoothing motor started")
+            self._update_safety_status()
             return True
 
         except Exception as e:
-            logger.error(f"Failed to set motor state: {e}")
-            self.error_occurred.emit(f"Motor control failed: {e}")
+            error_msg = f"Failed to start motor: {e}"
+            logger.error(error_msg)
+            self.error_occurred.emit(error_msg)
             return False
 
-    def read_smoothing_vibration(self) -> bool:
+    def stop_smoothing_motor(self) -> bool:
         """
-        Read smoothing device vibration sensor.
-
-        Uses debouncing to ensure stable reading.
+        Stop smoothing device motor.
 
         Returns:
-            True if vibration detected, False otherwise
+            True if motor stopped successfully
         """
-        if not self.is_connected or not self.smoothing_sensor_pin:
+        if not self.is_connected or not self.motor_pin:
             return False
 
         try:
-            # Read current sensor state
-            sensor_high = self.smoothing_sensor_pin.value
-
-            # Debounce logic
-            if sensor_high:
-                self.vibration_debounce_count = min(
-                    self.vibration_debounce_count + 1, self.vibration_debounce_threshold
-                )
-            else:
-                self.vibration_debounce_count = max(self.vibration_debounce_count - 1, 0)
-
-            # Update state if threshold crossed
-            new_state = self.vibration_debounce_count >= self.vibration_debounce_threshold
-
-            if new_state != self.vibration_detected:
-                self.vibration_detected = new_state
-                self.smoothing_vibration_changed.emit(new_state)
-                logger.debug(f"Vibration detected: {new_state}")
-
-            return new_state
+            self.motor_pin.write(0)
+            self.motor_enabled = False
+            self.smoothing_motor_changed.emit(False)
+            logger.info("Smoothing motor stopped")
+            self._update_safety_status()
+            return True
 
         except Exception as e:
-            logger.error(f"Failed to read vibration sensor: {e}")
+            error_msg = f"Failed to stop motor: {e}"
+            logger.error(error_msg)
+            self.error_occurred.emit(error_msg)
             return False
 
-    def read_photodiode(self) -> float:
-        """
-        Read photodiode voltage and calculate laser power.
-
-        Returns:
-            Voltage in volts (0-5V)
-        """
-        if not self.is_connected or not self.photodiode_channel:
-            return 0.0
-
-        try:
-            # Read voltage from ADC
-            voltage: float = float(self.photodiode_channel.voltage)
-            self.photodiode_voltage = voltage
-
-            # Calculate power (mW) from voltage
-            # Assuming linear relationship: 5V = 2000mW
-            power_mw = voltage * self.photodiode_voltage_to_power
-            self.photodiode_power_mw = power_mw
-
-            # Emit signals
-            self.photodiode_voltage_changed.emit(voltage)
-            self.photodiode_power_changed.emit(power_mw)
-
-            return voltage
-
-        except Exception as e:
-            logger.error(f"Failed to read photodiode: {e}")
-            return 0.0
-
-    def is_safety_ok(self) -> bool:
-        """
-        Check if safety interlocks are satisfied.
-
-        Safety requirements:
-        - Smoothing device motor must be enabled
-        - Smoothing device must be vibrating (sensor HIGH)
-
-        Returns:
-            True if all safety conditions met
-        """
-        safety_ok = self.motor_enabled and self.vibration_detected
-        return safety_ok
-
-    def set_photodiode_calibration(self, voltage_to_power: float) -> None:
-        """
-        Set photodiode calibration factor.
-
-        Args:
-            voltage_to_power: mW per volt conversion factor
-        """
-        self.photodiode_voltage_to_power = voltage_to_power
-        logger.info(f"Photodiode calibration set to {voltage_to_power:.1f} mW/V")
-
-    def _update_status(self) -> None:
-        """Update status from sensors (called by timer)."""
+    def _update_status(self) -> None:  # noqa: C901
+        """Update all sensor readings (called by timer)."""
         if not self.is_connected:
             return
 
         try:
-            # Read smoothing vibration sensor
-            self.read_smoothing_vibration()
+            # Read vibration sensor (digital input)
+            # pyfirmata2 uses .value (cached by iterator thread) instead of .read()
+            if self.vibration_pin:
+                vibration_reading = self.vibration_pin.value
+                if vibration_reading is not None:
+                    current_vibration = bool(vibration_reading)
 
-            # Read photodiode
-            self.read_photodiode()
+                    # Debounce vibration detection
+                    if current_vibration:
+                        self.vibration_debounce_count += 1
+                        if self.vibration_debounce_count >= self.vibration_debounce_threshold:
+                            if not self.vibration_detected:
+                                self.vibration_detected = True
+                                self.smoothing_vibration_changed.emit(True)
+                                logger.debug("Vibration detected (debounced)")
+                                self._update_safety_status()
+                    else:
+                        if self.vibration_detected:
+                            self.vibration_detected = False
+                            self.smoothing_vibration_changed.emit(False)
+                            logger.debug("Vibration stopped")
+                            self._update_safety_status()
+                        self.vibration_debounce_count = 0
 
-            # Check safety interlock
-            safety_ok = self.is_safety_ok()
-            self.safety_interlock_changed.emit(safety_ok)
+            # Read photodiode voltage (analog input, 0-5V)
+            # pyfirmata2 uses .value (cached by iterator thread) instead of .read()
+            if self.photodiode_pin:
+                voltage_reading = self.photodiode_pin.value
+                if voltage_reading is not None:
+                    # pyfirmata2 returns 0.0-1.0, scale to 0-5V
+                    self.photodiode_voltage = voltage_reading * 5.0
+                    self.photodiode_voltage_changed.emit(self.photodiode_voltage)
+
+                    # Calculate laser power (mW)
+                    self.photodiode_power_mw = (
+                        self.photodiode_voltage * self.photodiode_voltage_to_power
+                    )
+                    self.photodiode_power_changed.emit(self.photodiode_power_mw)
 
         except Exception as e:
-            logger.error(f"Status update error: {e}")
-            self.error_occurred.emit(f"Monitoring error: {e}")
+            logger.error(f"Error reading sensors: {e}")
+
+    def _update_safety_status(self) -> None:
+        """
+        Update safety interlock status.
+
+        Safety OK when:
+        - Motor is ON
+        - Vibration is detected (motor is working)
+        """
+        safety_ok = self.motor_enabled and self.vibration_detected
+        self.safety_interlock_changed.emit(safety_ok)
+
+    def get_safety_status(self) -> bool:
+        """
+        Get current safety interlock status.
+
+        Returns:
+            True if safety conditions met
+        """
+        return self.motor_enabled and self.vibration_detected
+
+    def get_photodiode_voltage(self) -> float:
+        """
+        Get current photodiode voltage.
+
+        Returns:
+            Voltage in V (0-5V)
+        """
+        return self.photodiode_voltage
+
+    def get_photodiode_power(self) -> float:
+        """
+        Get calculated laser power from photodiode.
+
+        Returns:
+            Power in mW
+        """
+        return self.photodiode_power_mw

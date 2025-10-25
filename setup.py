@@ -46,7 +46,7 @@ setup(
         "numpy>=1.24.0",
         "Pillow>=10.0.0",
         "pyserial>=3.5",
-        "adafruit-blinka>=8.20.0",
+        "pyfirmata>=1.1.0",
         "sqlalchemy>=2.0.0",
         "alembic>=1.12.0",
         "pydantic>=2.0.0",

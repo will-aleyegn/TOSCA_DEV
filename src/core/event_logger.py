@@ -34,12 +34,15 @@ class EventType(Enum):
     # Hardware events
     HARDWARE_CAMERA_CONNECT = "camera_connected"
     HARDWARE_CAMERA_DISCONNECT = "camera_disconnected"
+    HARDWARE_CAMERA_RECORDING_START = "camera_recording_started"
+    HARDWARE_CAMERA_RECORDING_STOP = "camera_recording_stopped"
     HARDWARE_LASER_CONNECT = "laser_connected"
     HARDWARE_LASER_DISCONNECT = "laser_disconnected"
     HARDWARE_ACTUATOR_CONNECT = "actuator_connected"
     HARDWARE_ACTUATOR_DISCONNECT = "actuator_disconnected"
     HARDWARE_GPIO_CONNECT = "gpio_connected"
     HARDWARE_GPIO_DISCONNECT = "gpio_disconnected"
+    HARDWARE_ERROR = "hardware_error"
 
     # Treatment events
     TREATMENT_SESSION_START = "session_started"

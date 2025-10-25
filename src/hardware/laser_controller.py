@@ -11,7 +11,7 @@ Provides PyQt6-integrated laser control with:
 """
 
 import logging
-from typing import Optional
+from typing import Any, Optional
 
 import serial
 from PyQt6.QtCore import QObject, QTimer, pyqtSignal
@@ -37,12 +37,13 @@ class LaserController(QObject):
     status_changed = pyqtSignal(str)  # Status description
     limit_warning = pyqtSignal(str)  # Limit warning message
 
-    def __init__(self) -> None:
+    def __init__(self, event_logger: Optional[Any] = None) -> None:
         super().__init__()
 
         self.ser: Optional[serial.Serial] = None
         self.is_connected = False
         self.is_output_enabled = False
+        self.event_logger = event_logger
 
         # Monitoring timer
         self.monitor_timer = QTimer()
@@ -93,6 +94,16 @@ class LaserController(QObject):
                     self.connection_changed.emit(True)
                     self.status_changed.emit("connected")
 
+                    # Log event
+                    if self.event_logger:
+                        from ..core.event_logger import EventType
+
+                        self.event_logger.log_hardware_event(
+                            event_type=EventType.HARDWARE_LASER_CONNECT,
+                            description=f"Laser connected: {response.strip()}",
+                            device_name="Arroyo Laser Driver",
+                        )
+
                     # Read initial limits
                     self._read_limits()
 
@@ -111,6 +122,18 @@ class LaserController(QObject):
         except serial.SerialException as e:
             logger.error(f"Serial connection error: {e}")
             self.error_occurred.emit(f"Connection failed: {e}")
+
+            # Log error event
+            if self.event_logger:
+                from ..core.event_logger import EventSeverity, EventType
+
+                self.event_logger.log_event(
+                    event_type=EventType.HARDWARE_ERROR,
+                    description=f"Laser connection failed: {e}",
+                    severity=EventSeverity.WARNING,
+                    details={"device": "Arroyo Laser Driver", "port": com_port},
+                )
+
             return False
         except Exception as e:
             logger.error(f"Unexpected connection error: {e}")
@@ -132,6 +155,16 @@ class LaserController(QObject):
             self.connection_changed.emit(False)
             self.status_changed.emit("disconnected")
             logger.info("Disconnected from laser driver")
+
+            # Log event
+            if self.event_logger:
+                from ..core.event_logger import EventType
+
+                self.event_logger.log_hardware_event(
+                    event_type=EventType.HARDWARE_LASER_DISCONNECT,
+                    description="Laser disconnected",
+                    device_name="Arroyo Laser Driver",
+                )
 
     def _write_command(self, command: str) -> Optional[str]:
         """
@@ -216,6 +249,20 @@ class LaserController(QObject):
                 self.output_changed.emit(enabled)
                 status = "enabled" if enabled else "disabled"
                 logger.info(f"Laser output {status}")
+
+                # Log event
+                if self.event_logger:
+                    from ..core.event_logger import EventType
+
+                    event_type = (
+                        EventType.TREATMENT_LASER_ON if enabled else EventType.TREATMENT_LASER_OFF
+                    )
+                    self.event_logger.log_event(
+                        event_type=event_type,
+                        description=f"Laser output {status}",
+                        details={"current_setpoint": self.current_setpoint_ma},
+                    )
+
                 return True
             else:
                 logger.error("Failed to set output")
