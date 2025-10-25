@@ -204,13 +204,18 @@ class ProtocolEngine:
         logger.debug(f"Setting laser power to {params.power_watts}W")
 
         if self.laser:
-            # TODO(#125): Implement laser power control when protocol engine is integrated
-            raise NotImplementedError(
-                "Laser power control via protocol engine not yet implemented. "
-                "Use laser controller directly for hardware testing."
-            )
+            # Convert watts to milliamps (hardware controller uses mA)
+            # Note: Actual W->mA conversion depends on laser diode specs
+            # For now, using 1W = 1000mA as placeholder (needs calibration)
+            current_ma = params.power_watts * 1000.0
 
-        # Simulate instant action
+            success = self.laser.set_current(current_ma)
+            if not success:
+                raise RuntimeError(
+                    f"Failed to set laser power to {params.power_watts}W ({current_ma}mA)"
+                )
+
+        # Small delay for hardware response
         await asyncio.sleep(0.1)
 
     async def _execute_ramp_laser_power(self, params: RampLaserPowerParams) -> None:
@@ -241,7 +246,12 @@ class ProtocolEngine:
             )
 
             if self.laser:
-                _ = current_power
+                # Convert watts to milliamps for hardware controller
+                current_ma = current_power * 1000.0
+
+                success = self.laser.set_current(current_ma)
+                if not success:
+                    raise RuntimeError(f"Failed to set laser power to {current_power}W during ramp")
 
             # Progress callback
             if self.on_progress_update:
@@ -278,18 +288,32 @@ class ProtocolEngine:
         )
 
         if self.actuator:
-            # TODO(#126): Implement actuator control when protocol engine is integrated
-            raise NotImplementedError(
-                "Actuator control via protocol engine not yet implemented. "
-                "Use actuator controller directly for hardware testing."
-            )
+            # Set movement speed (controller expects int)
+            speed_int = int(params.speed_um_per_sec)
+            success = self.actuator.set_speed(speed_int)
+            if not success:
+                raise RuntimeError(f"Failed to set actuator speed to {speed_int}µm/s")
 
-        # Simulate movement time
-        # Assuming we know current position (would come from actuator)
-        assumed_current = 1500.0  # µm
-        distance = abs(params.target_position_um - assumed_current)
-        move_time = distance / params.speed_um_per_sec
-        await asyncio.sleep(move_time)
+            # Move to target position
+            success = self.actuator.set_position(params.target_position_um)
+            if not success:
+                raise RuntimeError(f"Failed to move actuator to {params.target_position_um}µm")
+
+            # Estimate movement time for async sleep
+            # Note: In real hardware, actuator emits position_reached signal when done
+            # For protocol execution, we estimate time based on assumed current position
+            # This is a limitation of not having synchronous position queries
+            assumed_current = 1500.0  # µm (midpoint of typical range)
+            distance = abs(params.target_position_um - assumed_current)
+            move_time = distance / params.speed_um_per_sec if params.speed_um_per_sec > 0 else 1.0
+
+            await asyncio.sleep(move_time)
+        else:
+            # Simulate movement time when no hardware connected
+            assumed_current = 1500.0  # µm
+            distance = abs(params.target_position_um - assumed_current)
+            move_time = distance / params.speed_um_per_sec if params.speed_um_per_sec > 0 else 1.0
+            await asyncio.sleep(move_time)
 
     async def _execute_wait(self, params: WaitParams) -> None:
         """Execute Wait action."""
