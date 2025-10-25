@@ -20,6 +20,7 @@ from PyQt6.QtWidgets import (
 from core.event_logger import EventLogger, EventSeverity, EventType
 from core.protocol_engine import ProtocolEngine
 from core.safety import SafetyManager
+from core.safety_watchdog import SafetyWatchdog
 from core.session_manager import SessionManager
 from database.db_manager import DatabaseManager
 from ui.widgets.camera_widget import CameraWidget
@@ -57,6 +58,7 @@ class MainWindow(QMainWindow):
         self.db_manager.initialize()
         self.session_manager = SessionManager(self.db_manager)
         self.event_logger = EventLogger(self.db_manager)
+        self.safety_watchdog = None  # Initialized after GPIO connects
         logger.info("Database, session, and event logger initialized")
 
         # Log system startup
@@ -190,6 +192,28 @@ class MainWindow(QMainWindow):
                 )
                 logger.info("GPIO safety interlocks connected to safety manager")
 
+                # Initialize and start safety watchdog
+                # CRITICAL: Hardware watchdog requires heartbeat every 500ms
+                if gpio_widget.controller.is_connected:
+                    watchdog = SafetyWatchdog(
+                        gpio_controller=gpio_widget.controller, event_logger=self.event_logger
+                    )
+
+                    # Connect watchdog signals
+                    watchdog.heartbeat_failed.connect(
+                        lambda msg: logger.error(f"Watchdog heartbeat failed: {msg}")
+                    )
+                    watchdog.watchdog_timeout_detected.connect(
+                        lambda: logger.critical("WATCHDOG TIMEOUT DETECTED - GPIO CONNECTION LOST")
+                    )
+
+                    # Start heartbeat
+                    if watchdog.start():
+                        self.safety_watchdog = watchdog
+                        logger.info("Safety watchdog started (500ms heartbeat, 1000ms timeout)")
+                    else:
+                        logger.error("Failed to start safety watchdog")
+
                 # Connect GPIO controller to laser widget for aiming laser control
                 if hasattr(self.treatment_widget, "laser_widget"):
                     laser_widget = self.treatment_widget.laser_widget
@@ -311,6 +335,12 @@ class MainWindow(QMainWindow):
             self.event_logger.log_system_event(
                 EventType.SYSTEM_SHUTDOWN, "TOSCA system shutting down", EventSeverity.INFO
             )
+
+        # Stop safety watchdog FIRST (before GPIO disconnects)
+        # CRITICAL: Must stop heartbeat before disconnecting GPIO
+        if hasattr(self, "safety_watchdog") and self.safety_watchdog:
+            self.safety_watchdog.stop()
+            logger.info("Safety watchdog stopped")
 
         # Cleanup camera
         if hasattr(self, "camera_widget") and self.camera_widget:
