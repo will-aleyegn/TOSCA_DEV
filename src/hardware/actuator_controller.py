@@ -226,6 +226,15 @@ class ActuatorController(QObject):
             # Monitor homing status
             QTimer.singleShot(100, self._check_homing_status)
 
+            # Log event
+            if self.event_logger:
+                from ..core.event_logger import EventType
+
+                self.event_logger.log_event(
+                    event_type=EventType.HARDWARE_ACTUATOR_HOME_START,
+                    description="Actuator homing started (finding index position)",
+                )
+
             return True
 
         except Exception as e:
@@ -255,6 +264,16 @@ class ActuatorController(QObject):
                 # Emit current position
                 pos = self.axis.getEPOS()
                 self.position_changed.emit(pos)
+
+                # Log event
+                if self.event_logger:
+                    from ..core.event_logger import EventType
+
+                    self.event_logger.log_event(
+                        event_type=EventType.HARDWARE_ACTUATOR_HOME_COMPLETE,
+                        description=f"Actuator homing completed (position: {pos:.1f} µm)",
+                        details={"position_um": pos},
+                    )
             else:
                 # Homing failed
                 error_msg = "Homing failed - encoder not valid"
@@ -325,6 +344,16 @@ class ActuatorController(QObject):
                 self.position_reached.emit(current_pos)
                 self.status_changed.emit("ready")
                 logger.debug(f"Position reached: {current_pos:.1f} µm")
+
+                # Log event
+                if self.event_logger:
+                    from ..core.event_logger import EventType
+
+                    self.event_logger.log_event(
+                        event_type=EventType.HARDWARE_ACTUATOR_MOVE,
+                        description=f"Actuator moved to position: {current_pos:.1f} µm",
+                        details={"position_um": current_pos},
+                    )
             else:
                 # Still moving
                 QTimer.singleShot(50, self._check_position_reached)

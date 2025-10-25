@@ -304,6 +304,17 @@ class LaserController(QObject):
                 if abs(set_current - current_ma) < 0.1:
                     self.current_setpoint_ma = current_ma
                     logger.info(f"Set laser current to {current_ma:.1f} mA")
+
+                    # Log event
+                    if self.event_logger:
+                        from ..core.event_logger import EventType
+
+                        self.event_logger.log_event(
+                            event_type=EventType.TREATMENT_POWER_CHANGE,
+                            description=f"Laser current set to {current_ma:.1f} mA",
+                            details={"current_ma": current_ma},
+                        )
+
                     return True
 
             logger.error("Failed to set current")
@@ -381,6 +392,17 @@ class LaserController(QObject):
                 if abs(set_temp - temperature_c) < 0.1:
                     self.temperature_setpoint_c = temperature_c
                     logger.info(f"Set TEC temperature to {temperature_c:.1f}°C")
+
+                    # Log event
+                    if self.event_logger:
+                        from ..core.event_logger import EventType
+
+                        self.event_logger.log_event(
+                            event_type=EventType.HARDWARE_LASER_TEMP_CHANGE,
+                            description=f"TEC temperature set to {temperature_c:.1f}°C",
+                            details={"temperature_c": temperature_c},
+                        )
+
                     return True
 
             logger.error("Failed to set temperature")
