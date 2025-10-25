@@ -18,6 +18,7 @@ from PyQt6.QtWidgets import (
 )
 
 from core.event_logger import EventLogger, EventSeverity, EventType
+from core.protocol_engine import ProtocolEngine
 from core.safety import SafetyManager
 from core.session_manager import SessionManager
 from database.db_manager import DatabaseManager
@@ -110,13 +111,16 @@ class MainWindow(QMainWindow):
         self.dev_mode_changed.connect(self.camera_widget.set_dev_mode)
         self.dev_mode_changed.connect(self.treatment_widget.set_dev_mode)
 
-        self.safety_widget = SafetyWidget()
+        self.safety_widget = SafetyWidget(db_manager=self.db_manager)
         self.tabs.addTab(self.safety_widget, "Safety Status")
 
         # Initialize safety manager
         self.safety_manager = SafetyManager()
         self._connect_safety_system()
         logger.info("Safety manager initialized and connected")
+
+        # Initialize protocol engine with hardware controllers
+        self._init_protocol_engine()
 
         # Connect event logger to widgets
         self._connect_event_logger()
@@ -203,6 +207,35 @@ class MainWindow(QMainWindow):
         )
         self.safety_manager.safety_event.connect(
             lambda event_type, message: logger.info(f"Safety event [{event_type}]: {message}")
+        )
+
+    def _init_protocol_engine(self) -> None:
+        """Initialize protocol engine and wire to hardware controllers."""
+        # Get controller references from widgets
+        # Note: Controllers may be None if widgets haven't connected to hardware yet
+        laser_controller = None
+        actuator_controller = None
+
+        if hasattr(self.treatment_widget, "laser_widget"):
+            laser_widget = self.treatment_widget.laser_widget
+            laser_controller = getattr(laser_widget, "controller", None)
+
+        if hasattr(self.treatment_widget, "actuator_widget"):
+            actuator_widget = self.treatment_widget.actuator_widget
+            actuator_controller = getattr(actuator_widget, "controller", None)
+
+        # Initialize protocol engine with available controllers
+        self.protocol_engine = ProtocolEngine(
+            laser_controller=laser_controller, actuator_controller=actuator_controller
+        )
+
+        # Pass protocol engine to treatment widget for UI integration
+        if hasattr(self.treatment_widget, "set_protocol_engine"):
+            self.treatment_widget.set_protocol_engine(self.protocol_engine)
+
+        logger.info(
+            f"Protocol engine initialized (laser: {laser_controller is not None}, "
+            f"actuator: {actuator_controller is not None})"
         )
 
     def _connect_event_logger(self) -> None:

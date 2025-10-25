@@ -3,6 +3,7 @@ Treatment control widget.
 """
 
 import logging
+from typing import Any, Optional
 
 from PyQt6.QtWidgets import QGroupBox, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
@@ -26,6 +27,7 @@ class TreatmentWidget(QWidget):
     def __init__(self) -> None:
         super().__init__()
         self.dev_mode = False
+        self.protocol_engine: Optional[Any] = None
         self.actuator_widget: ActuatorWidget = ActuatorWidget()
         self.laser_widget: LaserWidget = LaserWidget()
         self._init_ui()
@@ -107,6 +109,21 @@ class TreatmentWidget(QWidget):
             self.start_button.setEnabled(False)
             self.status_label.setText("Status: Ready - No Active Session")
             self.status_label.setStyleSheet("font-size: 14px; padding: 10px;")
+
+    def set_protocol_engine(self, protocol_engine: Any) -> None:
+        """
+        Set the protocol engine for treatment execution.
+
+        Args:
+            protocol_engine: ProtocolEngine instance for executing treatment protocols
+        """
+        self.protocol_engine = protocol_engine
+        logger.info("Protocol engine connected to treatment widget")
+
+        # TODO: Connect START/STOP buttons to protocol execution
+        # For now, just log that protocol engine is available
+        if self.protocol_engine:
+            logger.info("Protocol engine ready for treatment execution")
 
     def cleanup(self) -> None:
         """Cleanup resources."""
