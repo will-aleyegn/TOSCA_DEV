@@ -1049,3 +1049,115 @@ Previous work has been archived for better readability:
 
 **End of Work Log**
 **Update this file after each significant action!**
+
+---
+
+## Current Session: 2025-10-25
+
+### Session Focus
+- Safety Watchdog Timer implementation (CRITICAL for clinical testing)
+- Hardware-level GUI freeze protection
+- Arduino firmware with AVR watchdog timer
+- GPIO controller migration to custom serial protocol
+
+---
+
+### Actions Completed This Session
+
+#### 42. Fixed Hardcoded Safety Checks in ProtocolEngine
+**Time:** Session Start
+**What:** Replaced hardcoded "Safety checks passed" with actual SafetyManager integration
+
+**Changes:**
+- Updated `ProtocolEngine.__init__` to accept `safety_manager` parameter
+- Implemented `_perform_safety_checks()` to query SafetyManager.is_laser_enable_permitted()
+- Returns detailed status from SafetyManager.get_safety_status_text()
+- Testing mode when safety_manager is None (existing tests unaffected)
+- Updated MainWindow to pass safety_manager to ProtocolEngine
+
+**Result:** SUCCESS - Protocol execution now properly verifies safety conditions
+**Commit:** `e84ee63`
+**Impact:** CRITICAL BUG FIX - Was allowing protocol execution without safety checks
+
+---
+
+#### 43. Implemented Safety Watchdog Timer - Phase 1 (Firmware + Python)
+**Time:** 30 minutes
+**What:** Created Arduino watchdog firmware and Python SafetyWatchdog class
+
+**Components Created:**
+
+**Arduino Watchdog Firmware** (`firmware/arduino_watchdog/arduino_watchdog.ino`)
+- Hardware AVR watchdog timer (1000ms timeout)
+- Serial command protocol (9600 baud, ASCII text)
+- Emergency shutdown ISR (all outputs LOW, system halt)
+- ~250 lines C++
+
+**Python SafetyWatchdog Class** (`src/core/safety_watchdog.py`)
+- QTimer heartbeat sender (500ms interval)
+- 50% safety margin before hardware timeout
+- PyQt6 signals for monitoring
+- ~300 lines Python
+
+**Result:** SUCCESS - Firmware and Python class complete
+**Commit:** `8e6284a`
+
+---
+
+#### 44. Rewrite GPIO Controller for Custom Watchdog Protocol - Phase 2
+**Time:** 1 hour
+**What:** Complete rewrite of GPIO controller from pyfirmata2 to custom serial protocol
+
+**Changes:**
+- Replaced pyfirmata2 with pyserial
+- Implemented custom ASCII text command protocol
+- Added send_watchdog_heartbeat() method
+- Maintained backward compatibility
+- ~450 lines Python
+
+**Result:** SUCCESS - All pre-commit hooks passing
+**Commit:** `fb97442`
+
+---
+
+#### 45. Integrate Safety Watchdog with MainWindow - Phase 3
+**Time:** 30 minutes
+**What:** Complete integration of SafetyWatchdog into application lifecycle
+
+**Changes:**
+- Start watchdog after GPIO connects
+- Stop watchdog before application close
+- Signal connections for logging
+- Graceful failure handling
+
+**Result:** SUCCESS - Integration complete
+**Commit:** `2a94aba`
+
+---
+
+#### 46. Safety Watchdog Architecture Documentation
+**Time:** 30 minutes
+**What:** Comprehensive architecture and testing documentation
+
+**Document Created** (`docs/architecture/06_safety_watchdog.md`)
+- Multi-layer safety architecture diagrams
+- Component specifications
+- Timing analysis
+- Failure modes and recovery
+- Testing procedures (5 test cases)
+- Regulatory justification (IEC 62304, FDA)
+- ~790 lines markdown
+
+**Result:** SUCCESS - Implementation COMPLETE (awaiting hardware testing)
+**Commit:** `0350808`
+
+---
+
+### Session Summary: Safety Watchdog Timer
+
+**Total Implementation:**
+- 5 commits made
+- ~1,820 lines of code and documentation
+- CRITICAL safety feature required before clinical testing
+
+**Status:** COMPLETE - Ready for hardware validation

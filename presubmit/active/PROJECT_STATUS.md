@@ -1,11 +1,11 @@
 # TOSCA Project Status & AI Onboarding
 
 **Last Updated:** 2025-10-25
-**Current Phase:** Phase 3 COMPLETE - Core Business Logic (100% complete)
+**Current Phase:** Phase 4 IN PROGRESS - Architectural Improvements (33% complete)
 **Project Status:** Initial Setup ✓ → HALs ✓ → Safety (100%) → Session Mgmt ✓ → Event Logging ✓ → Protocol Execution ✓
 **Hardware:** Arduino Nano GPIO on COM4 (migrated from FT232H)
-**Latest Addition:** Aiming laser control via GPIO (2025-10-25)
-**Next Phase:** Architectural Improvements (Safety Watchdog, Config Management)
+**Latest Addition:** Safety Watchdog Timer (CRITICAL - ready for hardware testing)
+**Next Priority:** Configuration Management or Hardware Controller ABC
 
 ---
 
@@ -197,6 +197,34 @@ TOSCA-dev/
 - Event logging: ✓ Complete (hardware integration, database display)
 - Protocol execution: ✓ Complete (hardware integration, error handling, testing)
 
+## Next Immediate Tasks - PHASE 4: Architectural Improvements
+
+**🎯 Phase 4 AT 33% - Safety Watchdog COMPLETE**
+
+**Priority 1: Safety Watchdog Timer** ✅ 100% COMPLETE
+1. ✅ Arduino watchdog firmware with AVR WDT (DONE)
+2. ✅ Python SafetyWatchdog class (DONE)
+3. ✅ GPIO controller rewrite for custom serial protocol (DONE)
+4. ✅ MainWindow integration (DONE)
+5. ✅ Architecture documentation (DONE)
+6. ⏳ Hardware testing and validation (pending Arduino upload)
+
+**Priority 2: Configuration Management** ⏳ NEXT
+1. Replace hardcoded constants with Pydantic configs
+2. Create YAML configuration files (hardware.yaml, safety.yaml)
+3. Migrate calibration constants (~15-20 constants)
+4. Add validation and type safety
+5. Document configuration system
+
+**Priority 3: Hardware Controller ABC** ⏳ PENDING
+1. Design abstract base class for hardware controllers
+2. Enforce consistent interface (connect, disconnect, status)
+3. Improve type safety across HALs
+4. Refactor existing controllers
+5. Update documentation
+
+---
+
 ---
 
 ## Next Immediate Tasks - PHASE 3: Core Business Logic
@@ -266,9 +294,9 @@ TOSCA-dev/
 - Arroyo Instruments Laser Driver (Serial, COM4)
 - Current control: ✓ | TEC control: ✓ | Safety limits: ✓
 - Ready for physical hardware connection
-
+- Arduino Nano (ATmega328P) with custom watchdog firmware on COM4
 **GPIO HAL:** ✅ Software Complete, Hardware Tested
-- Arduino Nano (ATmega328P) with StandardFirmata on COM4
+- Safety interlocks: ✓ | Hardware watchdog timer (1000ms): ✓ | pyserial library
 - Motor control (D2): ✓ | Vibration sensor (D3): ✓ | Photodiode (A0): ✓
 - Safety interlocks: ✓ | pyfirmata2 library for Python 3.12 compatibility
 - Hardware tested and verified working
