@@ -113,9 +113,5 @@ safety_report.json
 .claude/
 .mcp.json
 
-# AI Documentation and Session Files (local use only)
-presubmit/
-
 # Regulatory/FDA Strategy Documents (archive only)
 docs/regulatory_archive/
-*.pdf
