@@ -204,7 +204,11 @@ class ProtocolEngine:
         logger.debug(f"Setting laser power to {params.power_watts}W")
 
         if self.laser:
-            pass
+            # TODO(#125): Implement laser power control when protocol engine is integrated
+            raise NotImplementedError(
+                "Laser power control via protocol engine not yet implemented. "
+                "Use laser controller directly for hardware testing."
+            )
 
         # Simulate instant action
         await asyncio.sleep(0.1)
@@ -274,7 +278,11 @@ class ProtocolEngine:
         )
 
         if self.actuator:
-            pass
+            # TODO(#126): Implement actuator control when protocol engine is integrated
+            raise NotImplementedError(
+                "Actuator control via protocol engine not yet implemented. "
+                "Use actuator controller directly for hardware testing."
+            )
 
         # Simulate movement time
         # Assuming we know current position (would come from actuator)
@@ -332,8 +340,9 @@ class ProtocolEngine:
 
     def _save_execution_record(self) -> None:
         """Save execution record to database."""
-        logger.info("Saving execution record to database")
-        pass
+        # TODO(#127): Implement database persistence for protocol execution records
+        logger.debug("Database persistence not yet implemented for protocol execution")
+        # raise NotImplementedError("Database persistence not yet implemented")
 
     def pause(self) -> None:
         """Pause protocol execution."""
@@ -356,9 +365,10 @@ class ProtocolEngine:
         self._pause_event.set()  # Unpause if paused
         self._set_state(ExecutionState.STOPPED)
 
-        # Emergency: turn off laser
+        # Emergency: turn off laser immediately
         if self.laser:
-            pass
+            self.laser.set_output(False)  # Disable laser output
+            self.laser.set_current(0.0)  # Set current to zero for safety
 
     def _set_state(self, new_state: ExecutionState) -> None:
         """Update execution state and notify callback."""

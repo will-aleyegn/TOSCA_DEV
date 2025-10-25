@@ -420,9 +420,9 @@ class ActuatorController(QObject):
                 direction, distance = proximity_info
                 self.limit_warning.emit(direction, distance)
 
-        except Exception:
+        except Exception as e:
             # Don't spam errors for periodic updates
-            pass
+            logger.debug(f"Ignoring error during periodic status update: {e}")
 
     def set_speed(self, speed: int) -> bool:
         """
