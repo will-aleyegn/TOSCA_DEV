@@ -9,8 +9,9 @@
 # The code below initializes the system.
 
 from Xeryon import *
-controller  = Xeryon("COM5", 115200)           # Setup serial communication
-axisX       = controller.addAxis(Stage.XLS_312, "X") # Add all axis and specify the correct stage.
+
+controller = Xeryon("COM5", 115200)  # Setup serial communication
+axisX = controller.addAxis(Stage.XLS_312, "X")  # Add all axis and specify the correct stage.
 
 # You can find the axis name in the config.txt file that's provided with the stages.
 
@@ -41,8 +42,8 @@ print(axisX.getEPOS())
 
 axisX.setUnits(Units.mm)
 axisX.setDPOS(0)
-for i in range(0,5):
-    axisX.step(1)    #Step 5x 1mm
+for i in range(0, 5):
+    axisX.step(1)  # Step 5x 1mm
 
 
 # ## 3. Speed control and scanning
@@ -50,11 +51,11 @@ for i in range(0,5):
 
 axisX.setDPOS(0)
 axisX.setUnits(Units.mm)
-axisX.setSpeed(1)      # The speed value is set in the current unit. So here it is 1 mm/s.
-axisX.startScan(-1)    # startScan() takes a negative or positive value.
+axisX.setSpeed(1)  # The speed value is set in the current unit. So here it is 1 mm/s.
+axisX.startScan(-1)  # startScan() takes a negative or positive value.
 
 axisX.stopScan()
-axisX.setDPOS(0)      # Notice that the speed is still 1 mm/s.
+axisX.setDPOS(0)  # Notice that the speed is still 1 mm/s.
 
 axisX.startScan(1, 2)  # It is also possible to scan for a certain amount of seconds.
 
@@ -101,7 +102,7 @@ for index in range(0, len(logs["EPOS"])):
 
 y = unit_converted_epos
 plt.plot(y)
-plt.ylabel('EPOS ('+str(axisX.units)+')')
+plt.ylabel("EPOS (" + str(axisX.units) + ")")
 plt.xlabel("Sample")
 plt.title("EPOS")
 plt.show()
