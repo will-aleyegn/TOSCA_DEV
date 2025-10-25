@@ -270,3 +270,45 @@ class DatabaseManager:
             session.refresh(log_entry)
             logger.info(f"Safety event logged: {event_type} ({severity})")
             return log_entry
+
+    def get_safety_logs(
+        self,
+        limit: int = 100,
+        session_id: Optional[int] = None,
+        min_severity: Optional[str] = None,
+    ) -> list[SafetyLog]:
+        """
+        Retrieve safety logs from database.
+
+        Args:
+            limit: Maximum number of logs to retrieve (default: 100)
+            session_id: Optional filter by session ID
+            min_severity: Optional minimum severity filter (info, warning, critical, emergency)
+
+        Returns:
+            List of SafetyLog instances, ordered by timestamp (most recent first)
+        """
+        severity_order = {"info": 0, "warning": 1, "critical": 2, "emergency": 3}
+
+        with self.get_session() as session:
+            query = select(SafetyLog)
+
+            # Filter by session if provided
+            if session_id is not None:
+                query = query.where(SafetyLog.session_id == session_id)
+
+            # Filter by severity if provided
+            if min_severity:
+                min_level = severity_order.get(min_severity.lower(), 0)
+                valid_severities = [
+                    sev for sev, level in severity_order.items() if level >= min_level
+                ]
+                query = query.where(SafetyLog.severity.in_(valid_severities))
+
+            # Order by timestamp descending (most recent first)
+            query = query.order_by(SafetyLog.timestamp.desc()).limit(limit)
+
+            result = session.execute(query)
+            logs = list(result.scalars().all())
+            logger.debug(f"Retrieved {len(logs)} safety logs")
+            return logs
