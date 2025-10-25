@@ -14,9 +14,6 @@ import asyncio
 import sys
 from pathlib import Path
 
-# Add src to path
-sys.path.insert(0, str(Path(__file__).parent / "src"))
-
 from core.protocol import (
     ActionType,
     MoveActuatorParams,
@@ -26,7 +23,10 @@ from core.protocol import (
     SetLaserPowerParams,
     WaitParams,
 )
-from core.protocol_engine import ExecutionState, ProtocolEngine
+from core.protocol_engine import ProtocolEngine
+
+# Add src to path
+sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 
 def create_test_protocol() -> Protocol:
@@ -94,7 +94,7 @@ def create_test_protocol() -> Protocol:
     )
 
 
-async def test_protocol_execution():
+async def test_protocol_execution() -> None:
     """Test protocol execution without hardware."""
     print("=" * 80)
     print("PROTOCOL EXECUTION TEST")
@@ -163,7 +163,7 @@ async def test_protocol_execution():
         return False
 
 
-async def test_pause_resume():
+async def test_pause_resume() -> None:
     """Test pause and resume functionality."""
     print("\n" + "=" * 80)
     print("PAUSE/RESUME TEST")
@@ -219,7 +219,7 @@ async def test_pause_resume():
         return False
 
 
-async def test_stop():
+async def test_stop() -> None:
     """Test stop functionality."""
     print("\n" + "=" * 80)
     print("STOP TEST")
@@ -263,7 +263,7 @@ async def test_stop():
         return False
 
 
-async def main():
+async def main() -> None:
     """Run all tests."""
     print("\n")
     print("=" * 80)

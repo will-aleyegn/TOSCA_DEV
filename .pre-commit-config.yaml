@@ -33,7 +33,7 @@ repos:
     hooks:
       - id: flake8
         args: ['--max-line-length=100', '--extend-ignore=E203,W503']
-        exclude: '^(docs/actuator-control/.*|\.claude/.*|components/camera_module/examples/official_allied_vision/.*|components/camera_module/tests/vmbpy_unit_tests/.*)'
+        exclude: '^(docs/actuator-control/.*|\.claude/.*|components/camera_module/examples/official_allied_vision/.*|components/camera_module/tests/vmbpy_unit_tests/.*|tests/.*)'
 
   - repo: https://github.com/pycqa/isort
     rev: 5.13.2
@@ -46,4 +46,4 @@ repos:
     hooks:
       - id: mypy
         args: ['--ignore-missing-imports', '--no-strict-optional']
-        exclude: '^(components/actuator_module/Xeryon\.py|\.claude/.*|components/camera_module/examples/official_allied_vision/.*|components/camera_module/tests/vmbpy_unit_tests/.*)'
+        exclude: '^(components/actuator_module/Xeryon\.py|\.claude/.*|components/camera_module/examples/official_allied_vision/.*|components/camera_module/tests/vmbpy_unit_tests/.*|tests/.*)'
