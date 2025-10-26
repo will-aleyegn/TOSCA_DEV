@@ -1,167 +1,150 @@
 # TOSCA Laser Control System
 
+A comprehensive laser control system integrating hardware control, machine vision, safety interlocks, and treatment protocol execution for precision laser applications.
+
+---
+
 ## Overview
 
-This is a comprehensive laser control system. The system integrates:
+This system provides real-time control and monitoring of a diode laser system with integrated positioning, imaging, and safety features. The software architecture emphasizes reliability and safety through multi-layered hardware and software interlocks, comprehensive event logging, and a robust hardware abstraction layer.
 
-- **Laser Control** - Arroyo Instruments TEC Controller (serial communication)
-- **Linear Actuator** - Xeryon actuator for ring size control
-- **Camera System** - Allied Vision camera with VmbPy SDK for alignment and monitoring
-- **GPIO Safety Interlocks** - Arduino Nano with StandardFirmata for footpedal, smoothing device, and photodiode monitoring
-- **Session Management** - SQLite database for longitudinal subject tracking
-- **Treatment Protocols** - Configurable treatment plans with power ramping and ring sizing
-- **Video Recording** - Complete session recording and event logging
+**Key Capabilities:**
+- Precision laser power control with real-time feedback
+- Linear actuator positioning for automated sequences
+- Machine vision integration for alignment and monitoring
+- Multi-layer safety architecture with hardware interlocks
+- Comprehensive session and event logging
+- Configurable treatment protocols with automated execution
 
-## Key Features
+---
 
-### Safety-First Design
-- **Footpedal Deadman Switch** - Active requirement for laser operation
-- **Hotspot Smoothing Device Interlock** - Signal health monitoring
-- **Photodiode Feedback** - Real-time power verification
-- **Multiple Software Interlocks** - E-stop, power limits, session validation
-- **Comprehensive Event Logging** - Complete audit trail
+## Hardware Components
 
-### Treatment Capabilities
-- Pre-defined protocol templates
-- Custom protocol builder with multi-step sequences
-- Power ramping (constant, linear, logarithmic, exponential)
-- Adjustable ring size via actuator control
-- Real-time protocol adjustments
-- In-treatment monitoring and recording
+### Primary Devices
+1. **Laser Controller:** Arroyo Instruments TEC Controller (COM4, 38400 baud)
+2. **Linear Actuator:** Xeryon linear stage (COM3, 9600 baud)
+3. **Camera:** Allied Vision 1800 U-158c (USB 3.0, VmbPy SDK)
+4. **GPIO Controller:** Arduino Uno (ATmega328P) with custom watchdog firmware (COM4, 115200 baud)
 
-### Image Processing
-- Laser ring detection (circle finding algorithm)
-- Focus quality measurement
-- Live video feed with overlays
-- Session video recording
-- Snapshot capture
+### Safety Hardware
+5. **Footpedal:** Normally-open momentary switch (active-high interlock)
+6. **Smoothing Device:** Motor control (D2) with vibration sensor (D3)
+7. **Photodiode:** Analog voltage monitoring (A0, 0-5V, 10-bit ADC)
+8. **Aiming Laser:** 650nm red laser diode for alignment (D4)
 
-### Session Management
-- Anonymized subject profiles
-- Multi-session longitudinal tracking
-- Technician/operator authentication
-- Complete session history
+---
+
+## Safety Architecture
+
+### Hardware Interlocks
+The following hardware-based safety interlocks provide the foundational safety layer:
+
+1. **Footpedal Deadman Switch**
+   - Type: Active-high requirement (positive permission)
+   - Behavior: Laser can only fire while footpedal is actively depressed
+   - Implementation: Digital input monitoring via Arduino Uno
+   - Fail-safe: Releasing pedal immediately disables laser
+
+2. **Smoothing Device Health Monitoring**
+   - Type: Dual-signal validation (motor + vibration)
+   - Behavior: Both motor activation AND vibration detection required
+   - Implementation: Digital output (D2) and input (D3) via Arduino Uno
+   - Fail-safe: Loss of either signal triggers immediate shutdown
+
+3. **Photodiode Power Verification**
+   - Type: Continuous output monitoring
+   - Behavior: Measured power must match commanded power
+   - Implementation: Analog input (A0) via Arduino Uno
+   - Fail-safe: Power deviation beyond threshold triggers shutdown
+
+4. **Hardware Watchdog Timer**
+   - Type: Independent firmware-based timeout
+   - Behavior: Requires continuous heartbeat from main application
+   - Implementation: Custom Arduino Uno watchdog firmware (1000ms timeout)
+   - Fail-safe: Software freeze or crash triggers automatic laser disable
+
+### Software Interlocks
+Secondary software-based safety validation:
+
+1. **Emergency Stop (E-Stop)**
+   - Large physical button in Safety tab
+   - Immediate treatment halt with highest priority
+   - Bypasses all queues and state checks
+   - Locks system until manually cleared
+
+2. **Power Limit Enforcement**
+   - Configurable maximum laser power threshold
+   - Real-time validation during protocol execution
+   - Automatic shutdown if limit exceeded
+   - Event logging for all limit violations
+
+3. **Session Validation**
+   - Active session required for laser operation
+   - Ensures all operations are logged and attributed
+   - Prevents accidental firing outside treatment context
+   - Database persistence for audit trail
+
+4. **State Machine Control**
+   - Strict state transitions (SAFE → ARMED → TREATING)
+   - Operations only permitted in valid states
+   - Any interlock failure → immediate FAULT transition
+   - Comprehensive state change logging
+
+---
+
+## Technology Stack
+
+### Core
+- **Python 3.10+** - Primary language
+- **PyQt6** - GUI framework
+- **SQLite** - Embedded database
+- **OpenCV** - Image processing
+- **NumPy** - Numerical operations
+
+### Hardware Communication
+- **pyserial** - Arroyo laser and Arduino communication
+- **Xeryon API** - Linear actuator control
+- **VmbPy** - Allied Vision camera SDK
+
+### Supporting Libraries
+- **pyqtgraph** - Real-time plotting
+- **SQLAlchemy** - Database ORM
+- **Pydantic** - Configuration validation
+
+---
 
 ## Architecture Documentation
 
 Comprehensive technical documentation is available in `docs/architecture/`:
 
-### 1. [System Overview](docs/architecture/01_system_overview.md)
-- Complete system architecture
-- Technology stack
-- Hardware components
-- Software layers
-- Development phases
+1. **[System Overview](docs/architecture/01_system_overview.md)** - Complete architecture, technology stack, hardware integration
+2. **[Database Schema](docs/architecture/02_database_schema.md)** - SQLite schema, entity relationships, common queries
+3. **[Safety System](docs/architecture/03_safety_system.md)** - Safety philosophy, interlock architecture, fault handling
+4. **[Treatment Protocols](docs/architecture/04_treatment_protocols.md)** - Protocol data model, execution engine, builder UI
+5. **[Image Processing](docs/architecture/05_image_processing.md)** - Camera integration, ring detection, focus measurement
+6. **[Safety Watchdog](docs/architecture/06_safety_watchdog.md)** - Hardware watchdog implementation and firmware
 
-### 2. [Database Schema](docs/architecture/02_database_schema.md)
-- Complete SQLite schema
-- Entity relationships
-- Table definitions
-- Common queries
-- Migration strategy
+---
 
-### 3. [Safety System](docs/architecture/03_safety_system.md)
-- Safety philosophy and principles
-- Hardware interlocks (footpedal, smoothing device, photodiode)
-- Software interlocks (e-stop, power limits)
-- Safety state machine
-- Fault handling procedures
-- Testing requirements
-
-### 4. [Treatment Protocols](docs/architecture/04_treatment_protocols.md)
-- Protocol data model and JSON schema
-- Example protocols (constant power, ramping, multi-step)
-- Protocol execution engine
-- Ring size control and calibration
-- Protocol builder UI
-
-### 5. [Image Processing](docs/architecture/05_image_processing.md)
-- Camera system integration
-- Ring detection algorithm (Hough Circle Transform)
-- Focus measurement (Laplacian variance)
-- Video recording
-- Calibration procedures
-
-## Technology Stack
-
-### Core
-- **Python 3.10+**
-- **PyQt6** - GUI framework
-- **SQLite** - Database
-- **OpenCV (cv2)** - Image processing
-- **NumPy** - Numerical operations
-
-### Hardware Libraries
-- **pyserial** - Arroyo laser and Arduino communication
-- **Xeryon API** - Linear actuator control
-- **VmbPy** - Allied Vision camera SDK
-- **pyfirmata2** - Arduino Firmata protocol (Python 3.12+ compatible)
-
-### Supporting Libraries
-- **pyqtgraph** - Real-time plotting
-- **sqlalchemy** - Database ORM
-- **alembic** - Database migrations
-- **pydantic** - Configuration validation
-
-## Hardware Components
-1. **Laser Controller:** Arroyo Instruments laser driver and TEC Controller (COM4)
-2. **Linear Actuator:** Xeryon linear stage (COM3)
-3. **Camera:** Allied Vision 1800 U-158c (USB 3.0)
-4. **GPIO Controller:** Arduino Nano (ATmega328P) with StandardFirmata (COM4)
-5. **Footpedal:** Normally-open momentary switch (D2)
-6. **Hotspot Smoothing Device:** Motor (D2) and vibration sensor (D3)
-7. **Photodiode circuit:** Analog voltage output (A0, 0-5V range)
-
-
-## Safety & Compliance Development Guidelines
-
-### Safety First
-- All safety-critical code must have unit tests
-- Safety interlocks cannot be bypassed in production builds
-- Any safety event must be logged immutably
-- Regular code reviews for safety-related modules
+## Development Guidelines
 
 ### Code Quality
 - Follow PEP 8 style guidelines
-- Type hints for all functions
-- Comprehensive docstrings
-- Unit tests for all modules (target: 80%+ coverage)
+- Type hints required on all functions
+- Comprehensive docstrings for safety-critical code
+- Pre-commit hooks enforce: Black, Flake8, MyPy, isort
 
-### Documentation
-- Keep architecture docs updated
-- Document all hardware interfaces
-- Maintain change log
-- User-facing docs must be clear and comprehensive
+### Safety Requirements
+- All safety-critical code must have unit tests
+- Safety interlocks cannot be bypassed in production
+- All safety events must be logged immutably
+- Regular code reviews for safety-related modules
 
-## Testing Strategy
-
-### Unit Tests
-- Hardware abstraction layer
-- Protocol engine
-- Image processing algorithms
-- Database operations
-
-### Integration Tests
-- Hardware communication
-- Safety interlock coordination
-- UI to backend integration
-
-### Safety Tests
-- Footpedal response time
-- Photodiode monitoring accuracy
-- E-stop effectiveness
-- Watchdog timer functionality
-- Multi-fault scenarios
-
-## Documentation
-
-**Architecture:** `docs/architecture/`
-- 01_system_overview.md - Complete system architecture
-- 02_database_schema.md - Database design
-- 03_safety_system.md - Safety architecture
-- 04_treatment_protocols.md - Protocol design
-- 05_image_processing.md - Camera and image processing
-- 06_protocol_builder.md - Protocol Builder specification
+### Testing Strategy
+- **Unit Tests:** Hardware abstraction, protocol engine, database operations
+- **Integration Tests:** Hardware communication, safety coordination, UI integration
+- **Safety Tests:** Footpedal response, photodiode accuracy, E-stop effectiveness, multi-fault scenarios
+- **Thread Safety Tests:** Concurrent hardware access validation
 
 ---
 
@@ -171,7 +154,8 @@ Comprehensive technical documentation is available in `docs/architecture/`:
 components/
 ├── camera_module/          [DONE] VmbPy API integration (6 test scripts)
 ├── actuator_module/        [DONE] Xeryon API integration (6 test scripts)
-└── laser_control/          [DONE] Arroyo API documentation and examples
+├── laser_control/          [DONE] Arroyo API documentation and examples
+└── gpio_safety/            [DONE] Arduino Uno firmware and GPIO examples
 
 src/
 ├── ui/
@@ -182,27 +166,32 @@ src/
 │       ├── treatment_widget.py       [DONE] Integrated laser/actuator controls
 │       ├── laser_widget.py           [DONE] Laser power and TEC controls
 │       ├── actuator_widget.py        [DONE] Actuator sequences and positioning
-│       ├── protocol_builder_widget.py [DEPRECATED] Replaced by sequence builder
 │       ├── safety_widget.py          [DONE] Safety status with event logging
 │       └── gpio_widget.py            [DONE] GPIO safety interlock display
 │
 ├── core/
 │   ├── protocol.py         [DONE] Action-based data model
 │   ├── protocol_engine.py  [DONE] Async execution engine
-│   ├── safety.py           [DONE] Safety interlock manager (95% complete)
+│   ├── safety.py           [DONE] Central safety manager with state machine
+│   ├── safety_watchdog.py  [DONE] Hardware watchdog heartbeat manager
 │   ├── session_manager.py  [DONE] Session lifecycle management
-│   └── event_logger.py     [DONE] Event logging (50% - core done, hw integration pending)
+│   └── event_logger.py     [DONE] Immutable event logging system
 │
 ├── hardware/
-│   ├── camera_controller.py       [DONE] Camera HAL with PyQt6 integration (thread-safe)
-│   ├── laser_controller.py        [DONE] Laser HAL with Arroyo protocol (thread-safe)
-│   ├── actuator_controller.py     [DONE] Actuator HAL with Xeryon API (thread-safe)
-│   ├── actuator_sequence.py       [DONE] Sequence builder data model
-│   └── gpio_controller.py         [DONE] GPIO HAL with Arduino Nano StandardFirmata (thread-safe)
+│   ├── hardware_controller_base.py   [DONE] ABC with QObject integration
+│   ├── camera_controller.py          [DONE] Allied Vision camera HAL (thread-safe)
+│   ├── laser_controller.py           [DONE] Arroyo laser HAL (thread-safe)
+│   ├── actuator_controller.py        [DONE] Xeryon actuator HAL (thread-safe)
+│   ├── actuator_sequence.py          [DONE] Sequence builder data model
+│   └── gpio_controller.py            [DONE] Arduino Uno GPIO HAL (thread-safe)
 │
 ├── database/
 │   ├── models.py           [DONE] SQLAlchemy ORM models
 │   └── db_manager.py       [DONE] Database manager with CRUD operations
+│
+├── config/
+│   ├── models.py           [DONE] Pydantic configuration models
+│   └── config_loader.py    [DONE] YAML configuration loader
 │
 └── image_processing/
     ├── ring_detector.py    [TODO] Hough circle detection
@@ -215,59 +204,108 @@ data/
 ├── sessions/               [DONE] Session folders (auto-created per session)
 └── tosca.db                [DONE] SQLite database (auto-created)
 
-tests/                      [TODO] Test suite
+tests/
+├── mocks/                  [DONE] Hardware mock infrastructure
+│   ├── mock_hardware_base.py      Base class for hardware mocks
+│   ├── mock_qobject_base.py       Base class for QObject mocks
+│   ├── mock_camera_controller.py  Camera mock (7 tests)
+│   ├── mock_laser_controller.py   Laser mock (12 tests)
+│   ├── mock_actuator_controller.py Actuator mock (16 tests)
+│   ├── mock_gpio_controller.py    GPIO mock (14 tests)
+│   └── examples/           Usage examples
+├── test_thread_safety.py   [DONE] Thread safety validation (7 tests)
+├── test_realtime_safety_monitoring.py [DONE] Safety system tests (6 tests)
+└── test_mock_hardware_base.py [DONE] Mock infrastructure tests
+
+firmware/
+└── arduino_watchdog/       [DONE] Custom Arduino Uno watchdog firmware
+    └── arduino_watchdog.ino        AVR WDT implementation with serial protocol
 ```
 
 ---
 
-## Architecture Status
+## Installation
 
-### Phase 2: Hardware Integration ✅ COMPLETE
-- **Camera API Exploration** ✅ - VmbPy integration with 6 test scripts
-- **Actuator API Exploration** ✅ - Xeryon integration with 6 test scripts
-- **Laser API Documentation** ✅ - Arroyo manuals and Python SDK
-- **Camera Hardware Abstraction Layer** ✅ - PyQt6 integration with streaming, recording, controls
-- **Laser Hardware Abstraction Layer** ✅ - Arroyo serial communication with PyQt6 signals
-- **Actuator Hardware Abstraction Layer** ✅ - Xeryon PyQt integration with sequence builder
-- **GPIO Hardware Abstraction Layer** ✅ - Arduino Nano with StandardFirmata, tested on COM4
+### Prerequisites
+- Python 3.10 or higher
+- Virtual environment (recommended)
+- Arduino IDE (for firmware upload)
 
-### Phase 3: Core Business Logic ✅ 100% COMPLETE
+### Setup Steps
 
-**User Interface**
-- **Main Window & Tab Navigation** ✅ - 4-tab interface with database and event logging
-- **Subject Selection Widget** ✅ - Subject search/create, session management, database integration
-- **Camera/Alignment Widget** ✅ - Live streaming, exposure/gain controls, capture, recording
-- **Treatment Control Widget** ✅ - Integrated 3-column layout (laser, treatment, actuator)
-- **Laser Widget** ✅ - Connection, current control, TEC temperature, output enable, **aiming laser control**
-- **Actuator Widget** ✅ - Sequence builder with 6 action types, homing, positioning
-- **Safety Status Widget** ✅ - Safety status, event logging, emergency stop, GPIO interlock display
-- **GPIO Widget** ✅ - Motor control, vibration monitoring, photodiode display
-- **Protocol Builder Widget** ⚠️ [DEPRECATED] - Replaced by actuator sequence builder
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/will-aleyegn/TOSCA_DEV.git
+   cd TOSCA_DEV
+   ```
 
-**Core Business Logic**
-- **Protocol Data Model** ✅ - 5 action types with validation
-- **Protocol Execution Engine** ✅ - Async engine with pause/resume/stop, hardware integration, retry logic
-- **Actuator Sequence Model** ✅ - 6 action types with accel/decel, laser power
-- **Safety System** ✅ (100%) - SafetyManager with state machine, GPIO integration, laser enforcement
-- **Session Management** ✅ (100%) - Complete session lifecycle, database persistence, folder creation
-- **Event Logger** ✅ (100%) - EventLogger with 25+ event types, database + file persistence, hardware integration
+2. **Create and activate virtual environment:**
+   ```bash
+   python -m venv venv
+   # Windows
+   venv\Scripts\activate
+   # macOS/Linux
+   source venv/bin/activate
+   ```
 
-**Data Layer**
-- **Database Schema Design** ✅ - Comprehensive schema documented
-- **Database Models** ✅ - SQLAlchemy ORM models (TechUser, Subject, Protocol, Session, SafetyLog)
-- **Database Operations** ✅ - DatabaseManager with CRUD operations
-- **Database Migrations** ⏳ - Alembic setup pending
+3. **Install dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-**Image Processing** ⏳ TODO
-- **Ring Detection** ⏳ - Hough circle transform
-- **Focus Measurement** ⏳ - Laplacian variance
-- **Video Recording** ⏳ - OpenCV integration
-- **Frame Processing Pipeline** ⏳ - Real-time processing
+4. **Upload Arduino firmware:**
+   - Open `firmware/arduino_watchdog/arduino_watchdog.ino` in Arduino IDE
+   - Select Board: Arduino Uno
+   - Select Port: (appropriate COM port)
+   - Upload firmware
 
-**Testing & Quality** 🔄 IN PROGRESS (75% Complete)
-- **Test Framework** ✅ - Pytest configured with hardware mocks
-- **Hardware Mock Layer** ✅ - All 4 controllers mocked (54/54 tests passing)
-- **Thread Safety** ✅ - All controllers protected with RLock (7/7 tests passing)
-- **Unit Tests** 🔄 - In progress (mock layer complete)
-- **Integration Tests** ⏳ - System tests pending
-- **Safety Tests** ⏳ - FMEA and validation pending
+5. **Configure hardware connections:**
+   - Edit `config.yaml` with correct COM ports
+   - Verify baud rates match hardware settings
+
+### Running the Application
+
+```bash
+python src/main.py
+```
+
+---
+
+## Testing
+
+### Run All Tests
+```bash
+pytest
+```
+
+### Run Specific Test Categories
+```bash
+# Thread safety tests
+pytest tests/test_thread_safety.py
+
+# Safety monitoring tests
+pytest tests/test_realtime_safety_monitoring.py
+
+# Mock infrastructure tests
+pytest tests/test_mock_hardware_base.py
+```
+
+### Run with Coverage
+```bash
+pytest --cov=src --cov-report=html
+```
+
+---
+
+## License
+
+[License information to be determined]
+
+---
+
+## Documentation
+
+For detailed technical information, see:
+- `docs/architecture/` - System design and architecture
+- `components/*/README.md` - Hardware API documentation
+- `tests/mocks/README.md` - Testing infrastructure guide

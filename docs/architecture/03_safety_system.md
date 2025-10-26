@@ -49,9 +49,9 @@ This laser system implements multiple redundant safety layers based on these pri
 **Type:** Active-High Requirement (Positive Permission)
 
 **Connection:**
-- Adafruit FT232H GPIO Pin (e.g., D4)
-- Footpedal switch connects pin to 3.3V when depressed
-- Pull-down resistor ensures LOW when released
+- Arduino Nano Digital Pin (connected via serial protocol)
+- Footpedal switch monitored via custom firmware
+- Hardware debouncing in firmware
 
 **Behavior:**
 ```
@@ -105,9 +105,10 @@ class FootpedalInterlock:
 **Type:** Signal Health Monitoring (Positive Permission)
 
 **Connection:**
-- Adafruit FT232H GPIO Pin (e.g., D5) - Digital signal presence
-- Optional: ADC input (if analog signal) to measure quality
-- Device outputs HIGH when operational and healthy
+- Arduino Nano Digital Pins (D2 motor control, D3 vibration sensor)
+- Motor control output via D2
+- Vibration detection input via D3
+- Both signals required for safety interlock
 
 **Behavior:**
 ```
@@ -182,9 +183,10 @@ class SmoothingDeviceInterlock:
 **Type:** Output Power Verification (Continuous Monitoring)
 
 **Connection:**
-- Adafruit FT232H ADC Input (e.g., A0)
+- Arduino Nano Analog Input (A0)
 - Photodiode voltage from laser pickoff (0-5V typical)
 - Voltage proportional to laser output power
+- 10-bit ADC resolution (0-1023)
 
 **Purpose:**
 - Verify commanded laser power matches actual output

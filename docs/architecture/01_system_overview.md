@@ -127,16 +127,19 @@ jsonschema            # Protocol validation
 
 ### 4. GPIO Controller - Safety Interlocks and Monitoring (Arduino Nano)
 - **Device:** Arduino Nano (ATmega328P)
-- **Library:** pyfirmata (StandardFirmata protocol)
-- **Communication:** USB (power + data)
+- **Firmware:** Custom watchdog firmware with serial protocol
+- **Communication:** USB serial (115200 baud)
 - **Digital I/O:**
   - **Pin D2 (Output):** Smoothing device motor control
   - **Pin D3 (Input):** Smoothing device vibration sensor
+  - **Pin D4 (Output):** Aiming laser control (650nm red laser)
 - **Analog Input:**
   - **Pin A0 (ADC):** Photodiode voltage monitoring (0-5V, 10-bit)
 - **Functions:**
   - Safety interlock monitoring (motor + vibration detection)
   - Real-time laser power measurement via photodiode
+  - Aiming laser control for alignment
+  - Hardware watchdog timer (1000ms timeout)
   - Cross-platform support (Windows/Linux/macOS)
 
 ## Safety Architecture
