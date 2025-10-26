@@ -64,6 +64,12 @@ class ProtocolEngine:
         self.actuator = actuator_controller
         self.safety_manager = safety_manager
 
+        # SAFETY-CRITICAL: Connect to real-time safety monitoring
+        # If laser enable permission is revoked during execution, stop immediately
+        if self.safety_manager is not None:
+            self.safety_manager.laser_enable_changed.connect(self._on_laser_enable_changed)
+            logger.info("Protocol engine connected to real-time safety monitoring")
+
         self.state = ExecutionState.IDLE
         self.current_protocol: Optional[Protocol] = None
         self.current_action_id: Optional[int] = None
@@ -516,10 +522,44 @@ class ProtocolEngine:
         self._pause_event.set()  # Unpause if paused
         self._set_state(ExecutionState.STOPPED)
 
-        # Emergency: turn off laser immediately
+        # Emergency: turn off laser immediately (selective shutdown)
         if self.laser:
             self.laser.set_output(False)  # Disable laser output
             self.laser.set_current(0.0)  # Set current to zero for safety
+
+    def _on_laser_enable_changed(self, enabled: bool) -> None:
+        """
+        Real-time safety callback - called when laser enable permission changes.
+
+        SAFETY-CRITICAL: This implements continuous safety monitoring during protocol
+        execution. If safety interlocks fail mid-protocol, this callback is triggered
+        and immediately stops execution with selective shutdown (laser only).
+
+        Args:
+            enabled: True if laser is permitted, False if denied
+
+        Note: This callback is connected to SafetyManager.laser_enable_changed signal.
+        """
+        # Only act if we're currently executing a protocol
+        if self.state != ExecutionState.RUNNING:
+            return
+
+        # If laser permission revoked during execution, STOP IMMEDIATELY
+        if not enabled:
+            logger.critical(
+                "SAFETY INTERLOCK FAILURE during protocol execution - "
+                "stopping protocol and disabling laser (selective shutdown)"
+            )
+
+            # Stop protocol execution (calls self.stop() which disables laser)
+            self.stop()
+
+            # Log detailed reason for audit trail
+            logger.warning(
+                "Protocol stopped mid-execution due to safety system. "
+                "Laser disabled (selective shutdown). "
+                "Other systems (camera, actuator) remain operational for assessment."
+            )
 
     def _set_state(self, new_state: ExecutionState) -> None:
         """Update execution state and notify callback."""
