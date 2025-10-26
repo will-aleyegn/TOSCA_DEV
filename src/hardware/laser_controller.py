@@ -8,9 +8,11 @@ Provides PyQt6-integrated laser control with:
 - Output enable/disable
 - Safety limits
 - Status monitoring
+- Thread-safe serial communication
 """
 
 import logging
+import threading
 from typing import Any, Optional
 
 import serial
@@ -45,6 +47,9 @@ class LaserController(QObject):
         self.is_output_enabled = False
         self.event_logger = event_logger
 
+        # Thread safety lock for serial communication (reentrant for nested calls)
+        self._lock = threading.RLock()
+
         # Monitoring timer
         self.monitor_timer = QTimer()
         self.monitor_timer.timeout.connect(self._update_status)
@@ -61,7 +66,7 @@ class LaserController(QObject):
         self.max_temperature_c = 35.0
         self.min_temperature_c = 15.0
 
-        logger.info("Laser controller initialized")
+        logger.info("Laser controller initialized (thread-safe)")
 
     def connect(self, com_port: str = "COM4", baudrate: int = 38400) -> bool:
         """
@@ -74,97 +79,99 @@ class LaserController(QObject):
         Returns:
             True if connected successfully
         """
-        try:
-            self.ser = serial.Serial(
-                port=com_port,
-                baudrate=baudrate,
-                parity=serial.PARITY_NONE,
-                stopbits=serial.STOPBITS_ONE,
-                bytesize=serial.EIGHTBITS,
-                timeout=1.0,
-                write_timeout=1.0,
-            )
-
-            if self.ser.is_open:
-                # Test connection with ID query
-                response = self._write_command("*IDN?")
-                if response:
-                    logger.info(f"Connected to: {response}")
-                    self.is_connected = True
-                    self.connection_changed.emit(True)
-                    self.status_changed.emit("connected")
-
-                    # Log event
-                    if self.event_logger:
-                        from ..core.event_logger import EventType
-
-                        self.event_logger.log_hardware_event(
-                            event_type=EventType.HARDWARE_LASER_CONNECT,
-                            description=f"Laser connected: {response.strip()}",
-                            device_name="Arroyo Laser Driver",
-                        )
-
-                    # Read initial limits
-                    self._read_limits()
-
-                    # Start monitoring
-                    self.monitor_timer.start()
-
-                    return True
-                else:
-                    logger.error("No response from laser driver")
-                    self.ser.close()
-                    return False
-            else:
-                logger.error(f"Failed to open {com_port}")
-                return False
-
-        except serial.SerialException as e:
-            logger.error(f"Serial connection error: {e}")
-            self.error_occurred.emit(f"Connection failed: {e}")
-
-            # Log error event
-            if self.event_logger:
-                from ..core.event_logger import EventSeverity, EventType
-
-                self.event_logger.log_event(
-                    event_type=EventType.HARDWARE_ERROR,
-                    description=f"Laser connection failed: {e}",
-                    severity=EventSeverity.WARNING,
-                    details={"device": "Arroyo Laser Driver", "port": com_port},
+        with self._lock:
+            try:
+                self.ser = serial.Serial(
+                    port=com_port,
+                    baudrate=baudrate,
+                    parity=serial.PARITY_NONE,
+                    stopbits=serial.STOPBITS_ONE,
+                    bytesize=serial.EIGHTBITS,
+                    timeout=1.0,
+                    write_timeout=1.0,
                 )
 
-            return False
-        except Exception as e:
-            logger.error(f"Unexpected connection error: {e}")
-            self.error_occurred.emit(f"Connection failed: {e}")
-            return False
+                if self.ser.is_open:
+                    # Test connection with ID query
+                    response = self._write_command("*IDN?")
+                    if response:
+                        logger.info(f"Connected to: {response}")
+                        self.is_connected = True
+                        self.connection_changed.emit(True)
+                        self.status_changed.emit("connected")
+
+                        # Log event
+                        if self.event_logger:
+                            from ..core.event_logger import EventType
+
+                            self.event_logger.log_hardware_event(
+                                event_type=EventType.HARDWARE_LASER_CONNECT,
+                                description=f"Laser connected: {response.strip()}",
+                                device_name="Arroyo Laser Driver",
+                            )
+
+                        # Read initial limits
+                        self._read_limits()
+
+                        # Start monitoring
+                        self.monitor_timer.start()
+
+                        return True
+                    else:
+                        logger.error("No response from laser driver")
+                        self.ser.close()
+                        return False
+                else:
+                    logger.error(f"Failed to open {com_port}")
+                    return False
+
+            except serial.SerialException as e:
+                logger.error(f"Serial connection error: {e}")
+                self.error_occurred.emit(f"Connection failed: {e}")
+
+                # Log error event
+                if self.event_logger:
+                    from ..core.event_logger import EventSeverity, EventType
+
+                    self.event_logger.log_event(
+                        event_type=EventType.HARDWARE_ERROR,
+                        description=f"Laser connection failed: {e}",
+                        severity=EventSeverity.WARNING,
+                        details={"device": "Arroyo Laser Driver", "port": com_port},
+                    )
+
+                return False
+            except Exception as e:
+                logger.error(f"Unexpected connection error: {e}")
+                self.error_occurred.emit(f"Connection failed: {e}")
+                return False
 
     def disconnect(self) -> None:
         """Disconnect from laser driver."""
-        if self.ser and self.ser.is_open:
-            # Disable output before disconnecting
-            self.set_output(False)
+        with self._lock:
+            if self.ser and self.ser.is_open:
+                # Disable output before disconnecting
+                self.set_output(False)
 
-            # Stop monitoring
-            self.monitor_timer.stop()
+                # Stop monitoring
+                self.monitor_timer.stop()
 
-            # Close serial port
-            self.ser.close()
-            self.is_connected = False
-            self.connection_changed.emit(False)
-            self.status_changed.emit("disconnected")
-            logger.info("Disconnected from laser driver")
+                # Close serial port
+                self.ser.close()
+                self.is_connected = False
+                self.connection_changed.emit(False)
+                self.status_changed.emit("disconnected")
+                logger.info("Disconnected from laser driver")
 
-            # Log event
-            if self.event_logger:
-                from ..core.event_logger import EventType
+                # Log event
+                if self.event_logger:
+                    from ..core.event_logger import EventType
 
-                self.event_logger.log_hardware_event(
-                    event_type=EventType.HARDWARE_LASER_DISCONNECT,
-                    description="Laser disconnected",
-                    device_name="Arroyo Laser Driver",
-                )
+                    self.event_logger.log_hardware_event(
+                        event_type=EventType.HARDWARE_LASER_DISCONNECT,
+                        description="Laser disconnected",
+                        device_name="Arroyo Laser Driver",
+                    )
 
     def _write_command(self, command: str) -> Optional[str]:
         """
@@ -180,24 +187,25 @@ class LaserController(QObject):
             logger.error("Serial port not open")
             return None
 
-        try:
-            # Send command
-            self.ser.write(str.encode(command) + b"\r\n")
+        with self._lock:
+            try:
+                # Send command
+                self.ser.write(str.encode(command) + b"\r\n")
 
-            # Read response for query commands
-            if "?" in command:
-                response: str = self.ser.readline().decode("utf-8").strip()
-                return response
-            return ""
+                # Read response for query commands
+                if "?" in command:
+                    response: str = self.ser.readline().decode("utf-8").strip()
+                    return response
+                return ""
 
-        except serial.SerialException as e:
-            logger.error(f"Serial communication error: {e}")
-            self.error_occurred.emit(f"Communication error: {e}")
-            return None
-        except Exception as e:
-            logger.error(f"Command error: {e}")
-            self.error_occurred.emit(f"Command error: {e}")
-            return None
+            except serial.SerialException as e:
+                logger.error(f"Serial communication error: {e}")
+                self.error_occurred.emit(f"Communication error: {e}")
+                return None
+            except Exception as e:
+                logger.error(f"Command error: {e}")
+                self.error_occurred.emit(f"Command error: {e}")
+                return None
 
     def _read_limits(self) -> None:
         """Read safety limits from device."""
@@ -238,40 +246,43 @@ class LaserController(QObject):
             logger.error("Not connected to laser driver")
             return False
 
-        try:
-            value = 1 if enabled else 0
-            self._write_command(f"LAS:OUT {value}")
+        with self._lock:
+            try:
+                value = 1 if enabled else 0
+                self._write_command(f"LAS:OUT {value}")
 
-            # Verify
-            response = self._write_command("LAS:OUT?")
-            if response and int(response) == value:
-                self.is_output_enabled = enabled
-                self.output_changed.emit(enabled)
-                status = "enabled" if enabled else "disabled"
-                logger.info(f"Laser output {status}")
+                # Verify
+                response = self._write_command("LAS:OUT?")
+                if response and int(response) == value:
+                    self.is_output_enabled = enabled
+                    self.output_changed.emit(enabled)
+                    status = "enabled" if enabled else "disabled"
+                    logger.info(f"Laser output {status}")
 
-                # Log event
-                if self.event_logger:
-                    from ..core.event_logger import EventType
+                    # Log event
+                    if self.event_logger:
+                        from ..core.event_logger import EventType
 
-                    event_type = (
-                        EventType.TREATMENT_LASER_ON if enabled else EventType.TREATMENT_LASER_OFF
-                    )
-                    self.event_logger.log_event(
-                        event_type=event_type,
-                        description=f"Laser output {status}",
-                        details={"current_setpoint": self.current_setpoint_ma},
-                    )
+                        event_type = (
+                            EventType.TREATMENT_LASER_ON
+                            if enabled
+                            else EventType.TREATMENT_LASER_OFF
+                        )
+                        self.event_logger.log_event(
+                            event_type=event_type,
+                            description=f"Laser output {status}",
+                            details={"current_setpoint": self.current_setpoint_ma},
+                        )
 
-                return True
-            else:
-                logger.error("Failed to set output")
+                    return True
+                else:
+                    logger.error("Failed to set output")
+                    return False
+
+            except Exception as e:
+                logger.error(f"Failed to set output: {e}")
+                self.error_occurred.emit(f"Output control failed: {e}")
                 return False
-
-        except Exception as e:
-            logger.error(f"Failed to set output: {e}")
-            self.error_occurred.emit(f"Output control failed: {e}")
-            return False
 
     def set_current(self, current_ma: float) -> bool:
         """
@@ -292,38 +303,39 @@ class LaserController(QObject):
             self.limit_warning.emit(f"Current exceeds limit: {self.max_current_ma:.0f}mA")
             return False
 
-        try:
-            # Convert mA to A for command
-            current_a = current_ma / 1000.0
-            self._write_command(f"LAS:LDI {current_a:.4f}")
+        with self._lock:
+            try:
+                # Convert mA to A for command
+                current_a = current_ma / 1000.0
+                self._write_command(f"LAS:LDI {current_a:.4f}")
 
-            # Verify
-            response = self._write_command("LAS:SET:LDI?")
-            if response:
-                set_current = float(response) * 1000  # Convert A to mA
-                if abs(set_current - current_ma) < 0.1:
-                    self.current_setpoint_ma = current_ma
-                    logger.info(f"Set laser current to {current_ma:.1f} mA")
+                # Verify
+                response = self._write_command("LAS:SET:LDI?")
+                if response:
+                    set_current = float(response) * 1000  # Convert A to mA
+                    if abs(set_current - current_ma) < 0.1:
+                        self.current_setpoint_ma = current_ma
+                        logger.info(f"Set laser current to {current_ma:.1f} mA")
 
-                    # Log event
-                    if self.event_logger:
-                        from ..core.event_logger import EventType
+                        # Log event
+                        if self.event_logger:
+                            from ..core.event_logger import EventType
 
-                        self.event_logger.log_event(
-                            event_type=EventType.TREATMENT_POWER_CHANGE,
-                            description=f"Laser current set to {current_ma:.1f} mA",
-                            details={"current_ma": current_ma},
-                        )
+                            self.event_logger.log_event(
+                                event_type=EventType.TREATMENT_POWER_CHANGE,
+                                description=f"Laser current set to {current_ma:.1f} mA",
+                                details={"current_ma": current_ma},
+                            )
 
-                    return True
+                        return True
 
-            logger.error("Failed to set current")
-            return False
+                logger.error("Failed to set current")
+                return False
 
-        except Exception as e:
-            logger.error(f"Failed to set current: {e}")
-            self.error_occurred.emit(f"Current control failed: {e}")
-            return False
+            except Exception as e:
+                logger.error(f"Failed to set current: {e}")
+                self.error_occurred.emit(f"Current control failed: {e}")
+                return False
 
     def set_power(self, power_mw: float) -> bool:
         """
@@ -382,36 +394,37 @@ class LaserController(QObject):
             )
             return False
 
-        try:
-            self._write_command(f"TEC:T {temperature_c:.2f}")
+        with self._lock:
+            try:
+                self._write_command(f"TEC:T {temperature_c:.2f}")
 
-            # Verify
-            response = self._write_command("TEC:SET:T?")
-            if response:
-                set_temp = float(response)
-                if abs(set_temp - temperature_c) < 0.1:
-                    self.temperature_setpoint_c = temperature_c
-                    logger.info(f"Set TEC temperature to {temperature_c:.1f}°C")
+                # Verify
+                response = self._write_command("TEC:SET:T?")
+                if response:
+                    set_temp = float(response)
+                    if abs(set_temp - temperature_c) < 0.1:
+                        self.temperature_setpoint_c = temperature_c
+                        logger.info(f"Set TEC temperature to {temperature_c:.1f}°C")
 
-                    # Log event
-                    if self.event_logger:
-                        from ..core.event_logger import EventType
+                        # Log event
+                        if self.event_logger:
+                            from ..core.event_logger import EventType
 
-                        self.event_logger.log_event(
-                            event_type=EventType.HARDWARE_LASER_TEMP_CHANGE,
-                            description=f"TEC temperature set to {temperature_c:.1f}°C",
-                            details={"temperature_c": temperature_c},
-                        )
+                            self.event_logger.log_event(
+                                event_type=EventType.HARDWARE_LASER_TEMP_CHANGE,
+                                description=f"TEC temperature set to {temperature_c:.1f}°C",
+                                details={"temperature_c": temperature_c},
+                            )
 
-                    return True
+                        return True
 
-            logger.error("Failed to set temperature")
-            return False
+                logger.error("Failed to set temperature")
+                return False
 
-        except Exception as e:
-            logger.error(f"Failed to set temperature: {e}")
-            self.error_occurred.emit(f"Temperature control failed: {e}")
-            return False
+            except Exception as e:
+                logger.error(f"Failed to set temperature: {e}")
+                self.error_occurred.emit(f"Temperature control failed: {e}")
+                return False
 
     def read_current(self) -> Optional[float]:
         """
@@ -461,24 +474,25 @@ class LaserController(QObject):
         if not self.is_connected:
             return
 
-        try:
-            # Read current
-            current = self.read_current()
-            if current is not None:
-                self.current_changed.emit(current)
+        with self._lock:
+            try:
+                # Read current
+                current = self.read_current()
+                if current is not None:
+                    self.current_changed.emit(current)
 
-            # Read temperature
-            temperature = self.read_temperature()
-            if temperature is not None:
-                self.temperature_changed.emit(temperature)
+                # Read temperature
+                temperature = self.read_temperature()
+                if temperature is not None:
+                    self.temperature_changed.emit(temperature)
 
-            # Read output state
-            response = self._write_command("LAS:OUT?")
-            if response:
-                output_enabled = bool(int(response))
-                if output_enabled != self.is_output_enabled:
-                    self.is_output_enabled = output_enabled
-                    self.output_changed.emit(output_enabled)
+                # Read output state
+                response = self._write_command("LAS:OUT?")
+                if response:
+                    output_enabled = bool(int(response))
+                    if output_enabled != self.is_output_enabled:
+                        self.is_output_enabled = output_enabled
+                        self.output_changed.emit(output_enabled)
 
-        except Exception as e:
-            logger.error(f"Status update error: {e}")
+            except Exception as e:
+                logger.error(f"Status update error: {e}")

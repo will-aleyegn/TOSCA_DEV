@@ -8,9 +8,11 @@ Provides PyQt6-integrated actuator control with:
 - Homing (index finding)
 - Position limits
 - Status monitoring
+- Thread-safe serial communication
 """
 
 import logging
+import threading
 from pathlib import Path
 from typing import Any, Optional
 
@@ -64,6 +66,9 @@ class ActuatorController(QObject):
         self.is_homed = False
         self.event_logger = event_logger
 
+        # Thread safety lock for serial communication (reentrant for nested calls)
+        self._lock = threading.RLock()
+
         # Position monitoring timer
         self.position_timer = QTimer()
         self.position_timer.timeout.connect(self._update_position)
@@ -82,7 +87,7 @@ class ActuatorController(QObject):
         self.acceleration = 65500  # Default from settings_default.txt
         self.deceleration = 65500  # Default from settings_default.txt
 
-        logger.info("Actuator controller initialized")
+        logger.info("Actuator controller initialized (thread-safe)")
 
     def connect(self, com_port: str = "COM3", baudrate: int = 9600, auto_home: bool = True) -> bool:
         """
@@ -99,107 +104,109 @@ class ActuatorController(QObject):
         Returns:
             True if connected successfully
         """
-        try:
-            logger.info(f"Connecting to actuator on {com_port} at {baudrate} baud")
+        with self._lock:
+            try:
+                logger.info(f"Connecting to actuator on {com_port} at {baudrate} baud")
 
-            self.controller = Xeryon(COM_port=com_port, baudrate=baudrate)
-            self.axis = self.controller.addAxis(Stage.XLA_1250_5N, "X")
-            self.controller.start()
+                self.controller = Xeryon(COM_port=com_port, baudrate=baudrate)
+                self.axis = self.controller.addAxis(Stage.XLA_1250_5N, "X")
+                self.controller.start()
 
-            self.axis.setUnits(self.working_units)
-            self.axis.setSetting("DISABLE_WAITING", True)
+                self.axis.setUnits(self.working_units)
+                self.axis.setSetting("DISABLE_WAITING", True)
 
-            self.is_connected = True
-            self.connection_changed.emit(True)
+                self.is_connected = True
+                self.connection_changed.emit(True)
 
-            self.is_homed = self.axis.isEncoderValid()
-            logger.info("Connected successfully")
+                self.is_homed = self.axis.isEncoderValid()
+                logger.info("Connected successfully")
 
-            if auto_home and not self.is_homed:
-                self.status_changed.emit("homing")
-                import time
+                if auto_home and not self.is_homed:
+                    self.status_changed.emit("homing")
+                    import time
 
-                time.sleep(0.5)
+                    time.sleep(0.5)
 
-                success = self.axis.findIndex(forceWaiting=True, direction=0)
+                    success = self.axis.findIndex(forceWaiting=True, direction=0)
 
-                if success:
-                    self.is_homed = True
-                    logger.info("Auto-homing complete")
+                    if success:
+                        self.is_homed = True
+                        logger.info("Auto-homing complete")
+                        self.status_changed.emit("ready")
+                    else:
+                        logger.warning("Auto-homing failed")
+                        self.status_changed.emit("not_homed")
+                elif self.is_homed:
                     self.status_changed.emit("ready")
                 else:
-                    logger.warning("Auto-homing failed")
                     self.status_changed.emit("not_homed")
-            elif self.is_homed:
-                self.status_changed.emit("ready")
-            else:
-                self.status_changed.emit("not_homed")
 
-            low_limit, high_limit = self.get_limits()
-            self.get_acceleration_settings()
-            self.limits_changed.emit(low_limit, high_limit)
+                low_limit, high_limit = self.get_limits()
+                self.get_acceleration_settings()
+                self.limits_changed.emit(low_limit, high_limit)
+
+                # Log event
+                if self.event_logger:
+                    from ..core.event_logger import EventType
+
+                    status = "homed" if self.is_homed else "not homed"
+                    self.event_logger.log_hardware_event(
+                        event_type=EventType.HARDWARE_ACTUATOR_CONNECT,
+                        description=f"Actuator connected on {com_port} ({status})",
+                        device_name="Xeryon Linear Stage",
+                    )
+
+                # Start position monitoring
+                self.position_timer.start()
+
+                return True
+
+            except Exception as e:
+                error_msg = f"Actuator connection failed: {e}"
+                logger.error(error_msg)
+                self.error_occurred.emit(error_msg)
+
+                # Log error event
+                if self.event_logger:
+                    from ..core.event_logger import EventSeverity, EventType
+
+                    self.event_logger.log_event(
+                        event_type=EventType.HARDWARE_ERROR,
+                        description=error_msg,
+                        severity=EventSeverity.WARNING,
+                        details={"device": "Xeryon Linear Stage", "port": com_port},
+                    )
+
+                return False
+
+    def disconnect(self) -> None:
+        """Disconnect from actuator."""
+        with self._lock:
+            # Stop position monitoring
+            self.position_timer.stop()
+
+            if self.controller:
+                try:
+                    self.controller.stop()
+                except Exception as e:
+                    logger.warning(f"Error stopping controller: {e}")
+                self.controller = None
+
+            self.axis = None
+            self.is_connected = False
+            self.is_homed = False
+            self.connection_changed.emit(False)
+            logger.info("Actuator disconnected")
 
             # Log event
             if self.event_logger:
                 from ..core.event_logger import EventType
 
-                status = "homed" if self.is_homed else "not homed"
                 self.event_logger.log_hardware_event(
-                    event_type=EventType.HARDWARE_ACTUATOR_CONNECT,
-                    description=f"Actuator connected on {com_port} ({status})",
+                    event_type=EventType.HARDWARE_ACTUATOR_DISCONNECT,
+                    description="Actuator disconnected",
                     device_name="Xeryon Linear Stage",
                 )
-
-            # Start position monitoring
-            self.position_timer.start()
-
-            return True
-
-        except Exception as e:
-            error_msg = f"Actuator connection failed: {e}"
-            logger.error(error_msg)
-            self.error_occurred.emit(error_msg)
-
-            # Log error event
-            if self.event_logger:
-                from ..core.event_logger import EventSeverity, EventType
-
-                self.event_logger.log_event(
-                    event_type=EventType.HARDWARE_ERROR,
-                    description=error_msg,
-                    severity=EventSeverity.WARNING,
-                    details={"device": "Xeryon Linear Stage", "port": com_port},
-                )
-
-            return False
-
-    def disconnect(self) -> None:
-        """Disconnect from actuator."""
-        # Stop position monitoring
-        self.position_timer.stop()
-
-        if self.controller:
-            try:
-                self.controller.stop()
-            except Exception as e:
-                logger.warning(f"Error stopping controller: {e}")
-            self.controller = None
-
-        self.axis = None
-        self.is_connected = False
-        self.is_homed = False
-        self.connection_changed.emit(False)
-        logger.info("Actuator disconnected")
-
-        # Log event
-        if self.event_logger:
-            from ..core.event_logger import EventType
-
-            self.event_logger.log_hardware_event(
-                event_type=EventType.HARDWARE_ACTUATOR_DISCONNECT,
-                description="Actuator disconnected",
-                device_name="Xeryon Linear Stage",
-            )
 
     def find_index(self) -> bool:
         """
@@ -215,77 +222,79 @@ class ActuatorController(QObject):
             self.error_occurred.emit("Actuator not connected")
             return False
 
-        try:
-            logger.info("Starting index finding (homing)...")
-            self.status_changed.emit("homing")
-            self.homing_progress.emit("Searching for index position...")
+        with self._lock:
+            try:
+                logger.info("Starting index finding (homing)...")
+                self.status_changed.emit("homing")
+                self.homing_progress.emit("Searching for index position...")
 
-            # Use native hardware homing feature
-            self.axis.findIndex()
+                # Use native hardware homing feature
+                self.axis.findIndex()
 
-            # Monitor homing status
-            QTimer.singleShot(100, self._check_homing_status)
-
-            # Log event
-            if self.event_logger:
-                from ..core.event_logger import EventType
-
-                self.event_logger.log_event(
-                    event_type=EventType.HARDWARE_ACTUATOR_HOME_START,
-                    description="Actuator homing started (finding index position)",
-                )
-
-            return True
-
-        except Exception as e:
-            error_msg = f"Failed to start homing: {e}"
-            logger.error(error_msg)
-            self.error_occurred.emit(error_msg)
-            self.status_changed.emit("error")
-            return False
-
-    def _check_homing_status(self) -> None:
-        """Check if homing is complete."""
-        if not self.axis:
-            return
-
-        try:
-            if self.axis.isSearchingIndex():
-                # Still searching
-                self.homing_progress.emit("Still searching for index...")
-                QTimer.singleShot(200, self._check_homing_status)
-            elif self.axis.isEncoderValid():
-                # Homing complete
-                self.is_homed = True
-                self.homing_progress.emit("Index found - homing complete!")
-                self.status_changed.emit("ready")
-                logger.info("Homing complete - encoder valid")
-
-                # Emit current position
-                pos = self.axis.getEPOS()
-                self.position_changed.emit(pos)
+                # Monitor homing status
+                QTimer.singleShot(100, self._check_homing_status)
 
                 # Log event
                 if self.event_logger:
                     from ..core.event_logger import EventType
 
                     self.event_logger.log_event(
-                        event_type=EventType.HARDWARE_ACTUATOR_HOME_COMPLETE,
-                        description=f"Actuator homing completed (position: {pos:.1f} µm)",
-                        details={"position_um": pos},
+                        event_type=EventType.HARDWARE_ACTUATOR_HOME_START,
+                        description="Actuator homing started (finding index position)",
                     )
-            else:
-                # Homing failed
-                error_msg = "Homing failed - encoder not valid"
+
+                return True
+
+            except Exception as e:
+                error_msg = f"Failed to start homing: {e}"
                 logger.error(error_msg)
                 self.error_occurred.emit(error_msg)
                 self.status_changed.emit("error")
+                return False
 
-        except Exception as e:
-            error_msg = f"Error checking homing status: {e}"
-            logger.error(error_msg)
-            self.error_occurred.emit(error_msg)
-            self.status_changed.emit("error")
+    def _check_homing_status(self) -> None:
+        """Check if homing is complete."""
+        if not self.axis:
+            return
+
+        with self._lock:
+            try:
+                if self.axis.isSearchingIndex():
+                    # Still searching
+                    self.homing_progress.emit("Still searching for index...")
+                    QTimer.singleShot(200, self._check_homing_status)
+                elif self.axis.isEncoderValid():
+                    # Homing complete
+                    self.is_homed = True
+                    self.homing_progress.emit("Index found - homing complete!")
+                    self.status_changed.emit("ready")
+                    logger.info("Homing complete - encoder valid")
+
+                    # Emit current position
+                    pos = self.axis.getEPOS()
+                    self.position_changed.emit(pos)
+
+                    # Log event
+                    if self.event_logger:
+                        from ..core.event_logger import EventType
+
+                        self.event_logger.log_event(
+                            event_type=EventType.HARDWARE_ACTUATOR_HOME_COMPLETE,
+                            description=f"Actuator homing completed (position: {pos:.1f} µm)",
+                            details={"position_um": pos},
+                        )
+                else:
+                    # Homing failed
+                    error_msg = "Homing failed - encoder not valid"
+                    logger.error(error_msg)
+                    self.error_occurred.emit(error_msg)
+                    self.status_changed.emit("error")
+
+            except Exception as e:
+                error_msg = f"Error checking homing status: {e}"
+                logger.error(error_msg)
+                self.error_occurred.emit(error_msg)
+                self.status_changed.emit("error")
 
     def set_position(self, position_um: float) -> bool:
         """
@@ -314,54 +323,56 @@ class ActuatorController(QObject):
             self.error_occurred.emit(error_msg)
             return False
 
-        try:
-            # Use native hardware absolute positioning
-            self.axis.setDPOS(position_um, self.working_units)
+        with self._lock:
+            try:
+                # Use native hardware absolute positioning
+                self.axis.setDPOS(position_um, self.working_units)
 
-            self.status_changed.emit("moving")
-            logger.debug(f"Moving to position: {position_um} µm")
+                self.status_changed.emit("moving")
+                logger.debug(f"Moving to position: {position_um} µm")
 
-            # Monitor position reached
-            QTimer.singleShot(100, self._check_position_reached)
+                # Monitor position reached
+                QTimer.singleShot(100, self._check_position_reached)
 
-            return True
+                return True
 
-        except Exception as e:
-            error_msg = f"Failed to set position: {e}"
-            logger.error(error_msg)
-            self.error_occurred.emit(error_msg)
-            return False
+            except Exception as e:
+                error_msg = f"Failed to set position: {e}"
+                logger.error(error_msg)
+                self.error_occurred.emit(error_msg)
+                return False
 
     def _check_position_reached(self) -> None:
         """Check if target position has been reached."""
         if not self.axis:
             return
 
-        try:
-            if self.axis.isPositionReached():
-                # Position reached
-                current_pos = self.axis.getEPOS()
-                self.position_reached.emit(current_pos)
-                self.status_changed.emit("ready")
-                logger.debug(f"Position reached: {current_pos:.1f} µm")
+        with self._lock:
+            try:
+                if self.axis.isPositionReached():
+                    # Position reached
+                    current_pos = self.axis.getEPOS()
+                    self.position_reached.emit(current_pos)
+                    self.status_changed.emit("ready")
+                    logger.debug(f"Position reached: {current_pos:.1f} µm")
 
-                # Log event
-                if self.event_logger:
-                    from ..core.event_logger import EventType
+                    # Log event
+                    if self.event_logger:
+                        from ..core.event_logger import EventType
 
-                    self.event_logger.log_event(
-                        event_type=EventType.HARDWARE_ACTUATOR_MOVE,
-                        description=f"Actuator moved to position: {current_pos:.1f} µm",
-                        details={"position_um": current_pos},
-                    )
-            else:
-                # Still moving
-                QTimer.singleShot(50, self._check_position_reached)
+                        self.event_logger.log_event(
+                            event_type=EventType.HARDWARE_ACTUATOR_MOVE,
+                            description=f"Actuator moved to position: {current_pos:.1f} µm",
+                            details={"position_um": current_pos},
+                        )
+                else:
+                    # Still moving
+                    QTimer.singleShot(50, self._check_position_reached)
 
-        except Exception as e:
-            error_msg = f"Error checking position: {e}"
-            logger.error(error_msg)
-            self.error_occurred.emit(error_msg)
+            except Exception as e:
+                error_msg = f"Error checking position: {e}"
+                logger.error(error_msg)
+                self.error_occurred.emit(error_msg)
 
     def make_step(self, step_um: float) -> bool:
         """
@@ -383,33 +394,34 @@ class ActuatorController(QObject):
             self.error_occurred.emit("Actuator not homed")
             return False
 
-        # Calculate target position and validate
-        current_pos = self.axis.getEPOS()
-        target_pos = current_pos + step_um
+        with self._lock:
+            # Calculate target position and validate
+            current_pos = self.axis.getEPOS()
+            target_pos = current_pos + step_um
 
-        is_valid, error_msg = self.validate_position(target_pos)
-        if not is_valid:
-            logger.warning(f"Step rejected: {error_msg}")
-            self.error_occurred.emit(error_msg)
-            return False
+            is_valid, error_msg = self.validate_position(target_pos)
+            if not is_valid:
+                logger.warning(f"Step rejected: {error_msg}")
+                self.error_occurred.emit(error_msg)
+                return False
 
-        try:
-            # Use native hardware relative positioning
-            self.axis.step(step_um)
+            try:
+                # Use native hardware relative positioning
+                self.axis.step(step_um)
 
-            self.status_changed.emit("moving")
-            logger.debug(f"Making step: {step_um:+.1f} µm (target: {target_pos:.1f} µm)")
+                self.status_changed.emit("moving")
+                logger.debug(f"Making step: {step_um:+.1f} µm (target: {target_pos:.1f} µm)")
 
-            # Monitor position reached
-            QTimer.singleShot(100, self._check_position_reached)
+                # Monitor position reached
+                QTimer.singleShot(100, self._check_position_reached)
 
-            return True
+                return True
 
-        except Exception as e:
-            error_msg = f"Failed to make step: {e}"
-            logger.error(error_msg)
-            self.error_occurred.emit(error_msg)
-            return False
+            except Exception as e:
+                error_msg = f"Failed to make step: {e}"
+                logger.error(error_msg)
+                self.error_occurred.emit(error_msg)
+                return False
 
     def get_position(self) -> Optional[float]:
         """
@@ -421,37 +433,39 @@ class ActuatorController(QObject):
         if not self.is_connected or not self.axis:
             return None
 
-        try:
-            return float(self.axis.getEPOS())
-        except Exception as e:
-            logger.error(f"Failed to get position: {e}")
-            return None
+        with self._lock:
+            try:
+                return float(self.axis.getEPOS())
+            except Exception as e:
+                logger.error(f"Failed to get position: {e}")
+                return None
 
     def _update_position(self) -> None:
         """Periodically update position (called by timer)."""
         if not self.is_connected or not self.axis:
             return
 
-        try:
-            current_pos = self.axis.getEPOS()
-            self.position_changed.emit(current_pos)
+        with self._lock:
+            try:
+                current_pos = self.axis.getEPOS()
+                self.position_changed.emit(current_pos)
 
-            # Check if at hardware limits (for scan auto-stop)
-            if self.axis.isAtLeftEnd() or self.axis.isAtRightEnd():
-                # At a limit - stop any scanning
-                if self.axis.isScanning():
-                    logger.warning("Limit reached during scan - stopping")
-                    self.stop_scan()
+                # Check if at hardware limits (for scan auto-stop)
+                if self.axis.isAtLeftEnd() or self.axis.isAtRightEnd():
+                    # At a limit - stop any scanning
+                    if self.axis.isScanning():
+                        logger.warning("Limit reached during scan - stopping")
+                        self.stop_scan()
 
-            # Check for limit proximity warnings
-            proximity_info = self.check_limit_proximity(current_pos)
-            if proximity_info:
-                direction, distance = proximity_info
-                self.limit_warning.emit(direction, distance)
+                # Check for limit proximity warnings
+                proximity_info = self.check_limit_proximity(current_pos)
+                if proximity_info:
+                    direction, distance = proximity_info
+                    self.limit_warning.emit(direction, distance)
 
-        except Exception as e:
-            # Don't spam errors for periodic updates
-            logger.debug(f"Ignoring error during periodic status update: {e}")
+            except Exception as e:
+                # Don't spam errors for periodic updates
+                logger.debug(f"Ignoring error during periodic status update: {e}")
 
     def set_speed(self, speed: int) -> bool:
         """
@@ -468,15 +482,16 @@ class ActuatorController(QObject):
         if not self.axis:
             return False
 
-        try:
-            # Use official API's setSpeed() method
-            # This handles unit conversion: µm/s → SSPD setting
-            self.axis.setSpeed(speed)
-            logger.debug(f"Speed set to {speed} µm/s")
-            return True
-        except Exception as e:
-            logger.error(f"Failed to set speed: {e}")
-            return False
+        with self._lock:
+            try:
+                # Use official API's setSpeed() method
+                # This handles unit conversion: µm/s → SSPD setting
+                self.axis.setSpeed(speed)
+                logger.debug(f"Speed set to {speed} µm/s")
+                return True
+            except Exception as e:
+                logger.error(f"Failed to set speed: {e}")
+                return False
 
     def start_scan(self, direction: int) -> bool:
         """
@@ -503,18 +518,19 @@ class ActuatorController(QObject):
             self.error_occurred.emit("Actuator not homed")
             return False
 
-        try:
-            # Use official API for continuous scanning
-            self.axis.startScan(direction)
-            self.status_changed.emit("scanning")
-            dir_str = "positive" if direction > 0 else "negative"
-            logger.info(f"Scan started in {dir_str} direction")
-            return True
-        except Exception as e:
-            error_msg = f"Failed to start scan: {e}"
-            logger.error(error_msg)
-            self.error_occurred.emit(error_msg)
-            return False
+        with self._lock:
+            try:
+                # Use official API for continuous scanning
+                self.axis.startScan(direction)
+                self.status_changed.emit("scanning")
+                dir_str = "positive" if direction > 0 else "negative"
+                logger.info(f"Scan started in {dir_str} direction")
+                return True
+            except Exception as e:
+                error_msg = f"Failed to start scan: {e}"
+                logger.error(error_msg)
+                self.error_occurred.emit(error_msg)
+                return False
 
     def stop_scan(self) -> bool:
         """
@@ -530,14 +546,15 @@ class ActuatorController(QObject):
         if not self.axis:
             return False
 
-        try:
-            self.axis.stopScan()
-            self.status_changed.emit("ready")
-            logger.info("Scan stopped")
-            return True
-        except Exception as e:
-            logger.error(f"Failed to stop scan: {e}")
-            return False
+        with self._lock:
+            try:
+                self.axis.stopScan()
+                self.status_changed.emit("ready")
+                logger.info("Scan stopped")
+                return True
+            except Exception as e:
+                logger.error(f"Failed to stop scan: {e}")
+                return False
 
     def set_position_limits(self, low_um: float, high_um: float) -> bool:
         """
@@ -555,14 +572,15 @@ class ActuatorController(QObject):
         if not self.axis:
             return False
 
-        try:
-            self.axis.sendCommand(f"LLIM={int(low_um)}")
-            self.axis.sendCommand(f"HLIM={int(high_um)}")
-            logger.info(f"Position limits set: {low_um} - {high_um} µm")
-            return True
-        except Exception as e:
-            logger.error(f"Failed to set limits: {e}")
-            return False
+        with self._lock:
+            try:
+                self.axis.sendCommand(f"LLIM={int(low_um)}")
+                self.axis.sendCommand(f"HLIM={int(high_um)}")
+                logger.info(f"Position limits set: {low_um} - {high_um} µm")
+                return True
+            except Exception as e:
+                logger.error(f"Failed to set limits: {e}")
+                return False
 
     def stop_movement(self) -> bool:
         """
@@ -574,14 +592,15 @@ class ActuatorController(QObject):
         if not self.controller:
             return False
 
-        try:
-            self.controller.stopMovements()
-            self.status_changed.emit("ready")
-            logger.info("Movement stopped")
-            return True
-        except Exception as e:
-            logger.error(f"Failed to stop movement: {e}")
-            return False
+        with self._lock:
+            try:
+                self.controller.stopMovements()
+                self.status_changed.emit("ready")
+                logger.info("Movement stopped")
+                return True
+            except Exception as e:
+                logger.error(f"Failed to stop movement: {e}")
+                return False
 
     def reset(self) -> bool:
         """
@@ -593,13 +612,14 @@ class ActuatorController(QObject):
         if not self.axis:
             return False
 
-        try:
-            self.axis.reset()
-            logger.info("Controller reset")
-            return True
-        except Exception as e:
-            logger.error(f"Failed to reset: {e}")
-            return False
+        with self._lock:
+            try:
+                self.axis.reset()
+                logger.info("Controller reset")
+                return True
+            except Exception as e:
+                logger.error(f"Failed to reset: {e}")
+                return False
 
     def get_limits(self) -> tuple[float, float]:
         """
@@ -613,22 +633,23 @@ class ActuatorController(QObject):
         if not self.axis:
             return (self.low_limit_um, self.high_limit_um)
 
-        try:
-            # Query LLIM and HLIM from device
-            # The axis.getSetting() method reads settings from device
-            low_limit = float(self.axis.getSetting("LLIM"))
-            high_limit = float(self.axis.getSetting("HLIM"))
+        with self._lock:
+            try:
+                # Query LLIM and HLIM from device
+                # The axis.getSetting() method reads settings from device
+                low_limit = float(self.axis.getSetting("LLIM"))
+                high_limit = float(self.axis.getSetting("HLIM"))
 
-            # Update cached values
-            self.low_limit_um = low_limit
-            self.high_limit_um = high_limit
+                # Update cached values
+                self.low_limit_um = low_limit
+                self.high_limit_um = high_limit
 
-            logger.debug(f"Hardware limits: {low_limit:.0f} to {high_limit:.0f} µm")
-            return (low_limit, high_limit)
+                logger.debug(f"Hardware limits: {low_limit:.0f} to {high_limit:.0f} µm")
+                return (low_limit, high_limit)
 
-        except Exception as e:
-            logger.warning(f"Failed to read limits from device: {e}")
-            return (self.low_limit_um, self.high_limit_um)
+            except Exception as e:
+                logger.warning(f"Failed to read limits from device: {e}")
+                return (self.low_limit_um, self.high_limit_um)
 
     def get_acceleration_settings(self) -> tuple[int, int]:
         """
@@ -642,21 +663,22 @@ class ActuatorController(QObject):
         if not self.axis:
             return (self.acceleration, self.deceleration)
 
-        try:
-            # Query ACCE and DECE from device
-            acce = int(self.axis.getSetting("ACCE"))
-            dece = int(self.axis.getSetting("DECE"))
+        with self._lock:
+            try:
+                # Query ACCE and DECE from device
+                acce = int(self.axis.getSetting("ACCE"))
+                dece = int(self.axis.getSetting("DECE"))
 
-            # Update cached values
-            self.acceleration = acce
-            self.deceleration = dece
+                # Update cached values
+                self.acceleration = acce
+                self.deceleration = dece
 
-            logger.debug(f"Acceleration settings: ACCE={acce}, DECE={dece}")
-            return (acce, dece)
+                logger.debug(f"Acceleration settings: ACCE={acce}, DECE={dece}")
+                return (acce, dece)
 
-        except Exception as e:
-            logger.warning(f"Failed to read acceleration settings: {e}")
-            return (self.acceleration, self.deceleration)
+            except Exception as e:
+                logger.warning(f"Failed to read acceleration settings: {e}")
+                return (self.acceleration, self.deceleration)
 
     def set_acceleration(self, acceleration: int) -> bool:
         """
@@ -671,14 +693,15 @@ class ActuatorController(QObject):
         if not self.axis:
             return False
 
-        try:
-            self.axis.sendCommand(f"ACCE={acceleration}")
-            self.acceleration = acceleration
-            logger.info(f"Acceleration set to {acceleration}")
-            return True
-        except Exception as e:
-            logger.error(f"Failed to set acceleration: {e}")
-            return False
+        with self._lock:
+            try:
+                self.axis.sendCommand(f"ACCE={acceleration}")
+                self.acceleration = acceleration
+                logger.info(f"Acceleration set to {acceleration}")
+                return True
+            except Exception as e:
+                logger.error(f"Failed to set acceleration: {e}")
+                return False
 
     def set_deceleration(self, deceleration: int) -> bool:
         """
@@ -693,14 +716,15 @@ class ActuatorController(QObject):
         if not self.axis:
             return False
 
-        try:
-            self.axis.sendCommand(f"DECE={deceleration}")
-            self.deceleration = deceleration
-            logger.info(f"Deceleration set to {deceleration}")
-            return True
-        except Exception as e:
-            logger.error(f"Failed to set deceleration: {e}")
-            return False
+        with self._lock:
+            try:
+                self.axis.sendCommand(f"DECE={deceleration}")
+                self.deceleration = deceleration
+                logger.info(f"Deceleration set to {deceleration}")
+                return True
+            except Exception as e:
+                logger.error(f"Failed to set deceleration: {e}")
+                return False
 
     def validate_position(self, target_position_um: float) -> tuple[bool, str]:
         """
@@ -765,29 +789,30 @@ class ActuatorController(QObject):
                 "status": "disconnected",
             }
 
-        try:
-            current_pos = self.axis.getEPOS()
+        with self._lock:
+            try:
+                current_pos = self.axis.getEPOS()
 
-            # Check if at limits
-            at_low_limit = self.axis.isAtLeftEnd()
-            at_high_limit = self.axis.isAtRightEnd()
+                # Check if at limits
+                at_low_limit = self.axis.isAtLeftEnd()
+                at_high_limit = self.axis.isAtRightEnd()
 
-            return {
-                "connected": self.is_connected,
-                "homed": self.is_homed,
-                "position_um": current_pos,
-                "position_reached": self.axis.isPositionReached(),
-                "encoder_valid": self.axis.isEncoderValid(),
-                "searching_index": self.axis.isSearchingIndex(),
-                "safety_timeout": self.axis.isSafetyTimeoutTriggered(),
-                "at_low_limit": at_low_limit,
-                "at_high_limit": at_high_limit,
-                "low_limit_um": self.low_limit_um,
-                "high_limit_um": self.high_limit_um,
-                "distance_from_low_limit": current_pos - self.low_limit_um,
-                "distance_from_high_limit": self.high_limit_um - current_pos,
-                "status": "ready" if self.is_homed else "not_homed",
-            }
-        except Exception as e:
-            logger.error(f"Failed to get status: {e}")
-            return {"connected": self.is_connected, "error": str(e)}
+                return {
+                    "connected": self.is_connected,
+                    "homed": self.is_homed,
+                    "position_um": current_pos,
+                    "position_reached": self.axis.isPositionReached(),
+                    "encoder_valid": self.axis.isEncoderValid(),
+                    "searching_index": self.axis.isSearchingIndex(),
+                    "safety_timeout": self.axis.isSafetyTimeoutTriggered(),
+                    "at_low_limit": at_low_limit,
+                    "at_high_limit": at_high_limit,
+                    "low_limit_um": self.low_limit_um,
+                    "high_limit_um": self.high_limit_um,
+                    "distance_from_low_limit": current_pos - self.low_limit_um,
+                    "distance_from_high_limit": self.high_limit_um - current_pos,
+                    "status": "ready" if self.is_homed else "not_homed",
+                }
+            except Exception as e:
+                logger.error(f"Failed to get status: {e}")
+                return {"connected": self.is_connected, "error": str(e)}
