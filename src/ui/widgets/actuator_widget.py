@@ -25,8 +25,8 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from src.hardware.actuator_controller import ActuatorController
-from src.hardware.actuator_sequence import ActionType, ActuatorSequence, SequenceAction
+from hardware.actuator_controller import ActuatorController
+from hardware.actuator_sequence import ActionType, ActuatorSequence, SequenceAction
 
 logger = logging.getLogger(__name__)
 
@@ -413,29 +413,40 @@ class ActuatorWidget(QWidget):
     def _create_sequence_controls_group(self) -> QGroupBox:
         """Create sequence execution controls group."""
         group = QGroupBox("Execution")
-        layout = QHBoxLayout()
+        layout = QVBoxLayout()
+
+        # Buttons row
+        btn_layout = QHBoxLayout()
 
         self.seq_run_btn = QPushButton("Run Sequence")
         self.seq_run_btn.setStyleSheet("background-color: #4CAF50; color: white;")
         self.seq_run_btn.clicked.connect(self._on_seq_run)
         self.seq_run_btn.setEnabled(False)
-        layout.addWidget(self.seq_run_btn)
+        self.seq_run_btn.setToolTip("Hardware connection and homing required for execution")
+        btn_layout.addWidget(self.seq_run_btn)
 
         self.seq_stop_btn = QPushButton("Stop")
         self.seq_stop_btn.setStyleSheet("background-color: #f44336; color: white;")
         self.seq_stop_btn.clicked.connect(self._on_seq_stop)
         self.seq_stop_btn.setEnabled(False)
-        layout.addWidget(self.seq_stop_btn)
+        btn_layout.addWidget(self.seq_stop_btn)
 
         self.seq_save_btn = QPushButton("Save Sequence")
         self.seq_save_btn.clicked.connect(self._on_seq_save)
         self.seq_save_btn.setEnabled(False)
-        layout.addWidget(self.seq_save_btn)
+        btn_layout.addWidget(self.seq_save_btn)
 
         self.seq_load_btn = QPushButton("Load Sequence")
         self.seq_load_btn.clicked.connect(self._on_seq_load)
         self.seq_load_btn.setEnabled(False)
-        layout.addWidget(self.seq_load_btn)
+        btn_layout.addWidget(self.seq_load_btn)
+
+        layout.addLayout(btn_layout)
+
+        # Status label for hardware requirements
+        self.seq_status_label = QLabel("Hardware connection required for execution")
+        self.seq_status_label.setStyleSheet("color: #FFC107; font-style: italic;")
+        layout.addWidget(self.seq_status_label)
 
         group.setLayout(layout)
         return group
@@ -651,6 +662,7 @@ class ActuatorWidget(QWidget):
     def _on_seq_run(self) -> None:
         """Start sequence execution."""
         if not self.controller or not self.is_homed or len(self.sequence) == 0:
+            logger.warning("Cannot run sequence: hardware not connected or not homed")
             return
 
         self.sequence_running = True
@@ -779,17 +791,37 @@ class ActuatorWidget(QWidget):
         has_sequence = len(self.sequence) > 0
         is_connected_and_homed = self.is_connected and self.is_homed
 
-        self.seq_add_btn.setEnabled(is_connected_and_homed)
+        # Allow sequence building without hardware connection
+        self.seq_add_btn.setEnabled(True)  # Always allow adding actions to sequence
         self.seq_delete_btn.setEnabled(has_sequence)
         self.seq_clear_btn.setEnabled(has_sequence)
         self.seq_up_btn.setEnabled(has_sequence)
         self.seq_down_btn.setEnabled(has_sequence)
+        # Only allow execution with hardware connection
         self.seq_run_btn.setEnabled(
             has_sequence and is_connected_and_homed and not self.sequence_running
         )
         self.seq_stop_btn.setEnabled(self.sequence_running)
-        self.seq_save_btn.setEnabled(has_sequence)
-        self.seq_load_btn.setEnabled(is_connected_and_homed and not self.sequence_running)
+        self.seq_save_btn.setEnabled(has_sequence)  # Allow saving without hardware
+        self.seq_load_btn.setEnabled(not self.sequence_running)  # Allow loading without hardware
+
+        # Update status label based on connection state
+        if hasattr(self, "seq_status_label"):
+            if not self.is_connected:
+                self.seq_status_label.setText("Hardware connection required for execution")
+                self.seq_status_label.setStyleSheet("color: #FFC107; font-style: italic;")
+            elif not self.is_homed:
+                self.seq_status_label.setText("Homing required before execution")
+                self.seq_status_label.setStyleSheet("color: #FFC107; font-style: italic;")
+            elif self.sequence_running:
+                self.seq_status_label.setText("Sequence running...")
+                self.seq_status_label.setStyleSheet("color: #4CAF50; font-style: italic;")
+            elif has_sequence:
+                self.seq_status_label.setText("Ready to execute sequence")
+                self.seq_status_label.setStyleSheet("color: #4CAF50; font-style: italic;")
+            else:
+                self.seq_status_label.setText("Build a sequence to execute")
+                self.seq_status_label.setStyleSheet("color: #666; font-style: italic;")
 
     def cleanup(self) -> None:
         """Cleanup resources."""

@@ -7,3 +7,7 @@ Provides unified interfaces for:
 - Actuator control (Xeryon)
 - GPIO/safety interlocks (Arduino Nano)
 """
+
+from .hardware_controller_base import HardwareControllerBase
+
+__all__ = ["HardwareControllerBase"]

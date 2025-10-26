@@ -11,6 +11,8 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QMainWindow,
+    QMessageBox,
+    QPushButton,
     QStatusBar,
     QTabWidget,
     QVBoxLayout,
@@ -155,9 +157,33 @@ class MainWindow(QMainWindow):
         status_layout.addWidget(self.actuator_status)
         status_layout.addStretch()
 
+        # Close program button
+        self.close_btn = QPushButton("Close Program")
+        self.close_btn.setStyleSheet(
+            "QPushButton { background-color: #F44336; color: white; "
+            "padding: 5px 10px; font-weight: bold; }"
+            "QPushButton:hover { background-color: #D32F2F; }"
+        )
+        self.close_btn.clicked.connect(self._on_close_program)
+        status_layout.addWidget(self.close_btn)
+
         status_widget = QWidget()
         status_widget.setLayout(status_layout)
         status_bar.addWidget(status_widget)
+
+    def _on_close_program(self) -> None:
+        """Handle close program button click."""
+        reply = QMessageBox.question(
+            self,
+            "Confirm Exit",
+            "Are you sure you want to exit TOSCA?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+
+        if reply == QMessageBox.StandardButton.Yes:
+            logger.info("User initiated program exit via Close button")
+            self.close()
 
     def _on_dev_mode_changed(self, state: int) -> None:
         """Handle dev mode checkbox change."""

@@ -433,7 +433,7 @@ class ActuatorController(QObject):
             return
 
         try:
-            current_pos = self.axis.getEPOS(self.working_units)
+            current_pos = self.axis.getEPOS()
             self.position_changed.emit(current_pos)
 
             # Check if at hardware limits (for scan auto-stop)

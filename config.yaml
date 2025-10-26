@@ -1,0 +1,50 @@
+# TOSCA Laser Control System Configuration
+# Configuration values for hardware, safety, and GUI settings
+
+hardware:
+  camera:
+    gui_fps_target: 30.0  # GUI update rate limit (FPS)
+    hardware_fps: 30.0  # Camera acquisition frame rate
+    fps_update_interval: 30  # Frames between FPS calculations
+
+  actuator:
+    com_port: "COM3"  # Serial port for actuator
+    baudrate: 9600  # Serial baudrate (TOSCA uses 9600, NOT 115200)
+    position_timer_ms: 100  # Position update interval (ms)
+    homing_check_initial_ms: 100  # Initial homing check delay (ms)
+    homing_check_loop_ms: 200  # Homing loop check delay (ms)
+    position_check_initial_ms: 100  # Initial position check delay (ms)
+    position_check_loop_ms: 50  # Position loop check delay (ms)
+
+  laser:
+    com_port: "COM4"  # Serial port for laser controller
+    baudrate: 38400  # Serial baudrate
+    timeout_s: 1.0  # Serial read timeout (seconds)
+    write_timeout_s: 1.0  # Serial write timeout (seconds)
+    monitor_timer_ms: 500  # Status update interval (ms)
+    max_current_ma: 2000.0  # Maximum laser current (mA)
+    min_current_ma: 0.0  # Minimum laser current (mA)
+
+  gpio:
+    com_port: "COM4"  # Serial port for Arduino Nano
+    baudrate: 9600  # Serial baudrate
+    timeout_s: 1.0  # Serial read timeout (seconds)
+    write_timeout_s: 1.0  # Serial write timeout (seconds)
+    monitor_timer_ms: 100  # Status update interval (ms)
+    watchdog_timeout_ms: 1000  # Hardware watchdog timeout (ms)
+    motor_control_pin: 2  # Arduino digital pin for motor control
+    vibration_sensor_pin: 3  # Arduino digital pin for vibration sensor
+    photodiode_pin: 0  # Arduino analog pin for photodiode (A0-A7)
+
+safety:
+  watchdog_enabled: true  # Enable hardware watchdog timer
+  watchdog_heartbeat_ms: 500  # Heartbeat interval (must be < watchdog timeout)
+  emergency_stop_enabled: true  # Enable emergency stop functionality
+  interlock_check_enabled: true  # Enable safety interlock checking
+  laser_enable_requires_interlocks: true  # Laser cannot enable without valid interlocks
+
+gui:
+  window_title: "TOSCA Laser Control System"  # Main window title
+  default_tab_index: 0  # Default selected tab on startup (0=Subject, 1=Camera, 2=Treatment, 3=Safety)
+  auto_connect_hardware: false  # Auto-connect to hardware on startup
+  enable_developer_mode: false  # Enable developer mode features

@@ -250,6 +250,18 @@ class SessionManager(QObject):
                 logger.info(f"Session resumed: ID={session.session_id}")
                 self.session_status_changed.emit(f"Session resumed: ID={session.session_id}")
 
+    def end_session(self) -> None:
+        """
+        End the current session (alias for complete_session with no stats).
+
+        This is a simplified version for manual session ending from UI.
+        """
+        if not self.current_session:
+            logger.warning("No active session to end")
+            return
+
+        self.complete_session()
+
     def update_session_video_path(self, video_path: str) -> None:
         """
         Update the video path for the current session.

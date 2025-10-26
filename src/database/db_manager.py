@@ -12,7 +12,9 @@ from typing import Optional
 from sqlalchemy import create_engine, select, text
 from sqlalchemy.orm import Session, sessionmaker
 
-from database.models import Base, SafetyLog, Subject, TechUser
+from database.models import Base, SafetyLog
+from database.models import Session as SessionModel
+from database.models import Subject, TechUser
 
 logger = logging.getLogger(__name__)
 
@@ -195,6 +197,36 @@ class DatabaseManager:
 
             count: int = session.query(SessionModel).filter_by(subject_id=subject_id).count()
             return count
+
+    def get_all_sessions(
+        self, subject_id: Optional[int] = None, limit: int = 100
+    ) -> list[SessionModel]:
+        """
+        Get all sessions from the database.
+
+        Args:
+            subject_id: Optional filter by subject ID
+            limit: Maximum number of sessions to retrieve
+
+        Returns:
+            List of Session instances with related data
+        """
+        with self.get_session() as session:
+            from sqlalchemy.orm import joinedload
+
+            query = session.query(SessionModel).options(
+                joinedload(SessionModel.subject), joinedload(SessionModel.technician)
+            )
+
+            if subject_id is not None:
+                query = query.filter_by(subject_id=subject_id)
+
+            # Order by start_time descending (most recent first)
+            query = query.order_by(SessionModel.start_time.desc()).limit(limit)
+
+            sessions: list[SessionModel] = query.all()
+            logger.debug(f"Retrieved {len(sessions)} sessions")
+            return sessions
 
     # Technician Operations
 
