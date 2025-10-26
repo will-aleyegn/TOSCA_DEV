@@ -238,7 +238,7 @@ class MainWindow(QMainWindow):
                         lambda msg: logger.error(f"Watchdog heartbeat failed: {msg}")
                     )
                     self.safety_watchdog.watchdog_timeout_detected.connect(
-                        lambda: logger.critical("WATCHDOG TIMEOUT DETECTED - GPIO CONNECTION LOST")
+                        self._handle_watchdog_timeout
                     )
 
                     # Start heartbeat - FAIL-FAST if watchdog cannot start
@@ -282,6 +282,65 @@ class MainWindow(QMainWindow):
         )
         self.safety_manager.safety_event.connect(
             lambda event_type, message: logger.info(f"Safety event [{event_type}]: {message}")
+        )
+
+    def _handle_watchdog_timeout(self) -> None:
+        """
+        Handle safety watchdog timeout with selective shutdown.
+
+        SELECTIVE SHUTDOWN POLICY:
+        - Treatment laser: DISABLED (safety-critical)
+        - Other systems: REMAIN OPERATIONAL for monitoring and assessment
+          (camera, actuator, aiming laser, GPIO monitoring)
+
+        This allows operators to:
+        - Visually assess the situation via camera
+        - Safely reposition equipment
+        - Diagnose the cause of timeout
+        - Perform orderly shutdown
+
+        Reference: docs/architecture/SAFETY_SHUTDOWN_POLICY.md
+        """
+        logger.critical("WATCHDOG TIMEOUT DETECTED - GPIO CONNECTION LOST")
+        logger.critical("Executing SELECTIVE SHUTDOWN: Treatment laser ONLY")
+
+        # 1. Trigger emergency stop in safety manager
+        # This prevents laser from being re-enabled
+        self.safety_manager.trigger_emergency_stop()
+
+        # 2. Disable treatment laser ONLY (selective shutdown)
+        if hasattr(self.treatment_widget, "laser_widget"):
+            laser_widget = self.treatment_widget.laser_widget
+            if hasattr(laser_widget, "controller") and laser_widget.controller:
+                if laser_widget.controller.is_connected:
+                    logger.critical("Disabling treatment laser due to watchdog timeout")
+                    laser_widget.controller.set_output(False)
+                else:
+                    logger.warning(
+                        "Laser controller not connected - cannot perform shutdown "
+                        "(may already be disconnected)"
+                    )
+
+        # 3. Log critical event
+        if hasattr(self, "event_logger") and self.event_logger:
+            self.event_logger.log_system_event(
+                EventType.SYSTEM_ERROR,
+                "Watchdog timeout - treatment laser disabled, other systems remain operational",
+                EventSeverity.EMERGENCY,
+            )
+
+        # 4. Show critical warning to user
+        QMessageBox.critical(
+            self,
+            "Safety Watchdog Timeout",
+            "CRITICAL SAFETY EVENT: Watchdog timeout detected.\n\n"
+            "Treatment laser has been DISABLED.\n"
+            "Other systems remain operational for monitoring.\n\n"
+            "Possible causes:\n"
+            "- GUI freeze or high CPU load\n"
+            "- GPIO connection lost\n"
+            "- Serial communication failure\n\n"
+            "Check system logs and verify all connections before proceeding.",
         )
 
     def _init_protocol_engine(self) -> None:
