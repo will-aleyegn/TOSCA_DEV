@@ -60,7 +60,13 @@ class MainWindow(QMainWindow):
         self.db_manager.initialize()
         self.session_manager = SessionManager(self.db_manager)
         self.event_logger = EventLogger(self.db_manager)
-        self.safety_watchdog = None  # Initialized after GPIO connects
+
+        # SAFETY-CRITICAL: Initialize watchdog early (before GPIO connection)
+        # GPIO controller will be attached later in _connect_safety_system()
+        self.safety_watchdog = SafetyWatchdog(
+            gpio_controller=None, event_logger=self.event_logger  # Will be set when GPIO connects
+        )
+        logger.info("Safety watchdog pre-initialized (awaiting GPIO connection)")
         logger.info("Database, session, and event logger initialized")
 
         # Log system startup
@@ -218,27 +224,38 @@ class MainWindow(QMainWindow):
                 )
                 logger.info("GPIO safety interlocks connected to safety manager")
 
-                # Initialize and start safety watchdog
-                # CRITICAL: Hardware watchdog requires heartbeat every 500ms
+                # SAFETY-CRITICAL: Attach GPIO controller to pre-initialized watchdog
+                # Watchdog was initialized early in __init__, now connect it to GPIO
                 if gpio_widget.controller.is_connected:
-                    watchdog = SafetyWatchdog(
-                        gpio_controller=gpio_widget.controller, event_logger=self.event_logger
-                    )
+                    # Attach GPIO controller to watchdog
+                    self.safety_watchdog.gpio_controller = gpio_widget.controller
+                    logger.info("GPIO controller attached to safety watchdog")
 
                     # Connect watchdog signals
-                    watchdog.heartbeat_failed.connect(
+                    self.safety_watchdog.heartbeat_failed.connect(
                         lambda msg: logger.error(f"Watchdog heartbeat failed: {msg}")
                     )
-                    watchdog.watchdog_timeout_detected.connect(
+                    self.safety_watchdog.watchdog_timeout_detected.connect(
                         lambda: logger.critical("WATCHDOG TIMEOUT DETECTED - GPIO CONNECTION LOST")
                     )
 
-                    # Start heartbeat
-                    if watchdog.start():
-                        self.safety_watchdog = watchdog
+                    # Start heartbeat - FAIL-FAST if watchdog cannot start
+                    if self.safety_watchdog.start():
                         logger.info("Safety watchdog started (500ms heartbeat, 1000ms timeout)")
                     else:
-                        logger.error("Failed to start safety watchdog")
+                        # CRITICAL FAILURE: Watchdog cannot start
+                        from PyQt6.QtWidgets import QMessageBox
+
+                        error_msg = (
+                            "CRITICAL SAFETY FAILURE: Hardware watchdog cannot start.\n\n"
+                            "The safety watchdog is required to detect GUI freezes and "
+                            "trigger emergency shutdown.\n\n"
+                            "System cannot operate without watchdog protection."
+                        )
+                        logger.critical(error_msg)
+                        QMessageBox.critical(self, "Safety System Failure", error_msg)
+                        # Note: System continues but laser will be disabled
+                        # Safety manager will prevent laser enable without watchdog
 
                 # Connect GPIO controller to laser widget for aiming laser control
                 if hasattr(self.treatment_widget, "laser_widget"):
