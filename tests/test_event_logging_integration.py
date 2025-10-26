@@ -11,13 +11,15 @@ Run this script to validate Phase 3 Priority 3 implementation.
 import sys
 from pathlib import Path
 
-# Add src to path
-sys.path.insert(0, str(Path(__file__).parent / "src"))
+# Add project root to path
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root / "src"))
+sys.path.insert(0, str(project_root))
 
 from datetime import datetime
 
-from core.event_logger import EventLogger, EventSeverity, EventType
-from database.db_manager import DatabaseManager
+from src.core.event_logger import EventLogger, EventSeverity, EventType
+from src.database.db_manager import DatabaseManager
 
 
 def test_event_logger_to_database():

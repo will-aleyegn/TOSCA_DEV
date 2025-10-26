@@ -7,9 +7,11 @@ Provides PyQt6-integrated camera control with:
 - Exposure and gain control
 - Still image capture
 - Video recording
+- Thread-safe camera operations
 """
 
 import logging
+import threading
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
@@ -206,6 +208,9 @@ class CameraController(QObject):
         if not VMBPY_AVAILABLE:
             raise ImportError("VmbPy is not installed - camera features unavailable")
 
+        # Thread safety lock for camera operations (reentrant for nested calls)
+        self._lock = threading.RLock()
+
         self.vmb = vmbpy.VmbSystem.get_instance()
         self.camera: Optional["vmbpy.Camera"] = None
         self.stream_thread: Optional[CameraStreamThread] = None
@@ -218,7 +223,7 @@ class CameraController(QObject):
         # Store latest frame for image capture
         self.latest_frame: Optional[np.ndarray] = None
 
-        logger.info("Camera controller initialized")
+        logger.info("Camera controller initialized (thread-safe)")
 
     def connect(self, camera_id: Optional[str] = None) -> bool:
         """
@@ -230,92 +235,94 @@ class CameraController(QObject):
         Returns:
             True if connected successfully
         """
-        try:
-            self.vmb.__enter__()
+        with self._lock:
+            try:
+                self.vmb.__enter__()
 
-            cameras = self.vmb.get_all_cameras()
-            if not cameras:
-                self.error_occurred.emit("No cameras detected")
+                cameras = self.vmb.get_all_cameras()
+                if not cameras:
+                    self.error_occurred.emit("No cameras detected")
+                    return False
+
+                if camera_id:
+                    self.camera = self.vmb.get_camera_by_id(camera_id)
+                else:
+                    self.camera = cameras[0]
+
+                self.camera.__enter__()
+                self.is_connected = True
+                self.connection_changed.emit(True)
+
+                camera_id_str = self.camera.get_id()
+                logger.info(f"Connected to camera: {camera_id_str}")
+
+                # Log event
+                if self.event_logger:
+                    from ..core.event_logger import EventType
+
+                    self.event_logger.log_hardware_event(
+                        event_type=EventType.HARDWARE_CAMERA_CONNECT,
+                        description=f"Camera connected: {camera_id_str}",
+                        device_name="Allied Vision Camera",
+                    )
+
+                # Log frame rate capabilities
+                fps_info = self.get_acquisition_frame_rate_info()
+                logger.info(
+                    f"Camera FPS range: [{fps_info['min_fps']:.2f}, "
+                    f"{fps_info['max_fps']:.2f}], current: {fps_info['current_fps']:.2f}"
+                )
+
+                return True
+
+            except Exception as e:
+                error_msg = f"Camera connection failed: {e}"
+                logger.error(error_msg)
+                self.error_occurred.emit(error_msg)
+
+                # Log error event
+                if self.event_logger:
+                    from ..core.event_logger import EventSeverity, EventType
+
+                    self.event_logger.log_event(
+                        event_type=EventType.HARDWARE_ERROR,
+                        description=error_msg,
+                        severity=EventSeverity.WARNING,
+                        details={"device": "Allied Vision Camera"},
+                    )
+
                 return False
 
-            if camera_id:
-                self.camera = self.vmb.get_camera_by_id(camera_id)
-            else:
-                self.camera = cameras[0]
+    def disconnect(self) -> None:
+        """Disconnect from camera."""
+        with self._lock:
+            self.stop_streaming()
 
-            self.camera.__enter__()
-            self.is_connected = True
-            self.connection_changed.emit(True)
+            if self.camera:
+                try:
+                    self.camera.__exit__(None, None, None)
+                except Exception as e:
+                    logger.warning(f"Ignoring error during camera cleanup: {e}")
+                self.camera = None
 
-            camera_id_str = self.camera.get_id()
-            logger.info(f"Connected to camera: {camera_id_str}")
+            try:
+                self.vmb.__exit__(None, None, None)
+            except Exception as e:
+                logger.warning(f"Ignoring error during VmbPy cleanup: {e}")
+
+            self.is_connected = False
+            self.connection_changed.emit(False)
+            logger.info("Camera disconnected")
 
             # Log event
             if self.event_logger:
                 from ..core.event_logger import EventType
 
                 self.event_logger.log_hardware_event(
-                    event_type=EventType.HARDWARE_CAMERA_CONNECT,
-                    description=f"Camera connected: {camera_id_str}",
+                    event_type=EventType.HARDWARE_CAMERA_DISCONNECT,
+                    description="Camera disconnected",
                     device_name="Allied Vision Camera",
                 )
-
-            # Log frame rate capabilities
-            fps_info = self.get_acquisition_frame_rate_info()
-            logger.info(
-                f"Camera FPS range: [{fps_info['min_fps']:.2f}, "
-                f"{fps_info['max_fps']:.2f}], current: {fps_info['current_fps']:.2f}"
-            )
-
-            return True
-
-        except Exception as e:
-            error_msg = f"Camera connection failed: {e}"
-            logger.error(error_msg)
-            self.error_occurred.emit(error_msg)
-
-            # Log error event
-            if self.event_logger:
-                from ..core.event_logger import EventSeverity, EventType
-
-                self.event_logger.log_event(
-                    event_type=EventType.HARDWARE_ERROR,
-                    description=error_msg,
-                    severity=EventSeverity.WARNING,
-                    details={"device": "Allied Vision Camera"},
-                )
-
-            return False
-
-    def disconnect(self) -> None:
-        """Disconnect from camera."""
-        self.stop_streaming()
-
-        if self.camera:
-            try:
-                self.camera.__exit__(None, None, None)
-            except Exception as e:
-                logger.warning(f"Ignoring error during camera cleanup: {e}")
-            self.camera = None
-
-        try:
-            self.vmb.__exit__(None, None, None)
-        except Exception as e:
-            logger.warning(f"Ignoring error during VmbPy cleanup: {e}")
-
-        self.is_connected = False
-        self.connection_changed.emit(False)
-        logger.info("Camera disconnected")
-
-        # Log event
-        if self.event_logger:
-            from ..core.event_logger import EventType
-
-            self.event_logger.log_hardware_event(
-                event_type=EventType.HARDWARE_CAMERA_DISCONNECT,
-                description="Camera disconnected",
-                device_name="Allied Vision Camera",
-            )
 
     def start_streaming(self) -> bool:
         """
@@ -331,45 +338,47 @@ class CameraController(QObject):
         if self.is_streaming:
             return True
 
-        try:
-            # Try to set camera acquisition frame rate to 30 FPS
-            fps_info = self.get_acquisition_frame_rate_info()
-            if fps_info["max_fps"] >= 30.0:
-                # Hardware supports desired frame rate
-                self.set_acquisition_frame_rate(30.0)
-                logger.info("Using hardware frame rate control (30 FPS)")
-            else:
-                # Hardware frame rate limited, use software throttling instead
-                logger.warning(
-                    f"Camera max FPS ({fps_info['max_fps']:.2f}) < 30. "
-                    f"Using software throttling instead"
-                )
+        with self._lock:
+            try:
+                # Try to set camera acquisition frame rate to 30 FPS
+                fps_info = self.get_acquisition_frame_rate_info()
+                if fps_info["max_fps"] >= 30.0:
+                    # Hardware supports desired frame rate
+                    self.set_acquisition_frame_rate(30.0)
+                    logger.info("Using hardware frame rate control (30 FPS)")
+                else:
+                    # Hardware frame rate limited, use software throttling instead
+                    logger.warning(
+                        f"Camera max FPS ({fps_info['max_fps']:.2f}) < 30. "
+                        f"Using software throttling instead"
+                    )
 
-            self.stream_thread = CameraStreamThread(self.camera)
-            self.stream_thread.frame_ready.connect(self._on_frame_received)
-            self.stream_thread.fps_update.connect(self.fps_update.emit)
-            self.stream_thread.error_occurred.connect(self.error_occurred.emit)
-            self.stream_thread.start()
+                self.stream_thread = CameraStreamThread(self.camera)
+                self.stream_thread.frame_ready.connect(self._on_frame_received)
+                self.stream_thread.fps_update.connect(self.fps_update.emit)
+                self.stream_thread.error_occurred.connect(self.error_occurred.emit)
+                self.stream_thread.start()
 
-            self.is_streaming = True
-            logger.info("Camera streaming started at 30 FPS")
-            return True
+                self.is_streaming = True
+                logger.info("Camera streaming started at 30 FPS")
+                return True
 
-        except Exception as e:
-            error_msg = f"Failed to start streaming: {e}"
-            logger.error(error_msg)
-            self.error_occurred.emit(error_msg)
-            return False
+            except Exception as e:
+                error_msg = f"Failed to start streaming: {e}"
+                logger.error(error_msg)
+                self.error_occurred.emit(error_msg)
+                return False
 
     def stop_streaming(self) -> None:
         """Stop camera streaming."""
-        if self.stream_thread:
-            self.stream_thread.stop()
-            self.stream_thread.wait()
-            self.stream_thread = None
+        with self._lock:
+            if self.stream_thread:
+                self.stream_thread.stop()
+                self.stream_thread.wait()
+                self.stream_thread = None
 
-        self.is_streaming = False
-        logger.info("Camera streaming stopped")
+            self.is_streaming = False
+            logger.info("Camera streaming stopped")
 
     def _on_frame_received(self, frame: np.ndarray) -> None:
         """
@@ -378,21 +387,22 @@ class CameraController(QObject):
         Args:
             frame: Numpy array frame
         """
-        # Store latest frame for image capture
-        self.latest_frame = frame.copy()
+        with self._lock:
+            # Store latest frame for image capture
+            self.latest_frame = frame.copy()
 
-        # Emit to GUI
-        self.frame_ready.emit(frame)
+            # Emit to GUI
+            self.frame_ready.emit(frame)
 
-        # Write to video if recording
-        if self.is_recording and self.video_recorder:
-            # Convert to BGR if needed (VmbPy gives RGB)
-            if len(frame.shape) == 3 and frame.shape[2] == 3:
-                frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-            else:
-                frame_bgr = frame
+            # Write to video if recording
+            if self.is_recording and self.video_recorder:
+                # Convert to BGR if needed (VmbPy gives RGB)
+                if len(frame.shape) == 3 and frame.shape[2] == 3:
+                    frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+                else:
+                    frame_bgr = frame
 
-            self.video_recorder.write_frame(frame_bgr)
+                self.video_recorder.write_frame(frame_bgr)
 
     def capture_image(
         self, base_filename: str, output_dir: Optional[Path] = None
@@ -414,47 +424,48 @@ class CameraController(QObject):
             self.error_occurred.emit("Camera not streaming")
             return None
 
-        if self.latest_frame is None:
-            self.error_occurred.emit("No frame available to capture")
-            return None
+        with self._lock:
+            if self.latest_frame is None:
+                self.error_occurred.emit("No frame available to capture")
+                return None
 
-        try:
-            # Ensure output directory exists
-            output_dir.mkdir(parents=True, exist_ok=True)
+            try:
+                # Ensure output directory exists
+                output_dir.mkdir(parents=True, exist_ok=True)
 
-            # Create timestamped filename
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"{base_filename}_{timestamp}.png"
-            output_path = output_dir / filename
+                # Create timestamped filename
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                filename = f"{base_filename}_{timestamp}.png"
+                output_path = output_dir / filename
 
-            # Convert to BGR if needed (VmbPy gives RGB, OpenCV saves BGR)
-            if len(self.latest_frame.shape) == 3 and self.latest_frame.shape[2] == 3:
-                frame_bgr = cv2.cvtColor(self.latest_frame, cv2.COLOR_RGB2BGR)
-            else:
-                frame_bgr = self.latest_frame
+                # Convert to BGR if needed (VmbPy gives RGB, OpenCV saves BGR)
+                if len(self.latest_frame.shape) == 3 and self.latest_frame.shape[2] == 3:
+                    frame_bgr = cv2.cvtColor(self.latest_frame, cv2.COLOR_RGB2BGR)
+                else:
+                    frame_bgr = self.latest_frame
 
-            # Save image
-            cv2.imwrite(str(output_path), frame_bgr)
+                # Save image
+                cv2.imwrite(str(output_path), frame_bgr)
 
-            logger.info(f"Image captured: {output_path}")
+                logger.info(f"Image captured: {output_path}")
 
-            # Log event
-            if self.event_logger:
-                from ..core.event_logger import EventType
+                # Log event
+                if self.event_logger:
+                    from ..core.event_logger import EventType
 
-                self.event_logger.log_event(
-                    event_type=EventType.HARDWARE_CAMERA_CAPTURE,
-                    description=f"Image captured: {filename}",
-                    details={"output_path": str(output_path)},
-                )
+                    self.event_logger.log_event(
+                        event_type=EventType.HARDWARE_CAMERA_CAPTURE,
+                        description=f"Image captured: {filename}",
+                        details={"output_path": str(output_path)},
+                    )
 
-            return output_path
+                return output_path
 
-        except Exception as e:
-            error_msg = f"Failed to capture image: {e}"
-            logger.error(error_msg)
-            self.error_occurred.emit(error_msg)
-            return None
+            except Exception as e:
+                error_msg = f"Failed to capture image: {e}"
+                logger.error(error_msg)
+                self.error_occurred.emit(error_msg)
+                return None
 
     def start_recording(
         self, base_filename: str = "video", output_dir: Optional[Path] = None
@@ -479,68 +490,70 @@ class CameraController(QObject):
             self.error_occurred.emit("Cannot record - camera not streaming")
             return False
 
-        try:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"{base_filename}_{timestamp}.mp4"
-            output_path = output_dir / filename
+        with self._lock:
+            try:
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                filename = f"{base_filename}_{timestamp}.mp4"
+                output_path = output_dir / filename
 
-            self.video_recorder = VideoRecorder(output_path)
-            self.is_recording = True
-            self.recording_status_changed.emit(True)
+                self.video_recorder = VideoRecorder(output_path)
+                self.is_recording = True
+                self.recording_status_changed.emit(True)
 
-            logger.info(f"Video recording started: {output_path}")
+                logger.info(f"Video recording started: {output_path}")
+
+                # Log event
+                if self.event_logger:
+                    from ..core.event_logger import EventType
+
+                    self.event_logger.log_event(
+                        event_type=EventType.HARDWARE_CAMERA_RECORDING_START,
+                        description=f"Video recording started: {filename}",
+                        details={"output_path": str(output_path)},
+                    )
+
+                return True
+
+            except Exception as e:
+                error_msg = f"Failed to start recording: {e}"
+                logger.error(error_msg)
+                self.error_occurred.emit(error_msg)
+
+                # Log error event
+                if self.event_logger:
+                    from ..core.event_logger import EventSeverity, EventType
+
+                    self.event_logger.log_event(
+                        event_type=EventType.HARDWARE_ERROR,
+                        description=error_msg,
+                        severity=EventSeverity.WARNING,
+                        details={"device": "Allied Vision Camera", "operation": "start_recording"},
+                    )
+
+                return False
+
+    def stop_recording(self) -> None:
+        """Stop video recording."""
+        with self._lock:
+            if not self.is_recording:
+                return
+
+            if self.video_recorder:
+                self.video_recorder.close()
+                self.video_recorder = None
+
+            self.is_recording = False
+            self.recording_status_changed.emit(False)
+            logger.info("Video recording stopped")
 
             # Log event
             if self.event_logger:
                 from ..core.event_logger import EventType
 
                 self.event_logger.log_event(
-                    event_type=EventType.HARDWARE_CAMERA_RECORDING_START,
-                    description=f"Video recording started: {filename}",
-                    details={"output_path": str(output_path)},
+                    event_type=EventType.HARDWARE_CAMERA_RECORDING_STOP,
+                    description="Video recording stopped",
                 )
-
-            return True
-
-        except Exception as e:
-            error_msg = f"Failed to start recording: {e}"
-            logger.error(error_msg)
-            self.error_occurred.emit(error_msg)
-
-            # Log error event
-            if self.event_logger:
-                from ..core.event_logger import EventSeverity, EventType
-
-                self.event_logger.log_event(
-                    event_type=EventType.HARDWARE_ERROR,
-                    description=error_msg,
-                    severity=EventSeverity.WARNING,
-                    details={"device": "Allied Vision Camera", "operation": "start_recording"},
-                )
-
-            return False
-
-    def stop_recording(self) -> None:
-        """Stop video recording."""
-        if not self.is_recording:
-            return
-
-        if self.video_recorder:
-            self.video_recorder.close()
-            self.video_recorder = None
-
-        self.is_recording = False
-        self.recording_status_changed.emit(False)
-        logger.info("Video recording stopped")
-
-        # Log event
-        if self.event_logger:
-            from ..core.event_logger import EventType
-
-            self.event_logger.log_event(
-                event_type=EventType.HARDWARE_CAMERA_RECORDING_STOP,
-                description="Video recording stopped",
-            )
 
     def set_exposure(self, exposure_us: float) -> bool:
         """
