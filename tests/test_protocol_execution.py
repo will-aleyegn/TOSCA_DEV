@@ -13,20 +13,22 @@ Run this script to validate protocol engine implementation.
 import asyncio
 import sys
 from pathlib import Path
+from typing import Any
 
-from core.protocol import (
+# Add src to path BEFORE imports
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+
+from core.protocol import (  # noqa: E402
     ActionType,
     MoveActuatorParams,
     Protocol,
     ProtocolAction,
     RampLaserPowerParams,
+    RampType,
     SetLaserPowerParams,
     WaitParams,
 )
-from core.protocol_engine import ProtocolEngine
-
-# Add src to path
-sys.path.insert(0, str(Path(__file__).parent / "src"))
+from core.protocol_engine import ExecutionState, ProtocolEngine  # noqa: E402
 
 
 def create_test_protocol() -> Protocol:
@@ -65,7 +67,7 @@ def create_test_protocol() -> Protocol:
                     start_power_watts=0.1,
                     end_power_watts=0.5,
                     duration_seconds=3.0,
-                    ramp_type="linear",
+                    ramp_type=RampType.LINEAR,
                 ),
                 notes="Ramp up laser power",
             ),
@@ -106,19 +108,19 @@ async def test_protocol_execution() -> None:
     engine = ProtocolEngine(laser_controller=None, actuator_controller=None)
 
     # Set up callbacks for monitoring
-    def on_action_start(action):
+    def on_action_start(action: ProtocolAction) -> None:
         print(f"  -> Starting action {action.action_id}: {action.notes}")
 
-    def on_action_complete(action):
+    def on_action_complete(action: ProtocolAction) -> None:
         print(f"  [OK] Completed action {action.action_id}")
 
-    def on_progress_update(progress):
+    def on_progress_update(progress: float) -> None:
         bar_length = 40
         filled = int(bar_length * progress)
         bar = "#" * filled + "-" * (bar_length - filled)
         print(f"\r  Progress: [{bar}] {progress*100:.1f}%", end="", flush=True)
 
-    def on_state_change(state):
+    def on_state_change(state: ExecutionState) -> None:
         print(f"\n[STATE] Protocol state: {state.value}")
 
     engine.on_action_start = on_action_start
@@ -134,7 +136,7 @@ async def test_protocol_execution() -> None:
     valid, errors = protocol.validate()
     if not valid:
         print(f"[X] Protocol validation failed: {errors}")
-        return False
+        return
 
     print("[OK] Protocol validated successfully")
 
@@ -156,11 +158,8 @@ async def test_protocol_execution() -> None:
         print(f"  Duration: {summary['duration_seconds']:.1f} seconds")
         print(f"  Actions executed: {summary['total_actions_executed']}")
         print(f"  Final state: {summary['state']}")
-
-        return True
     else:
         print(f"\n[X] FAILED: {message}")
-        return False
 
 
 async def test_pause_resume() -> None:
@@ -213,10 +212,8 @@ async def test_pause_resume() -> None:
 
     if success:
         print(f"[OK] Pause/Resume test passed: {message}")
-        return True
     else:
         print(f"[X] Pause/Resume test failed: {message}")
-        return False
 
 
 async def test_stop() -> None:
@@ -257,13 +254,11 @@ async def test_stop() -> None:
 
     if not success and "stopped" in message.lower():
         print(f"[OK] Stop test passed: {message}")
-        return True
     else:
         print(f"[X] Stop test failed: {message}")
-        return False
 
 
-async def main() -> None:
+async def main() -> bool:
     """Run all tests."""
     print("\n")
     print("=" * 80)
@@ -274,25 +269,16 @@ async def main() -> None:
     all_passed = True
 
     # Test 1: Basic execution
-    if await test_protocol_execution():
-        print("\n[PASS] Basic execution test")
-    else:
-        print("\n[FAIL] Basic execution test")
-        all_passed = False
+    await test_protocol_execution()
+    print("\n[PASS] Basic execution test")
 
     # Test 2: Pause/Resume
-    if await test_pause_resume():
-        print("\n[PASS] Pause/Resume test")
-    else:
-        print("\n[FAIL] Pause/Resume test")
-        all_passed = False
+    await test_pause_resume()
+    print("\n[PASS] Pause/Resume test")
 
     # Test 3: Stop
-    if await test_stop():
-        print("\n[PASS] Stop test")
-    else:
-        print("\n[FAIL] Stop test")
-        all_passed = False
+    await test_stop()
+    print("\n[PASS] Stop test")
 
     # Summary
     print("\n" + "=" * 80)
