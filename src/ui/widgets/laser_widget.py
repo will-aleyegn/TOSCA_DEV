@@ -20,10 +20,10 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from src.hardware.laser_controller import LaserController
+from hardware.laser_controller import LaserController
 
 if TYPE_CHECKING:
-    from src.hardware.gpio_controller import GPIOController
+    from hardware.gpio_controller import GPIOController
 
 logger = logging.getLogger(__name__)
 

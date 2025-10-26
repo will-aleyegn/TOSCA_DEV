@@ -7,7 +7,7 @@ This is a comprehensive laser control system. The system integrates:
 - **Laser Control** - Arroyo Instruments TEC Controller (serial communication)
 - **Linear Actuator** - Xeryon actuator for ring size control
 - **Camera System** - Allied Vision camera with VmbPy SDK for alignment and monitoring
-- **GPIO Safety Interlocks** - Adafruit FT232H breakouts for footpedal, smoothing device, and photodiode monitoring
+- **GPIO Safety Interlocks** - Arduino Nano with StandardFirmata for footpedal, smoothing device, and photodiode monitoring
 - **Session Management** - SQLite database for longitudinal subject tracking
 - **Treatment Protocols** - Configurable treatment plans with power ramping and ring sizing
 - **Video Recording** - Complete session recording and event logging
@@ -92,10 +92,10 @@ Comprehensive technical documentation is available in `docs/architecture/`:
 - **NumPy** - Numerical operations
 
 ### Hardware Libraries
-- **pyserial** - Arroyo laser communication
+- **pyserial** - Arroyo laser and Arduino communication
 - **Xeryon API** - Linear actuator control
 - **VmbPy** - Allied Vision camera SDK
-- **adafruit-blinka** - FT232H GPIO/ADC
+- **pyfirmata2** - Arduino Firmata protocol (Python 3.12+ compatible)
 
 ### Supporting Libraries
 - **pyqtgraph** - Real-time plotting
@@ -104,13 +104,13 @@ Comprehensive technical documentation is available in `docs/architecture/`:
 - **pydantic** - Configuration validation
 
 ## Hardware Components
-1. **Laser Controller:** Arroyo Instruments laser driver and TEC Controller
-2. **Linear Actuator:** Xeryon linear stage
-3. **Camera:** Allied Vision camera (USB 3.0 / GigE)
-4. **GPIO Controllers:** 2x Adafruit FT232H Breakout (USB-C)
-5. **Footpedal:** Normally-open momentary switch
-6. **Hotspot Smoothing Device:** With digital signal output
-7. **Photodiode circuit:** With voltage output (0-5V range)
+1. **Laser Controller:** Arroyo Instruments laser driver and TEC Controller (COM4)
+2. **Linear Actuator:** Xeryon linear stage (COM3)
+3. **Camera:** Allied Vision 1800 U-158c (USB 3.0)
+4. **GPIO Controller:** Arduino Nano (ATmega328P) with StandardFirmata (COM4)
+5. **Footpedal:** Normally-open momentary switch (D2)
+6. **Hotspot Smoothing Device:** Motor (D2) and vibration sensor (D3)
+7. **Photodiode circuit:** Analog voltage output (A0, 0-5V range)
 
 
 ## Safety & Compliance Development Guidelines
@@ -198,7 +198,7 @@ src/
 │   ├── laser_controller.py        [DONE] Laser HAL with Arroyo protocol
 │   ├── actuator_controller.py     [DONE] Actuator HAL with Xeryon API
 │   ├── actuator_sequence.py       [DONE] Sequence builder data model
-│   └── gpio_controller.py         [DONE] GPIO HAL with FT232H safety interlocks
+│   └── gpio_controller.py         [DONE] GPIO HAL with Arduino Nano StandardFirmata
 │
 ├── database/
 │   ├── models.py           [DONE] SQLAlchemy ORM models
@@ -229,7 +229,7 @@ tests/                      [TODO] Test suite
 - **Camera Hardware Abstraction Layer** ✅ - PyQt6 integration with streaming, recording, controls
 - **Laser Hardware Abstraction Layer** ✅ - Arroyo serial communication with PyQt6 signals
 - **Actuator Hardware Abstraction Layer** ✅ - Xeryon PyQt integration with sequence builder
-- **GPIO Hardware Abstraction Layer** ✅ - FT232H safety interlocks complete
+- **GPIO Hardware Abstraction Layer** ✅ - Arduino Nano with StandardFirmata, tested on COM4
 
 ### Phase 3: Core Business Logic ✅ 100% COMPLETE
 
@@ -354,30 +354,50 @@ All 4 hardware controllers fully implemented with PyQt6 integration:
 
 ---
 
-## Phase 4: Architectural Improvements (NEXT PRIORITY)
+## Phase 4: Architectural Improvements - 100% COMPLETE ✅
 
-Comprehensive architectural improvements identified (2025-10-25):
+All architectural improvements completed (2025-10-25):
 
-### Critical Priority
-1. **Safety Watchdog Timer** - Hardware watchdog to detect GUI freeze (CRITICAL)
-   - See `docs/architecture/IMPLEMENTATION_PLAN_WATCHDOG.md`
-   - Must complete before clinical testing
+**Priority 1: Safety Watchdog Timer** (100%) ✅
+- Arduino AVR hardware watchdog (1000ms timeout, ISR emergency shutdown)
+- Python SafetyWatchdog class with 500ms heartbeat (50% safety margin)
+- Custom serial protocol for GPIO controller
+- MainWindow integration with automatic start/stop lifecycle
+- Complete architecture documentation (`docs/architecture/06_safety_watchdog.md`)
 
-2. **Configuration Management** - Pydantic config system for safety limits (HIGH)
-   - See `docs/architecture/IMPLEMENTATION_PLAN_CONFIG.md`
-   - Replaces hardcoded calibration constants
+**Priority 2: Configuration Management** (100%) ✅
+- Pydantic-based type-safe configuration models (`src/config/models.py`)
+- YAML configuration file (`config.yaml`) with hardware/safety/GUI sections
+- Centralized config loader with singleton pattern (`src/config/config_loader.py`)
+- Field validation with ge/le constraints (e.g., FPS 1.0-60.0)
+- Environment variable override support
 
-3. **Hardware Controller ABC** - Abstract base class for type safety (MEDIUM)
-   - See `docs/architecture/ARCHITECTURAL_DEBT.md`
-   - Improves maintainability
+**Priority 3: Session Management UI** (100%) ✅
+- End Session button with confirmation dialog
+- View Sessions dialog (900x600) with color-coded status table
+- Session history browser with filtering by subject
+- Database query methods in DatabaseManager
+- Complete UI state management and cleanup handlers
 
-**Full details:** See `docs/project/NEXT_STEPS.md` for week-by-week implementation plan
+**Priority 4: UI Enhancements** (100%) ✅
+- Close Program button in status bar with confirmation
+- Hardware-independent sequence building (works offline)
+- Clear status messages for hardware requirements
+- Improved developer experience for offline development
+
+**Priority 5: Hardware Controller ABC** (100%) ✅
+- Abstract base class combining QObject + ABC (QObjectABCMeta metaclass)
+- Enforced interface: connect(), disconnect(), get_status()
+- Required signals: connection_changed, error_occurred
+- Type-safe with Python 3.12+ annotations
+- Backward compatible with existing controllers
+- Complete usage documentation (`docs/hardware_controller_base_usage.md`)
 
 ---
 
 **Last Updated:** 2025-10-25
-**Project Phase:** Phase 3 COMPLETE (100%), Phase 4 Planning
-**Next Priority:** Safety Watchdog Timer implementation (3-5 days)
+**Project Phase:** Phase 4 COMPLETE (100%), Phase 5 Planning
+**Next Priority:** Testing & Quality Assurance (pytest framework, unit tests, integration tests)
 
 **For current project status and detailed progress, see:**
 - `docs/project/NEXT_STEPS.md` - Week-by-week roadmap for Phase 4

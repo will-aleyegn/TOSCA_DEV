@@ -443,6 +443,17 @@ class CameraWidget(QWidget):
                 self.gain_info.setText(f"Gain: {gain_value:.1f} dB")
                 self.auto_wb_check.setEnabled(True)
 
+    def cleanup(self) -> None:
+        """Cleanup camera resources on application exit."""
+        try:
+            if hasattr(self, "camera_controller") and self.camera_controller:
+                if self.camera_controller.is_streaming:
+                    self.camera_controller.stop_streaming()
+                if self.camera_controller.is_connected:
+                    self.camera_controller.disconnect()
+        except Exception as e:
+            logger.error(f"Error during camera cleanup: {e}")
+
     def _on_exposure_changed(self, value: int) -> None:
         """Handle exposure slider change."""
         if self.camera_controller:
