@@ -201,13 +201,15 @@ class MainWindow(QMainWindow):
         if dev_mode:
             self.setWindowTitle("TOSCA Laser Control System - DEVELOPER MODE")
             self.subject_widget.setEnabled(False)  # Disable subject selection in dev mode
-            # In dev mode, bypass session requirement for safety
-            self.safety_manager.set_session_valid(True)
+            logger.warning(
+                "Developer mode enabled - session management bypassed for UI convenience. "
+                "Safety interlocks remain ACTIVE and enforced. "
+                "For hardware experimentation, use a dedicated test application with "
+                "TestSafetyManager."
+            )
         else:
             self.setWindowTitle("TOSCA Laser Control System")
             self.subject_widget.setEnabled(True)
-            # In normal mode, require valid session
-            self.safety_manager.set_session_valid(False)
 
     def _connect_safety_system(self) -> None:
         """Connect safety system components."""
