@@ -86,3 +86,4 @@ python-dotenv>=1.0.0
 # ===================================================================
 vmbpy>=1.1.0
 pyyaml>=6.0
+pytest-asyncio>=1.2.0  # Testing async functions
