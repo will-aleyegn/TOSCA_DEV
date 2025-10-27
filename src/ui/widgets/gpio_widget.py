@@ -238,7 +238,10 @@ class GPIOWidget(QWidget):
     def _on_motor_clicked(self, enable: bool) -> None:
         """Handle motor enable/disable button click."""
         if self.controller:
-            self.controller.set_smoothing_motor(enable)
+            if enable:
+                self.controller.start_smoothing_motor()
+            else:
+                self.controller.stop_smoothing_motor()
 
     @pyqtSlot(bool)
     def _on_connection_changed(self, connected: bool) -> None:
