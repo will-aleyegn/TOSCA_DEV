@@ -9,6 +9,7 @@ from typing import Optional
 
 from PyQt6.QtCore import pyqtSignal, pyqtSlot
 from PyQt6.QtWidgets import (
+    QDoubleSpinBox,
     QGridLayout,
     QGroupBox,
     QHBoxLayout,
@@ -123,6 +124,35 @@ class GPIOWidget(QWidget):
         motor_layout.addStretch()
         layout.addLayout(motor_layout)
 
+        # Motor voltage control
+        voltage_layout = QHBoxLayout()
+        voltage_layout.addWidget(QLabel("Motor Voltage:"))
+
+        self.voltage_spinbox = QDoubleSpinBox()
+        self.voltage_spinbox.setRange(0.0, 3.0)
+        self.voltage_spinbox.setSingleStep(0.1)
+        self.voltage_spinbox.setValue(2.0)
+        self.voltage_spinbox.setSuffix(" V")
+        self.voltage_spinbox.setEnabled(False)
+        self.voltage_spinbox.setToolTip(
+            "Set motor voltage (0V = OFF, 1.5V-3.0V = operating range)\n"
+            "Calibrated vibration levels:\n"
+            "  1.5V: ~1.8g\n"
+            "  2.0V: ~1.6g\n"
+            "  2.5V: ~1.9g\n"
+            "  3.0V: ~2.9g"
+        )
+        self.voltage_spinbox.valueChanged.connect(self._on_voltage_set)
+        voltage_layout.addWidget(self.voltage_spinbox)
+
+        self.apply_voltage_btn = QPushButton("Apply")
+        self.apply_voltage_btn.setEnabled(False)
+        self.apply_voltage_btn.clicked.connect(self._on_apply_voltage_clicked)
+        voltage_layout.addWidget(self.apply_voltage_btn)
+
+        voltage_layout.addStretch()
+        layout.addLayout(voltage_layout)
+
         # Status display
         status_layout = QGridLayout()
 
@@ -137,7 +167,9 @@ class GPIOWidget(QWidget):
         status_layout.addWidget(self.vibration_status_label, 1, 1)
 
         self.vibration_level_label = QLabel("-- g")
-        self.vibration_level_label.setStyleSheet("font-weight: bold; font-size: 14px; color: #2196F3;")
+        self.vibration_level_label.setStyleSheet(
+            "font-weight: bold; font-size: 14px; color: #2196F3;"
+        )
         status_layout.addWidget(QLabel("Vibration Level:"), 2, 0)
         status_layout.addWidget(self.vibration_level_label, 2, 1)
 
@@ -219,6 +251,13 @@ class GPIOWidget(QWidget):
         # Accelerometer reinitialize button
         self.accel_reinit_btn.setEnabled(self.is_connected)
 
+        # Voltage controls - only enabled when motor is running
+        voltage_controls_enabled = self.is_connected and self.motor_enabled
+        self.voltage_spinbox.setEnabled(voltage_controls_enabled)
+        # Apply button state managed by _on_voltage_set
+        if not voltage_controls_enabled:
+            self.apply_voltage_btn.setEnabled(False)
+
     @pyqtSlot()
     def _on_connect_clicked(self) -> None:
         """Handle connect button click."""
@@ -271,6 +310,28 @@ class GPIOWidget(QWidget):
                 self.controller.start_smoothing_motor()
             else:
                 self.controller.stop_smoothing_motor()
+
+    @pyqtSlot(float)
+    def _on_voltage_set(self, voltage: float) -> None:
+        """Handle voltage spinbox value change."""
+        # Enable Apply button when value changes
+        if self.is_connected and self.motor_enabled:
+            self.apply_voltage_btn.setEnabled(True)
+
+    @pyqtSlot()
+    def _on_apply_voltage_clicked(self) -> None:
+        """Handle Apply button click."""
+        if self.controller and self.is_connected and self.motor_enabled:
+            voltage = self.voltage_spinbox.value()
+            pwm = int((voltage / 5.0) * 255)
+            logger.info(f"Setting motor voltage to {voltage}V (PWM={pwm})")
+            success = self.controller.set_motor_speed(pwm)
+            if success:
+                logger.info(f"Motor voltage set successfully to {voltage}V")
+                # Disable Apply button after successful application
+                self.apply_voltage_btn.setEnabled(False)
+            else:
+                logger.warning(f"Failed to set motor voltage to {voltage}V")
 
     @pyqtSlot()
     def _on_accel_reinit_clicked(self) -> None:
