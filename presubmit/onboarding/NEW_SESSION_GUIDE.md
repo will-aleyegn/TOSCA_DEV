@@ -33,6 +33,7 @@
 The quick prompt uses MCP memory to instantly load:
 - Current project status
 - Critical development rules (Git Content, Hardware API, TodoWrite)
+- **AI Tool Usage guidelines** (NEW - specialized tool triggers)
 - What was last worked on
 - Next recommended steps
 
@@ -41,6 +42,9 @@ The quick prompt uses MCP memory to instantly load:
 The MCP memory system provides immediate access to:
 - **Project overview:** Tech stack, current phase, completion status
 - **Critical rules:** Git Content Policy, Hardware API Usage Rule, Coding Standards
+- **AI Tool Usage:** When to use specialized tools proactively
+- **Tool Workflows:** Session start, module development, bug investigation patterns
+- **Required vs Optional:** Which tools are mandatory vs recommended
 - **Module status:** Camera HAL (complete), Laser HAL (next priority), Actuator HAL (pending)
 - **Lessons learned:** VmbPy API quirks, common pitfalls
 - **Development workflow:** Before/during/after work checklists
@@ -53,6 +57,9 @@ The MCP memory system provides immediate access to:
 "What's the status of Laser Controller HAL?"
 "Show me VmbPy API quirks"
 "What is the Hardware API Usage Rule?"
+"Search nodes for AI Tool Usage"
+"What tool workflows should I use?"
+"Which tools are required vs optional?"
 ```
 
 ### When to Use Memory vs Full Docs
@@ -177,6 +184,8 @@ Architecture Documentation:
 3. **Point to CODING_STANDARDS.md** - If AI generates extra code, remind it of minimal code rule
 4. **Check git status frequently** - Keep commits organized and meaningful
 5. **Update MCP memory** - When major milestones reached, ask AI to update memory entities
+6. **NEW: Tool Usage Awareness** - AI should use specialized tools proactively (see TOOL_USAGE_GUIDE.md)
+7. **NEW: Verify tool usage** - After module completion, check if AI used mcp__zen__codereview
 
 ---
 
@@ -200,10 +209,13 @@ Examples:
 "Create new entity for GPIO Controller HAL with initial status"
 ```
 
-**What's Currently Stored (as of 2025-10-23):**
+**What's Currently Stored (as of 2025-10-26):**
 - TOSCA Project (overview, phase, tech stack)
 - Git Content Policy (critical rules)
 - Hardware API Usage Rule (development standard)
+- **AI Tool Usage (NEW - specialized tool triggers)**
+- **Tool Workflow Patterns (NEW - development workflows)**
+- **Required vs Optional Tools (NEW - mandatory vs recommended)**
 - Camera HAL (complete - 100%)
 - Laser Controller HAL (next priority - 0%)
 - Actuator Controller HAL (pending - 0%)

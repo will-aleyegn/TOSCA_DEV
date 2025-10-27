@@ -507,6 +507,159 @@ See `presubmit/reference/TODO_GUIDELINES.md` for detailed examples and patterns.
 - [ ] Hardware testing completed (if hardware code changed)
 - [ ] Edge cases considered and tested
 
+### Tool Usage
+
+**If applicable:**
+- [ ] Used `mcp__zen__codereview` if module completion (REQUIRED)
+- [ ] Used `mcp__zen__testgen` if new functionality needs tests
+- [ ] Used `mcp__zen__precommit` if safety-critical changes
+- [ ] Updated memory with `mcp__memory__add_observations` if milestone
+
+## Specialized Tool Usage (PROACTIVE)
+
+**Purpose:** Use specialized tools automatically when specific triggers occur
+
+**Reference:** See `presubmit/reference/TOOL_USAGE_GUIDE.md` for complete guide
+
+### Required Tool Usage
+
+These tools MUST be used in specific situations (not optional):
+
+**1. Session Startup**
+```javascript
+// REQUIRED at start of every session
+mcp__memory__search_nodes("TOSCA Project")
+mcp__memory__search_nodes("Development Workflow")
+```
+- 90% faster than reading files
+- Gets latest project state
+- No exceptions
+
+**2. Module Completion**
+```javascript
+// REQUIRED before marking module complete
+mcp__zen__codereview(
+  step: "Review [module name] implementation",
+  relevant_files: ["path/to/module.py"]
+)
+```
+- Proactive quality check
+- Catches issues early
+- Safety-critical requirement
+
+**3. Safety-Critical Commits**
+```javascript
+// REQUIRED before committing safety code
+mcp__zen__precommit(
+  step: "Validate changes before commit",
+  path: "C:/Users/wille/Desktop/TOSCA-dev"
+)
+```
+- Change impact assessment
+- Security review
+- Documentation verification
+
+**4. Complex Features (3+ modules)**
+```javascript
+// REQUIRED for complex features
+mcp__zen__planner(
+  step: "Plan [feature name] implementation"
+)
+```
+- Prevents implementation oversights
+- Documents approach
+- Expert validation
+
+### Recommended Tool Usage
+
+Use these tools when appropriate triggers occur:
+
+**Codebase Exploration**
+```javascript
+// Use Task(Explore) instead of manual Grep
+Task(
+  subagent_type: "Explore",
+  prompt: "Find error handling patterns in hardware controllers"
+)
+```
+
+**Bug Investigation**
+```javascript
+// Use systematic debugging
+mcp__zen__debug(
+  step: "Investigate [bug description]",
+  hypothesis: "Initial theory about cause"
+)
+```
+
+**Milestone Completion**
+```javascript
+// Update knowledge graph
+mcp__memory__add_observations(
+  observations: [{
+    entityName: "Module Name",
+    contents: ["Status: Complete", "Key learnings..."]
+  }]
+)
+```
+
+**Library Documentation**
+```javascript
+// Get latest API docs
+mcp__context7__resolve-library-id(libraryName: "PyQt6")
+mcp__context7__get-library-docs(context7CompatibleLibraryID: "/PyQt/PyQt6")
+```
+
+### Tool Selection Quick Reference
+
+| Situation | Tool to Use |
+|-----------|-------------|
+| Session start | `mcp__memory__search_nodes` (REQUIRED) |
+| Codebase exploration | `Task(Explore)` |
+| Complex feature | `mcp__zen__planner` (REQUIRED if 3+ modules) |
+| Bug investigation | `mcp__zen__debug` |
+| Module complete | `mcp__zen__codereview` (REQUIRED) |
+| Need tests | `mcp__zen__testgen` |
+| Safety commit | `mcp__zen__precommit` (REQUIRED) |
+| Milestone reached | `mcp__memory__add_observations` (REQUIRED) |
+| Library docs | `mcp__context7__get-library-docs` |
+
+### Integration with Workflow
+
+**Before Work:**
+- ✅ Use `mcp__memory__search_nodes` for context (REQUIRED)
+- ✅ Check git status with Bash
+
+**During Work:**
+- ✅ Use `Task(Explore)` for codebase understanding
+- ✅ Use `mcp__zen__planner` for complex features
+- ✅ Use TodoWrite for multi-step tasks
+
+**After Work:**
+- ✅ Use `mcp__zen__codereview` for module completion (REQUIRED)
+- ✅ Use `mcp__zen__testgen` for test generation
+- ✅ Use `mcp__zen__precommit` for safety commits (REQUIRED)
+- ✅ Use `mcp__memory__add_observations` for milestones
+- ✅ Update WORK_LOG.md and PROJECT_STATUS.md
+
+### Gradual Adoption
+
+**Week 1:** Session startup optimization
+- Use `mcp__memory__search_nodes` at every session start
+- Use `Task(Explore)` for code exploration
+
+**Week 2:** Quality tools
+- Use `mcp__zen__codereview` after module completion
+- Use `mcp__zen__debug` for bug investigation
+
+**Week 3:** Proactive tools
+- Use `mcp__zen__planner` for complex features
+- Use `mcp__zen__precommit` before safety commits
+
+**Week 4:** Full integration
+- Update memory regularly
+- Use complete workflow patterns
+
 ## Remember
 
 **This is safety-critical software. Every line of code matters.**

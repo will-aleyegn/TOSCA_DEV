@@ -313,20 +313,35 @@ class EmergencyStop:
         self._emergency_shutdown(reason)
 
     def _emergency_shutdown(self, reason: str):
-        """Immediate hardware shutdown"""
+        """
+        Selective emergency shutdown - TREATMENT LASER ONLY.
+
+        Per SAFETY_SHUTDOWN_POLICY.md (v1.1):
+        - Treatment laser: DISABLED (immediate shutdown)
+        - Camera: MAINTAINED (for visual assessment)
+        - Actuator: MAINTAINED (for safe repositioning)
+        - Aiming laser: MAINTAINED (Class 2, inherently safe)
+        - GPIO monitoring: MAINTAINED (for diagnostics)
+        - Event logging: MAINTAINED (for audit trail)
+        """
         try:
-            # 1. Laser OFF (highest priority)
+            # 1. IMMEDIATE: Disable treatment laser only
             self.hardware.laser.emergency_stop()
             self.hardware.laser.set_power(0)
+            logger.info("Treatment laser disabled (selective shutdown)")
 
-            # 2. Stop actuator motion
-            self.hardware.actuator.stop()
+            # 2. MAINTAIN: Other systems remain operational
+            # - Camera continues streaming (operator can see treatment area)
+            # - Actuator remains controllable (can reposition if needed)
+            # - Aiming laser stays available (low power, Class 2 safe)
+            # - GPIO monitoring continues (for diagnostics)
+            # - Event logging active (for complete audit trail)
 
             # 3. Log to database
             log_safety_event(
                 event_type='emergency_stop',
                 severity='emergency',
-                description=f"E-stop triggered by {self.trigger_source}: {reason}",
+                description=f"E-stop triggered by {self.trigger_source}: {reason} (selective shutdown - laser only)",
                 system_state='fault'
             )
 
@@ -334,7 +349,7 @@ class EmergencyStop:
             signal_emergency_stop.emit(self.trigger_source, reason)
 
         except Exception as e:
-            # Even if logging fails, hardware should be stopped
+            # Even if logging fails, laser should be stopped
             logger.critical(f"Emergency stop execution error: {e}")
 
     def reset(self, supervisor_auth_token: str):
@@ -352,6 +367,17 @@ class EmergencyStop:
             description="E-stop reset by supervisor"
         )
 ```
+
+**IMPORTANT:** This implementation follows the **Selective Shutdown Policy**.
+
+See `SAFETY_SHUTDOWN_POLICY.md` for the complete canonical policy:
+- **Treatment laser:** DISABLED immediately on safety fault
+- **Camera:** MAINTAINED (for visual assessment)
+- **Actuator:** MAINTAINED (for safe repositioning)
+- **Aiming laser:** MAINTAINED (Class 2, low power, inherently safe)
+- **GPIO monitoring:** MAINTAINED (for diagnostics)
+
+**Only the treatment laser is shut down on safety fault.** All other systems remain operational to support safe assessment and recovery.
 
 ---
 
@@ -583,12 +609,18 @@ class SafetyManager:
         return (True, f"Laser ENABLED at {limited_power:.2f}W")
 
     def disable_laser(self, reason: str = "Normal"):
-        """Disable laser"""
+        """
+        Disable treatment laser only (selective shutdown).
+
+        Other systems (camera, actuator, aiming laser, GPIO monitoring)
+        remain operational per SAFETY_SHUTDOWN_POLICY.md.
+        """
         self.hardware.laser.set_power(0)
         self.laser_enabled = False
         self.system_state = SystemState.READY
 
-        log_safety_event('laser_disabled', 'info', f"Laser disabled: {reason}")
+        log_safety_event('laser_disabled', 'info',
+                        f"Treatment laser disabled (selective): {reason}")
 ```
 
 ---

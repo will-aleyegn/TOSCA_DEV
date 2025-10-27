@@ -1,8 +1,8 @@
 # TOSCA Laser Control System - Architecture Overview
 
 **Document Version:** 1.0
-**Date:** 2025-10-15
-**Status:** Planning Phase
+**Date:** 2025-10-26
+**Status:** Phase 5 - Testing & Quality Assurance
 
 ## Executive Summary
 
@@ -301,7 +301,13 @@ data/
 
 ## Treatment Protocol Engine
 
-### Protocol Structure
+> **Note:** This section describes the older step-based protocol model.
+>
+> **Current Implementation:** See `06_protocol_builder.md` for the action-based protocol engine (current design).
+>
+> The action-based model provides greater flexibility with event-driven actions, conditional logic, and real-time adjustments. The step-based model shown below is kept for historical context.
+
+### Protocol Structure (Legacy Step-Based Model)
 
 ```python
 {
@@ -598,5 +604,5 @@ laser-control-system/
 ---
 
 **Document Owner:** System Architect
-**Last Updated:** 2025-10-15
+**Last Updated:** 2025-10-26
 **Review Frequency:** Weekly during development

@@ -53,9 +53,22 @@ Never include AI/medical/FDA references in git-tracked files.
 - Update LESSONS_LEARNED.md when discovering API quirks or fixing bugs
 - Pre-commit reminder will show (but won't block commits)
 
+**Tool Usage (PROACTIVE):**
+Use specialized tools automatically when triggers occur:
+- `mcp__memory__search_nodes` - Session start (REQUIRED - faster than file reading)
+- `Task(Explore)` - Codebase exploration (not manual Grep for open-ended searches)
+- `mcp__zen__codereview` - After module completion (REQUIRED for quality)
+- `mcp__zen__debug` - Bug investigation (systematic approach)
+- `mcp__zen__planner` - Complex features (plan before implementing)
+- `mcp__zen__precommit` - Before safety-critical commits (validation)
+- `mcp__memory__add_observations` - After milestones (update knowledge graph)
+- See `presubmit/reference/TOOL_USAGE_GUIDE.md` for complete trigger list
+
 **Post-Action Checklist:**
 After completing work, verify:
 - [ ] Todos marked completed (if used TodoWrite)
+- [ ] Used appropriate specialized tools (codereview, testgen, etc.)
+- [ ] Memory updated if milestone reached
 - [ ] WORK_LOG.md updated with action entry
 - [ ] PROJECT_STATUS.md updated if milestone reached
 - [ ] LESSONS_LEARNED.md updated if discovered API quirks

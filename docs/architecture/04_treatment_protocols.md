@@ -1,5 +1,17 @@
 # TOSCA Laser Control System - Treatment Protocol Engine
 
+> ⚠️ **DEPRECATED DOCUMENT**
+>
+> This document describes an older step-based protocol model that has been superseded.
+>
+> **Current Design:** See `06_protocol_builder.md` for the action-based protocol engine (current implementation).
+>
+> **Status:** Kept for historical reference only. Do not implement new features based on this document.
+>
+> **Last Updated:** 2025-10-26 (marked as deprecated)
+
+---
+
 **Document Version:** 1.0
 **Date:** 2025-10-15
 
