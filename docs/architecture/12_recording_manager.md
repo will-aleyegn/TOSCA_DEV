@@ -2,8 +2,20 @@
 
 **Document Version:** 1.0
 **Last Updated:** 2025-10-26
-**Status:** Implemented - Phase 5 (Encryption planned Phase 6)
+**Status:** Implemented - Phase 5 ⚠️ **Videos NOT Encrypted** (Encryption planned Phase 6)
 **Priority:** HIGH - Required for treatment documentation
+
+---
+
+> **⚠️ WARNING - Videos Stored Unencrypted:**
+>
+> **Current Implementation:** Video recordings are stored as **plaintext MP4 files** without encryption.
+>
+> - ❌ Videos are **NOT encrypted** (HIPAA vulnerability)
+> - ❌ PHI/PII visible in video (patient faces, treatment areas)
+> - ❌ DO NOT use for clinical trials (encryption required)
+>
+> **Future Implementation (Phase 6):** AES-256-GCM encryption (see section below)
 
 ---
 

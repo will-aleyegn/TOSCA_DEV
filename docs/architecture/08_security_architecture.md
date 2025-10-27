@@ -2,8 +2,34 @@
 
 **Document Version:** 1.0
 **Last Updated:** 2025-10-26
-**Status:** Planning - Implementation Required Before Clinical Use
+**Status:** ⚠️ **NOT IMPLEMENTED** - Planning Only (Phase 6+)
 **Priority:** CRITICAL - Required for FDA submission and HIPAA compliance
+
+---
+
+> ## ⚠️ IMPORTANT NOTICE - ENCRYPTION NOT IMPLEMENTED
+>
+> **Current Status (Phase 5):** This document describes the **PLANNED** security architecture.
+>
+> **NO ENCRYPTION IS CURRENTLY IMPLEMENTED** in this version of TOSCA.
+>
+> - ❌ Database is **NOT encrypted** (plaintext SQLite)
+> - ❌ Video files are **NOT encrypted** (plaintext MP4)
+> - ❌ Configuration files are **NOT encrypted**
+> - ❌ Audit trail signatures **NOT implemented** (no HMAC)
+> - ❌ User authentication **NOT implemented**
+>
+> **Implementation Target:** Phase 6 (before clinical testing)
+>
+> **This document serves as:**
+> - Design specification for future implementation
+> - FDA submission documentation (planned features)
+> - Architecture review for security requirements
+>
+> **DO NOT use current version for:**
+> - Clinical trials (encryption required)
+> - Production deployment (HIPAA violation)
+> - PHI/PII storage (unencrypted data)
 
 ---
 
