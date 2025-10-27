@@ -136,6 +136,11 @@ class GPIOWidget(QWidget):
         status_layout.addWidget(QLabel("Vibration Sensor:"), 1, 0)
         status_layout.addWidget(self.vibration_status_label, 1, 1)
 
+        self.vibration_level_label = QLabel("-- g")
+        self.vibration_level_label.setStyleSheet("font-weight: bold; font-size: 14px; color: #2196F3;")
+        status_layout.addWidget(QLabel("Vibration Level:"), 2, 0)
+        status_layout.addWidget(self.vibration_level_label, 2, 1)
+
         layout.addLayout(status_layout)
 
         # Accelerometer reinitialize button
@@ -228,6 +233,7 @@ class GPIOWidget(QWidget):
                 self.controller.connection_changed.connect(self._on_connection_changed)
                 self.controller.smoothing_motor_changed.connect(self._on_motor_changed)
                 self.controller.smoothing_vibration_changed.connect(self._on_vibration_changed)
+                self.controller.vibration_level_changed.connect(self._on_vibration_level_changed)
                 self.controller.photodiode_voltage_changed.connect(self._on_voltage_changed)
                 self.controller.photodiode_power_changed.connect(self._on_power_changed)
                 self.controller.safety_interlock_changed.connect(self._on_safety_changed)
@@ -311,6 +317,21 @@ class GPIOWidget(QWidget):
         self.vibration_status_label.setText(status_text)
         self.vibration_status_label.setStyleSheet(
             f"font-weight: bold; font-size: 14px; color: {'#4CAF50' if detected else '#f44336'};"
+        )
+
+    @pyqtSlot(float)
+    def _on_vibration_level_changed(self, magnitude: float) -> None:
+        """Handle vibration magnitude update."""
+        self.vibration_level_label.setText(f"{magnitude:.3f} g")
+        # Color code based on threshold (0.8g)
+        if magnitude > 0.8:
+            color = "#4CAF50"  # Green - motor running
+        elif magnitude > 0.5:
+            color = "#FF9800"  # Orange - intermediate
+        else:
+            color = "#2196F3"  # Blue - baseline/off
+        self.vibration_level_label.setStyleSheet(
+            f"font-weight: bold; font-size: 14px; color: {color};"
         )
 
     @pyqtSlot(float)
