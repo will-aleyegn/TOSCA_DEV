@@ -176,6 +176,26 @@ class GPIOController(QObject):
                 self.monitor_timer.start()
                 logger.info("GPIO controller connected successfully")
 
+                # Auto-initialize accelerometer (force I2C re-scan)
+                # Arduino only scans for accelerometer once during setup()
+                # If device wasn't ready then, it stays undetected
+                # Sending ACCEL_INIT forces re-scan and initialization
+                try:
+                    logger.info("Initializing accelerometer...")
+                    init_response = self._send_command("ACCEL_INIT")
+                    if "OK:ACCEL_INITIALIZED" in init_response:
+                        logger.info("Accelerometer initialized successfully")
+                    elif "ERROR:NO_ACCEL_FOUND" in init_response:
+                        logger.warning(
+                            "No accelerometer detected on I2C bus - "
+                            "check hardware connections (SDA=A4, SCL=A5)"
+                        )
+                    else:
+                        logger.warning(f"Unexpected accelerometer init response: {init_response}")
+                except Exception as e:
+                    logger.warning(f"Accelerometer initialization failed: {e}")
+                    # Don't fail connection if accelerometer init fails
+
                 return True
 
             except Exception as e:
@@ -672,6 +692,50 @@ class GPIOController(QObject):
 
             except Exception as e:
                 error_msg = f"Failed to disable aiming laser: {e}"
+                logger.error(error_msg)
+                self.error_occurred.emit(error_msg)
+                return False
+
+    def reinitialize_accelerometer(self) -> bool:
+        """
+        Manually reinitialize accelerometer (force I2C re-scan).
+
+        The Arduino firmware only scans for the accelerometer once during setup().
+        If the accelerometer wasn't ready at that moment, it stays undetected forever.
+        This method forces a re-scan and initialization.
+
+        Useful when:
+        - Accelerometer was plugged in after Arduino powered on
+        - I2C bus had temporary communication issues
+        - Accelerometer needs to be reset
+
+        Returns:
+            True if accelerometer initialized successfully, False otherwise
+        """
+        if not self.is_connected:
+            logger.warning("Cannot reinitialize accelerometer: GPIO not connected")
+            return False
+
+        with self._lock:
+            try:
+                logger.info("Manually reinitializing accelerometer...")
+                response = self._send_command("ACCEL_INIT")
+
+                if "OK:ACCEL_INITIALIZED" in response:
+                    logger.info("Accelerometer reinitialized successfully")
+                    return True
+                elif "ERROR:NO_ACCEL_FOUND" in response:
+                    logger.warning(
+                        "No accelerometer detected on I2C bus - "
+                        "check hardware connections (SDA=A4, SCL=A5)"
+                    )
+                    return False
+                else:
+                    logger.warning(f"Unexpected accelerometer init response: {response}")
+                    return False
+
+            except Exception as e:
+                error_msg = f"Accelerometer reinitialization failed: {e}"
                 logger.error(error_msg)
                 self.error_occurred.emit(error_msg)
                 return False

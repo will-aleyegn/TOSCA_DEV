@@ -138,6 +138,22 @@ class GPIOWidget(QWidget):
 
         layout.addLayout(status_layout)
 
+        # Accelerometer reinitialize button
+        accel_layout = QHBoxLayout()
+        accel_layout.addWidget(QLabel("Accelerometer:"))
+
+        self.accel_reinit_btn = QPushButton("Reinitialize")
+        self.accel_reinit_btn.clicked.connect(self._on_accel_reinit_clicked)
+        self.accel_reinit_btn.setEnabled(False)
+        self.accel_reinit_btn.setToolTip(
+            "Force accelerometer re-detection on I2C bus.\n"
+            "Use if accelerometer was plugged in after connection."
+        )
+        accel_layout.addWidget(self.accel_reinit_btn)
+
+        accel_layout.addStretch()
+        layout.addLayout(accel_layout)
+
         group.setLayout(layout)
         return group
 
@@ -195,6 +211,9 @@ class GPIOWidget(QWidget):
         self.motor_enable_btn.setEnabled(controls_enabled and not self.motor_enabled)
         self.motor_disable_btn.setEnabled(controls_enabled and self.motor_enabled)
 
+        # Accelerometer reinitialize button
+        self.accel_reinit_btn.setEnabled(self.is_connected)
+
     @pyqtSlot()
     def _on_connect_clicked(self) -> None:
         """Handle connect button click."""
@@ -246,6 +265,17 @@ class GPIOWidget(QWidget):
                 self.controller.start_smoothing_motor()
             else:
                 self.controller.stop_smoothing_motor()
+
+    @pyqtSlot()
+    def _on_accel_reinit_clicked(self) -> None:
+        """Handle accelerometer reinitialize button click."""
+        if self.controller:
+            logger.info("User requested accelerometer reinitialization")
+            success = self.controller.reinitialize_accelerometer()
+            if success:
+                logger.info("Accelerometer reinitialized successfully")
+            else:
+                logger.warning("Accelerometer reinitialization failed")
 
     @pyqtSlot(bool)
     def _on_connection_changed(self, connected: bool) -> None:
