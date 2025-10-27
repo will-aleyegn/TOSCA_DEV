@@ -6,7 +6,7 @@ import asyncio
 import logging
 from typing import Any, Optional
 
-from PyQt6.QtCore import QThread, pyqtSignal
+from PyQt6.QtCore import Qt, QThread, pyqtSignal
 from PyQt6.QtWidgets import (
     QGridLayout,
     QGroupBox,
@@ -14,6 +14,7 @@ from PyQt6.QtWidgets import (
     QLabel,
     QProgressBar,
     QPushButton,
+    QScrollArea,
     QTextEdit,
     QVBoxLayout,
     QWidget,
@@ -110,22 +111,37 @@ class TreatmentWidget(QWidget):
 
     def _create_left_panel(self) -> QWidget:
         """Create left panel with hardware controls."""
-        panel = QWidget()
-        layout = QVBoxLayout()
-        panel.setLayout(layout)
+        # Create scroll area for hardware controls
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll.setStyleSheet("QScrollArea { border: none; }")
 
-        # Laser controls
+        # Content widget for scroll area
+        content = QWidget()
+        layout = QVBoxLayout()
+        content.setLayout(layout)
+
+        # Set minimum width to prevent horizontal squishing
+        content.setMinimumWidth(300)
+
+        # Laser controls (set minimum height)
+        self.laser_widget.setMinimumHeight(200)
         layout.addWidget(self.laser_widget)
 
-        # Actuator controls
+        # Actuator controls (set minimum height)
+        self.actuator_widget.setMinimumHeight(200)
         layout.addWidget(self.actuator_widget)
 
         # Motor widget (will be moved to right panel in Phase 2.5)
         # Keeping here temporarily for backward compatibility
+        self.motor_widget.setMinimumHeight(150)
         layout.addWidget(self.motor_widget)
 
         layout.addStretch()
-        return panel
+
+        scroll.setWidget(content)
+        return scroll
 
     def _create_center_panel(self) -> QWidget:
         """Create center panel with camera feed and treatment controls."""

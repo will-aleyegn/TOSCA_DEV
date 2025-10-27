@@ -32,7 +32,8 @@ from database.db_manager import DatabaseManager
 from ui.widgets.camera_widget import CameraWidget
 from ui.widgets.safety_widget import SafetyWidget
 from ui.widgets.subject_widget import SubjectWidget
-from ui.widgets.treatment_widget import TreatmentWidget
+from ui.widgets.active_treatment_widget import ActiveTreatmentWidget
+from ui.widgets.treatment_setup_widget import TreatmentSetupWidget
 
 logger = logging.getLogger(__name__)
 
@@ -118,16 +119,20 @@ class MainWindow(QMainWindow):
             logger.warning(f"Camera controller not available: {e}")
             self.camera_controller = None
 
-        self.treatment_widget = TreatmentWidget()
-        self.tabs.addTab(self.treatment_widget, "Treatment Control")
+        # Treatment tabs: Setup (building) and Active (monitoring)
+        self.treatment_setup_widget = TreatmentSetupWidget()
+        self.tabs.addTab(self.treatment_setup_widget, "Treatment Setup")
+
+        self.active_treatment_widget = ActiveTreatmentWidget()
+        self.tabs.addTab(self.active_treatment_widget, "Active Treatment")
 
         # Connect dev mode signal to widgets (after widgets are created)
         self.dev_mode_changed.connect(self.camera_widget.set_dev_mode)
-        self.dev_mode_changed.connect(self.treatment_widget.set_dev_mode)
+        self.dev_mode_changed.connect(self.treatment_setup_widget.set_dev_mode)
 
-        # Connect dev mode to motor widget
-        if hasattr(self.treatment_widget, "motor_widget"):
-            self.dev_mode_changed.connect(self.treatment_widget.motor_widget.set_dev_mode)
+        # Connect dev mode to motor widget in treatment setup
+        if hasattr(self.treatment_setup_widget, "motor_widget"):
+            self.dev_mode_changed.connect(self.treatment_setup_widget.motor_widget.set_dev_mode)
 
         self.safety_widget = SafetyWidget(db_manager=self.db_manager)
         self.tabs.addTab(self.safety_widget, "Safety Status")
@@ -334,8 +339,8 @@ class MainWindow(QMainWindow):
 
         # Connect safety manager to treatment widgets
         # Laser widget will check safety manager before enabling
-        if hasattr(self.treatment_widget, "laser_widget"):
-            laser_widget = self.treatment_widget.laser_widget
+        if hasattr(self.treatment_setup_widget, "laser_widget"):
+            laser_widget = self.treatment_setup_widget.laser_widget
             # Store reference to safety manager in laser widget
             laser_widget.safety_manager = self.safety_manager
             logger.info("Safety manager connected to laser widget")
@@ -376,8 +381,8 @@ class MainWindow(QMainWindow):
         self.safety_manager.trigger_emergency_stop()
 
         # 2. Disable treatment laser ONLY (selective shutdown)
-        if hasattr(self.treatment_widget, "laser_widget"):
-            laser_widget = self.treatment_widget.laser_widget
+        if hasattr(self.treatment_setup_widget, "laser_widget"):
+            laser_widget = self.treatment_setup_widget.laser_widget
             if hasattr(laser_widget, "controller") and laser_widget.controller:
                 if laser_widget.controller.is_connected:
                     logger.critical("Disabling treatment laser due to watchdog timeout")
@@ -467,12 +472,12 @@ class MainWindow(QMainWindow):
         laser_controller = None
         actuator_controller = None
 
-        if hasattr(self.treatment_widget, "laser_widget"):
-            laser_widget = self.treatment_widget.laser_widget
+        if hasattr(self.treatment_setup_widget, "laser_widget"):
+            laser_widget = self.treatment_setup_widget.laser_widget
             laser_controller = getattr(laser_widget, "controller", None)
 
-        if hasattr(self.treatment_widget, "actuator_widget"):
-            actuator_widget = self.treatment_widget.actuator_widget
+        if hasattr(self.treatment_setup_widget, "actuator_widget"):
+            actuator_widget = self.treatment_setup_widget.actuator_widget
             actuator_controller = getattr(actuator_widget, "controller", None)
 
         # Initialize protocol engine with available controllers
@@ -482,13 +487,13 @@ class MainWindow(QMainWindow):
             safety_manager=self.safety_manager,
         )
 
-        # Pass protocol engine to treatment widget for UI integration
-        if hasattr(self.treatment_widget, "set_protocol_engine"):
-            self.treatment_widget.set_protocol_engine(self.protocol_engine)
+        # Pass protocol engine to active treatment widget for monitoring
+        if hasattr(self.active_treatment_widget, "set_protocol_engine"):
+            self.active_treatment_widget.set_protocol_engine(self.protocol_engine)
 
-        # Pass safety manager to treatment widget for interlock monitoring
-        if hasattr(self.treatment_widget, "set_safety_manager"):
-            self.treatment_widget.set_safety_manager(self.safety_manager)
+        # Pass safety manager to active treatment widget for interlock monitoring
+        if hasattr(self.active_treatment_widget, "set_safety_manager"):
+            self.active_treatment_widget.set_safety_manager(self.safety_manager)
 
         logger.info(
             f"Protocol engine initialized (laser: {laser_controller is not None}, "
@@ -577,16 +582,16 @@ class MainWindow(QMainWindow):
             self.camera_widget.connect_camera()
 
         # Connect Laser (Treatment tab)
-        if hasattr(self.treatment_widget, "laser_widget"):
-            laser_widget = self.treatment_widget.laser_widget
+        if hasattr(self.treatment_setup_widget, "laser_widget"):
+            laser_widget = self.treatment_setup_widget.laser_widget
             if hasattr(laser_widget, "is_connected") and not laser_widget.is_connected:
                 logger.info("Connecting Laser...")
                 if hasattr(laser_widget, "_on_connect_clicked"):
                     laser_widget._on_connect_clicked()
 
         # Connect Actuator (Treatment tab)
-        if hasattr(self.treatment_widget, "actuator_widget"):
-            actuator_widget = self.treatment_widget.actuator_widget
+        if hasattr(self.treatment_setup_widget, "actuator_widget"):
+            actuator_widget = self.treatment_setup_widget.actuator_widget
             if hasattr(actuator_widget, "is_connected") and not actuator_widget.is_connected:
                 logger.info("Connecting Actuator...")
                 if hasattr(actuator_widget, "_on_connect_clicked"):
@@ -614,16 +619,16 @@ class MainWindow(QMainWindow):
             self.camera_widget.disconnect_camera()
 
         # Disconnect Laser
-        if hasattr(self.treatment_widget, "laser_widget"):
-            laser_widget = self.treatment_widget.laser_widget
+        if hasattr(self.treatment_setup_widget, "laser_widget"):
+            laser_widget = self.treatment_setup_widget.laser_widget
             if hasattr(laser_widget, "is_connected") and laser_widget.is_connected:
                 logger.info("Disconnecting Laser...")
                 if hasattr(laser_widget, "_on_disconnect_clicked"):
                     laser_widget._on_disconnect_clicked()
 
         # Disconnect Actuator
-        if hasattr(self.treatment_widget, "actuator_widget"):
-            actuator_widget = self.treatment_widget.actuator_widget
+        if hasattr(self.treatment_setup_widget, "actuator_widget"):
+            actuator_widget = self.treatment_setup_widget.actuator_widget
             if hasattr(actuator_widget, "is_connected") and actuator_widget.is_connected:
                 logger.info("Disconnecting Actuator...")
                 if hasattr(actuator_widget, "_on_disconnect_clicked"):
@@ -733,8 +738,10 @@ class MainWindow(QMainWindow):
             self.camera_widget.cleanup()
 
         # Cleanup treatment (actuator + laser)
-        if hasattr(self, "treatment_widget") and self.treatment_widget:
-            self.treatment_widget.cleanup()
+        if hasattr(self, "treatment_setup_widget") and self.treatment_setup_widget:
+            self.treatment_setup_widget.cleanup()
+        if hasattr(self, "active_treatment_widget") and self.active_treatment_widget:
+            self.active_treatment_widget.cleanup()
 
         # Cleanup safety (GPIO)
         if hasattr(self, "safety_widget") and self.safety_widget:
