@@ -19,6 +19,7 @@ from PyQt6.QtWidgets import (
 
 from ui.widgets.actuator_widget import ActuatorWidget
 from ui.widgets.laser_widget import LaserWidget
+from ui.widgets.motor_widget import MotorWidget
 
 logger = logging.getLogger(__name__)
 
@@ -71,6 +72,7 @@ class TreatmentWidget(QWidget):
         self.protocol_engine: Optional[Any] = None
         self.actuator_widget: ActuatorWidget = ActuatorWidget()
         self.laser_widget: LaserWidget = LaserWidget()
+        self.motor_widget: MotorWidget = MotorWidget()
         self._init_ui()
 
     def _init_ui(self) -> None:
@@ -88,9 +90,11 @@ class TreatmentWidget(QWidget):
         middle_layout.addWidget(self._create_treatment_control())
         middle_layout.addStretch()
 
-        # Right side: Actuator controls
+        # Right side: Actuator controls and Motor controls
         right_layout = QVBoxLayout()
         right_layout.addWidget(self.actuator_widget)
+        right_layout.addWidget(self.motor_widget)
+        right_layout.addStretch()
 
         # Add to main layout
         layout.addLayout(left_layout, 1)

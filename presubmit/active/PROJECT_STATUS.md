@@ -1,11 +1,11 @@
 # TOSCA Project Status & AI Onboarding
 
-**Last Updated:** 2025-10-26
+**Last Updated:** 2025-10-27
 **Current Phase:** Phase 5 IN PROGRESS - Testing & Quality Assurance (Week 1: 100% COMPLETE)
-**Project Status:** Initial Setup ✓ → HALs ✓ → Safety (100%) → Session Mgmt ✓ → Event Logging ✓ → Protocol Execution ✓ → Architecture ✓ → Testing Week 1 (100%)
-**Hardware:** Arduino Nano GPIO on COM4 (migrated from FT232H)
-**Latest Addition:** Real-Time Safety Monitoring Verified (6/6 tests passing)
-**Next Priority:** Week 2 Testing Priorities - Unit Test Coverage
+**Project Status:** Initial Setup ✓ → HALs ✓ → Safety (100%) → Session Mgmt ✓ → Event Logging ✓ → Protocol Execution ✓ → Architecture ✓ → Testing Week 1 (100%) → Motor Integration ✓
+**Hardware:** Arduino Uno on COM6 with Watchdog V2.1 firmware
+**Latest Addition:** Motor Control & Accelerometer Integration (Production Ready)
+**Next Priority:** Documentation cleanup, then Week 2 Testing - Unit Test Coverage
 
 ---
 
@@ -137,6 +137,69 @@ TOSCA-dev/
 - All HALs tested and GUI integrated
 
 **Details:** See [archive/PHASE_0_2_COMPLETION_DETAILS.md](archive/PHASE_0_2_COMPLETION_DETAILS.md)
+
+### ✓ Motor Control & Accelerometer Integration (Complete)
+
+**Date:** 2025-10-27
+**Status:** Production ready
+
+**Summary:** Complete motor speed control and real-time vibration monitoring integrated into TOSCA GUI.
+
+**New Components:**
+1. **Motor Widget** (`src/ui/widgets/motor_widget.py`) - 389 lines
+   - PWM slider control (0-153) with voltage display (0-5V)
+   - 5 preset speed buttons (STOP, LOW, MEDIUM, HIGH, MAX)
+   - MPU6050 accelerometer integration (I2C 0x68)
+   - Real-time vibration monitoring with color-coded display
+   - Auto-refresh mode (2-second intervals)
+   - Motor-first initialization sequence to prevent Arduino resets
+
+2. **GPIO Controller Extensions** (+156 lines)
+   - `set_motor_speed(pwm: int)` - PWM control 0-153
+   - `init_accelerometer()` - MPU6050 initialization
+   - `get_acceleration()` - Returns X, Y, Z in g's
+   - `get_vibration_level()` - Returns vibration magnitude
+   - New PyQt signals for real-time updates
+
+**Hardware:**
+- DC Coreless Motor (7x25mm, 1.5-3.0V) on Arduino D9 (PWM)
+- MPU6050 Accelerometer on I2C (SDA=A4, SCL=A5, address 0x68)
+- Arduino Uno with watchdog firmware v2.1
+
+**Key Features:**
+- Safe PWM clamping and voltage calculation
+- Motor-first sequence prevents init transients
+- Color-coded vibration feedback (green/orange/red)
+- All motor events logged to event system
+- Dev mode support for session-independent testing
+
+**Testing:**
+- ✅ Motor speed control verified (all PWM ranges)
+- ✅ Accelerometer initialization working
+- ✅ Vibration monitoring accurate
+- ✅ Auto-refresh stable at 2-second intervals
+- ✅ Integration tests passing
+
+**Documentation:**
+- `MOTOR_GUI_INTEGRATION.md` - Complete usage guide (397 lines)
+- Hardware requirements and wiring diagrams
+- Serial command reference
+- Troubleshooting guide
+
+**Files Created:**
+- src/ui/widgets/motor_widget.py
+- MOTOR_GUI_INTEGRATION.md
+- firmware/arduino_watchdog/arduino_watchdog_v2/ (updated firmware)
+- firmware/arduino_watchdog/NEW_PIN_CONFIG.md
+- firmware/arduino_watchdog/UPLOAD_INSTRUCTIONS.md
+
+**Files Modified:**
+- src/hardware/gpio_controller.py (+156 lines)
+- src/ui/widgets/treatment_widget.py (+4 lines)
+- src/ui/main_window.py (+8 lines)
+- config.yaml (motor/accelerometer configuration)
+
+**Impact:** Enables real-time motor health monitoring and vibration analysis during treatment protocols.
 
 ---
 
