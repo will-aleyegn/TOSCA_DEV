@@ -12,6 +12,8 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QMainWindow,
+    QMenu,
+    QMenuBar,
     QMessageBox,
     QPushButton,
     QStatusBar,
@@ -77,6 +79,7 @@ class MainWindow(QMainWindow):
         )
 
         self._init_ui()
+        self._init_menubar()
         self._init_toolbar()
         self._init_status_bar()
 
@@ -90,10 +93,8 @@ class MainWindow(QMainWindow):
         layout = QVBoxLayout()
         central_widget.setLayout(layout)
 
-        title_label = QLabel("TOSCA Laser Control System")
-        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title_label.setStyleSheet("font-size: 18px; font-weight: bold; padding: 10px;")
-        layout.addWidget(title_label)
+        # Title removed - redundant with window title bar
+        # More vertical space for content
 
         self.tabs = QTabWidget()
         layout.addWidget(self.tabs)
@@ -141,6 +142,32 @@ class MainWindow(QMainWindow):
 
         # Connect event logger to widgets
         self._connect_event_logger()
+
+    def _init_menubar(self) -> None:
+        """Initialize menubar with File and Developer menus."""
+        menubar = self.menuBar()
+
+        # File menu
+        file_menu = menubar.addMenu("&File")
+
+        # Exit action
+        exit_action = file_menu.addAction("E&xit")
+        exit_action.setShortcut("Ctrl+Q")
+        exit_action.triggered.connect(self.close)
+
+        # Developer menu
+        developer_menu = menubar.addMenu("&Developer")
+
+        # Dev Mode toggle (moved from status bar)
+        self.dev_mode_action = developer_menu.addAction("Developer Mode")
+        self.dev_mode_action.setCheckable(True)
+        self.dev_mode_action.setChecked(False)
+        self.dev_mode_action.setToolTip(
+            "Enable developer mode to bypass session management and customize save paths"
+        )
+        self.dev_mode_action.triggered.connect(self._on_dev_mode_changed_menubar)
+
+        logger.info("Menubar initialized")
 
     def _init_toolbar(self) -> None:
         """Initialize global toolbar with critical controls."""
@@ -209,19 +236,18 @@ class MainWindow(QMainWindow):
 
         status_layout = QHBoxLayout()
 
-        # Dev mode toggle
-        self.dev_mode_check = QCheckBox("Dev Mode")
-        self.dev_mode_check.setToolTip(
-            "Enable developer mode to bypass session management and customize save paths"
-        )
-        self.dev_mode_check.stateChanged.connect(self._on_dev_mode_changed)
-        status_layout.addWidget(self.dev_mode_check)
-        status_layout.addWidget(QLabel("|"))
+        # Connection status with icons (Dev Mode moved to menubar)
+        self.camera_status = QLabel("📷 Camera ✗")
+        self.camera_status.setToolTip("Camera connection status")
+        self.camera_status.setStyleSheet("color: #f44336;")  # Red when disconnected
 
-        # Connection status
-        self.camera_status = QLabel("Camera: Not Connected")
-        self.laser_status = QLabel("Laser: Not Connected")
-        self.actuator_status = QLabel("Actuator: Not Connected")
+        self.laser_status = QLabel("⚡ Laser ✗")
+        self.laser_status.setToolTip("Laser controller connection status")
+        self.laser_status.setStyleSheet("color: #f44336;")  # Red when disconnected
+
+        self.actuator_status = QLabel("🔧 Actuator ✗")
+        self.actuator_status.setToolTip("Actuator controller connection status")
+        self.actuator_status.setStyleSheet("color: #f44336;")  # Red when disconnected
 
         status_layout.addWidget(self.camera_status)
         status_layout.addWidget(QLabel("|"))
@@ -230,19 +256,8 @@ class MainWindow(QMainWindow):
         status_layout.addWidget(self.actuator_status)
         status_layout.addStretch()
 
-        # Close program button
-        self.close_btn = QPushButton("Close Program")
-        self.close_btn.setStyleSheet(
-            "QPushButton { background-color: #F44336; color: white; "
-            "padding: 5px 10px; font-weight: bold; }"
-            "QPushButton:hover { background-color: #D32F2F; }"
-        )
-        self.close_btn.clicked.connect(self._on_close_program)
-        status_layout.addWidget(self.close_btn)
-
-        status_layout.addWidget(QLabel("|"))
-
         # Master Safety Indicator (always visible, right side)
+        # Note: Close button removed - use File->Exit from menubar
         self.master_safety_indicator = QLabel("SYSTEM SAFE")
         self.master_safety_indicator.setStyleSheet(
             "QLabel { background-color: #4CAF50; color: white; "
@@ -263,19 +278,24 @@ class MainWindow(QMainWindow):
             self.safety_manager.safety_state_changed.connect(self._update_master_safety_indicator)
             logger.info("Master safety indicator connected to SafetyManager")
 
-    def _on_close_program(self) -> None:
-        """Handle close program button click."""
-        reply = QMessageBox.question(
-            self,
-            "Confirm Exit",
-            "Are you sure you want to exit TOSCA?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No,
-        )
+    def _on_dev_mode_changed_menubar(self, checked: bool) -> None:
+        """Handle dev mode menu action toggle."""
+        logger.info(f"Dev mode {'enabled' if checked else 'disabled'} (from menubar)")
+        self.dev_mode_changed.emit(checked)
 
-        if reply == QMessageBox.StandardButton.Yes:
-            logger.info("User initiated program exit via Close button")
-            self.close()
+        # Update UI to reflect dev mode
+        if checked:
+            self.setWindowTitle("TOSCA Laser Control System - DEVELOPER MODE")
+            self.subject_widget.setEnabled(False)  # Disable subject selection in dev mode
+            logger.warning(
+                "Developer mode enabled - session management bypassed for UI convenience. "
+                "Safety interlocks remain ACTIVE and enforced. "
+                "For hardware experimentation, use a dedicated test application with "
+                "TestSafetyManager."
+            )
+        else:
+            self.setWindowTitle("TOSCA Laser Control System")
+            self.subject_widget.setEnabled(True)
 
     def _on_dev_mode_changed(self, state: int) -> None:
         """Handle dev mode checkbox change."""
@@ -660,6 +680,33 @@ class MainWindow(QMainWindow):
             f"padding: 8px 16px; font-weight: bold; font-size: 14px; "
             f"border-radius: 3px; }}"
         )
+
+    def update_camera_status(self, connected: bool) -> None:
+        """Update camera connection status indicator."""
+        if connected:
+            self.camera_status.setText("📷 Camera ✓")
+            self.camera_status.setStyleSheet("color: #4CAF50;")  # Green
+        else:
+            self.camera_status.setText("📷 Camera ✗")
+            self.camera_status.setStyleSheet("color: #f44336;")  # Red
+
+    def update_laser_status(self, connected: bool) -> None:
+        """Update laser connection status indicator."""
+        if connected:
+            self.laser_status.setText("⚡ Laser ✓")
+            self.laser_status.setStyleSheet("color: #4CAF50;")  # Green
+        else:
+            self.laser_status.setText("⚡ Laser ✗")
+            self.laser_status.setStyleSheet("color: #f44336;")  # Red
+
+    def update_actuator_status(self, connected: bool) -> None:
+        """Update actuator connection status indicator."""
+        if connected:
+            self.actuator_status.setText("🔧 Actuator ✓")
+            self.actuator_status.setStyleSheet("color: #4CAF50;")  # Green
+        else:
+            self.actuator_status.setText("🔧 Actuator ✗")
+            self.actuator_status.setStyleSheet("color: #f44336;")  # Red
 
     def closeEvent(self, event: QCloseEvent) -> None:
         """Handle window close event and cleanup resources."""
