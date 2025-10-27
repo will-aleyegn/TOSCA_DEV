@@ -3,6 +3,9 @@
 **Document Version:** 1.0
 **Date:** 2025-10-26
 **Status:** Phase 5 - Testing & Quality Assurance
+**Security Status:** ⚠️ **Encryption NOT Implemented** (Planned Phase 6)
+
+> **Note:** Current version does NOT include data encryption. See `08_security_architecture.md` for planned encryption implementation (Phase 6+). DO NOT use for clinical trials or production deployment until encryption is implemented.
 
 ## Executive Summary
 
