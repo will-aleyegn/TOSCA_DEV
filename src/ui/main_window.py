@@ -221,59 +221,14 @@ class MainWindow(QMainWindow):
         self.safety_widget.set_safety_manager(self.safety_manager)
         logger.info("Safety manager connected to safety widget")
 
-        # Connect GPIO safety interlock to safety manager
+        # Connect to GPIO widget's connection status signal
+        # Controller doesn't exist yet - created when user clicks Connect
+        # So we connect to widget's forwarding signal instead
         if hasattr(self.safety_widget, "gpio_widget") and self.safety_widget.gpio_widget:
             gpio_widget = self.safety_widget.gpio_widget
-            if hasattr(gpio_widget, "controller") and gpio_widget.controller:
-                gpio_widget.controller.safety_interlock_changed.connect(
-                    self.safety_manager.set_gpio_interlock_status
-                )
-                logger.info("GPIO safety interlocks connected to safety manager")
-
-                # SAFETY-CRITICAL: Attach GPIO controller to pre-initialized watchdog
-                # Watchdog was initialized early in __init__, now connect it to GPIO
-                if gpio_widget.controller.is_connected:
-                    # Attach GPIO controller to watchdog
-                    self.safety_watchdog.gpio_controller = gpio_widget.controller
-                    logger.info("GPIO controller attached to safety watchdog")
-
-                    # Connect watchdog signals
-                    self.safety_watchdog.heartbeat_failed.connect(
-                        lambda msg: logger.error(f"Watchdog heartbeat failed: {msg}")
-                    )
-                    self.safety_watchdog.watchdog_timeout_detected.connect(
-                        self._handle_watchdog_timeout
-                    )
-
-                    # Start heartbeat - FAIL-FAST if watchdog cannot start
-                    if self.safety_watchdog.start():
-                        logger.info("Safety watchdog started (500ms heartbeat, 1000ms timeout)")
-                    else:
-                        # CRITICAL FAILURE: Watchdog cannot start
-                        from PyQt6.QtWidgets import QMessageBox
-
-                        error_msg = (
-                            "CRITICAL SAFETY FAILURE: Hardware watchdog cannot start.\n\n"
-                            "The safety watchdog is required to detect GUI freezes and "
-                            "trigger emergency shutdown.\n\n"
-                            "System cannot operate without watchdog protection."
-                        )
-                        logger.critical(error_msg)
-                        QMessageBox.critical(self, "Safety System Failure", error_msg)
-                        # Note: System continues but laser will be disabled
-                        # Safety manager will prevent laser enable without watchdog
-
-                # Connect GPIO controller to laser widget for aiming laser control
-                if hasattr(self.treatment_widget, "laser_widget"):
-                    laser_widget = self.treatment_widget.laser_widget
-                    laser_widget.set_gpio_controller(gpio_widget.controller)
-                    logger.info("GPIO controller connected to laser widget for aiming laser")
-
-                # Connect GPIO controller to motor widget for motor speed control and accelerometer
-                if hasattr(self.treatment_widget, "motor_widget"):
-                    motor_widget = self.treatment_widget.motor_widget
-                    motor_widget.set_gpio_controller(gpio_widget.controller)
-                    logger.info("GPIO controller connected to motor widget for motor control")
+            # Connect to GPIO widget's stable signal (not controller's)
+            gpio_widget.gpio_connection_changed.connect(self._on_gpio_connection_changed)
+            logger.info("Main window connected to GPIO widget connection signal")
 
         # Connect safety manager to treatment widgets
         # Laser widget will check safety manager before enabling
@@ -352,6 +307,56 @@ class MainWindow(QMainWindow):
             "- Serial communication failure\n\n"
             "Check system logs and verify all connections before proceeding.",
         )
+
+    def _on_gpio_connection_changed(self, connected: bool) -> None:
+        """
+        Handle GPIO connection status changes.
+
+        Starts watchdog heartbeat when GPIO connects,
+        stops heartbeat when GPIO disconnects.
+
+        Args:
+            connected: True if GPIO connected, False if disconnected
+        """
+        if connected:
+            # GPIO connected - attach to watchdog and start heartbeat
+            gpio_widget = self.safety_widget.gpio_widget
+            if gpio_widget and gpio_widget.controller:
+                # Connect GPIO safety interlock to safety manager
+                try:
+                    gpio_widget.controller.safety_interlock_changed.connect(
+                        self.safety_manager.set_gpio_interlock_status
+                    )
+                    logger.info("GPIO safety interlocks connected to safety manager")
+                except RuntimeError:
+                    # Signal already connected, ignore
+                    pass
+
+                # Attach GPIO controller to watchdog
+                self.safety_watchdog.gpio_controller = gpio_widget.controller
+                logger.info("GPIO controller attached to safety watchdog")
+
+                # Connect watchdog signals if not already connected
+                try:
+                    self.safety_watchdog.heartbeat_failed.connect(
+                        lambda msg: logger.error(f"Watchdog heartbeat failed: {msg}")
+                    )
+                    self.safety_watchdog.watchdog_timeout_detected.connect(
+                        self._handle_watchdog_timeout
+                    )
+                except RuntimeError:
+                    # Signals already connected, ignore
+                    pass
+
+                # Start heartbeat - CRITICAL for Arduino stability
+                if self.safety_watchdog.start():
+                    logger.info("Safety watchdog started (500ms heartbeat, 1000ms timeout)")
+                else:
+                    logger.error("CRITICAL: Safety watchdog failed to start!")
+        else:
+            # GPIO disconnected - stop heartbeat
+            self.safety_watchdog.stop()
+            logger.info("Safety watchdog stopped (GPIO disconnected)")
 
     def _init_protocol_engine(self) -> None:
         """Initialize protocol engine and wire to hardware controllers."""

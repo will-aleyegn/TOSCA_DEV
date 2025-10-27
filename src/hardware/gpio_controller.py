@@ -152,8 +152,8 @@ class GPIOController(QObject):
 
                 logger.info(f"Serial port opened: {port} at 9600 baud")
 
-                # Verify firmware responds
-                response = self._send_command("GET_STATUS")
+                # Verify firmware responds (use multi-line to handle full status response)
+                response = self._send_command("GET_STATUS", multi_line=True)
                 if "STATUS:" not in response:
                     raise RuntimeError(f"Invalid firmware response: {response}")
 
@@ -259,25 +259,42 @@ class GPIOController(QObject):
                 "safety_ok": safety_ok,
             }
 
-    def _send_command(self, command: str, expect_response: bool = True) -> str:
+    def _send_command(  # noqa: C901
+        self,
+        command: str,
+        expect_response: bool = True,
+        expected_prefix: Optional[str] = None,
+        multi_line: bool = False,
+        timeout_lines: int = 20,
+    ) -> str:
         """
-        Send command to Arduino and read response.
+        Send command to Arduino and read response with buffer flushing.
+
+        FIX: Flushes serial buffers before sending to prevent response misalignment.
 
         Args:
             command: Command string (e.g., "WDT_RESET", "MOTOR_ON")
             expect_response: Whether to wait for response
+            expected_prefix: Expected response prefix for validation (e.g., "OK:", "VIBRATION:")
+            multi_line: Whether to read multiple lines until terminator
+            timeout_lines: Maximum lines to read for multi-line responses (safety limit)
 
         Returns:
             Response string from Arduino (or empty if no response expected)
 
         Raises:
-            RuntimeError: If serial communication fails
+            RuntimeError: If serial communication fails or response validation fails
         """
         if not self.serial or not self.serial.is_open:
             raise RuntimeError("Serial port not open")
 
         with self._lock:
             try:
+                # FIX 1: Clear any stale data from serial buffers BEFORE sending command
+                # This prevents reading old responses from previous commands
+                self.serial.reset_input_buffer()
+                self.serial.reset_output_buffer()
+
                 # Send command with newline terminator
                 cmd_bytes = (command + "\n").encode("utf-8")
                 self.serial.write(cmd_bytes)
@@ -286,9 +303,35 @@ class GPIOController(QObject):
                 if not expect_response:
                     return ""
 
-                # Read response (single line)
-                response: str = self.serial.readline().decode("utf-8").strip()
-                logger.debug(f"Received: {response}")
+                # Read response
+                if multi_line:
+                    # FIX 3: Handle multi-line responses (e.g., GET_STATUS)
+                    lines = []
+                    for _ in range(timeout_lines):
+                        line = self.serial.readline().decode("utf-8").strip()
+                        if line:
+                            logger.debug(f"Received: {line}")
+                            lines.append(line)
+                            # Stop at terminator
+                            if (
+                                line.startswith("OK:")
+                                or line == "-----------------------------------"
+                            ):
+                                break
+                    response = "\n".join(lines)
+                else:
+                    # Single line response (default)
+                    response: str = self.serial.readline().decode("utf-8").strip()
+                    logger.debug(f"Received: {response}")
+
+                # FIX 4: Validate response matches expected format
+                if expected_prefix and not response.startswith(expected_prefix):
+                    logger.warning(
+                        f"Response validation failed: "
+                        f"expected '{expected_prefix}', got '{response}'"
+                    )
+                    # Don't raise error, just warn - allows graceful degradation
+                    # Could add retry logic here if needed
 
                 return response
 
@@ -313,7 +356,7 @@ class GPIOController(QObject):
 
         with self._lock:
             try:
-                response = self._send_command("WDT_RESET")
+                response = self._send_command("WDT_RESET", expected_prefix="OK:WDT_RESET")
                 return "OK:WDT_RESET" in response
             except Exception as e:
                 logger.error(f"Watchdog heartbeat failed: {e}")
@@ -333,7 +376,7 @@ class GPIOController(QObject):
         with self._lock:
             try:
                 # Use default motor speed (100 PWM = ~2.0V)
-                response = self._send_command("MOTOR_SPEED:100")
+                response = self._send_command("MOTOR_SPEED:100", expected_prefix="OK:MOTOR_SPEED:")
 
                 if "OK:MOTOR_SPEED:" in response:
                     self.motor_enabled = True
@@ -374,7 +417,7 @@ class GPIOController(QObject):
 
         with self._lock:
             try:
-                response = self._send_command("MOTOR_OFF")
+                response = self._send_command("MOTOR_OFF", expected_prefix="OK:MOTOR_OFF")
 
                 if "OK:MOTOR_OFF" in response:
                     self.motor_enabled = False
@@ -429,7 +472,7 @@ class GPIOController(QObject):
             try:
                 if pwm == 0:
                     # Stop motor
-                    response = self._send_command("MOTOR_OFF")
+                    response = self._send_command("MOTOR_OFF", expected_prefix="OK:MOTOR_OFF")
                     if "OK:MOTOR_OFF" in response:
                         self.motor_enabled = False
                         self.motor_speed_pwm = 0
@@ -439,7 +482,9 @@ class GPIOController(QObject):
                         return True
                 else:
                     # Set motor speed
-                    response = self._send_command(f"MOTOR_SPEED:{pwm}")
+                    response = self._send_command(
+                        f"MOTOR_SPEED:{pwm}", expected_prefix="OK:MOTOR_SPEED:"
+                    )
 
                     if f"OK:MOTOR_SPEED:{pwm}" in response:
                         self.motor_enabled = True
@@ -567,7 +612,7 @@ class GPIOController(QObject):
 
         with self._lock:
             try:
-                response = self._send_command("LASER_ON")
+                response = self._send_command("LASER_ON", expected_prefix="OK:LASER_ON")
 
                 if "OK:LASER_ON" in response:
                     self.aiming_laser_enabled = True
@@ -605,7 +650,7 @@ class GPIOController(QObject):
 
         with self._lock:
             try:
-                response = self._send_command("LASER_OFF")
+                response = self._send_command("LASER_OFF", expected_prefix="OK:LASER_OFF")
 
                 if "OK:LASER_OFF" in response:
                     self.aiming_laser_enabled = False
@@ -631,7 +676,7 @@ class GPIOController(QObject):
                 self.error_occurred.emit(error_msg)
                 return False
 
-    def _update_status(self) -> None:
+    def _update_status(self) -> None:  # noqa: C901
         """Update all sensor readings (called by timer)."""
         if not self.is_connected:
             return
@@ -639,7 +684,7 @@ class GPIOController(QObject):
         with self._lock:
             try:
                 # Read vibration level from accelerometer
-                response = self._send_command("GET_VIBRATION_LEVEL")
+                response = self._send_command("GET_VIBRATION_LEVEL", expected_prefix="VIBRATION:")
                 if "VIBRATION:" in response:
                     try:
                         value_str = response.split(":")[1].strip()
@@ -673,7 +718,7 @@ class GPIOController(QObject):
                 self._update_safety_status()
 
                 # Read photodiode voltage
-                response = self._send_command("GET_PHOTODIODE")
+                response = self._send_command("GET_PHOTODIODE", expected_prefix="PHOTODIODE:")
                 if "PHOTODIODE:" in response:
                     voltage_str = response.split(":")[1].strip()
                     self.photodiode_voltage = float(voltage_str)

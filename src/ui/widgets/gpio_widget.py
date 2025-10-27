@@ -7,7 +7,7 @@ Provides safety monitoring interface for smoothing device and photodiode.
 import logging
 from typing import Optional
 
-from PyQt6.QtCore import pyqtSlot
+from PyQt6.QtCore import pyqtSignal, pyqtSlot
 from PyQt6.QtWidgets import (
     QGridLayout,
     QGroupBox,
@@ -28,6 +28,10 @@ class GPIOWidget(QWidget):
     """
     GPIO safety monitoring widget with connection and status displays.
     """
+
+    # Signal emitted when GPIO controller connection status changes
+    # Emitted AFTER controller is created and connected
+    gpio_connection_changed = pyqtSignal(bool)
 
     def __init__(self) -> None:
         super().__init__()
@@ -254,6 +258,9 @@ class GPIOWidget(QWidget):
         )
         logger.info(f"GPIO connection status: {status_text}")
         self._update_ui_state()
+
+        # Emit signal to notify other components (e.g., main window for watchdog)
+        self.gpio_connection_changed.emit(connected)
 
     @pyqtSlot(bool)
     def _on_motor_changed(self, enabled: bool) -> None:
