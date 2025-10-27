@@ -332,12 +332,15 @@ class GPIOController(QObject):
 
         with self._lock:
             try:
-                response = self._send_command("MOTOR_ON")
+                # Use default motor speed (100 PWM = ~2.0V)
+                response = self._send_command("MOTOR_SPEED:100")
 
-                if "OK:MOTOR_ON" in response:
+                if "OK:MOTOR_SPEED:" in response:
                     self.motor_enabled = True
+                    self.motor_speed_pwm = 100
                     self.smoothing_motor_changed.emit(True)
-                    logger.info("Smoothing motor started")
+                    self.motor_speed_changed.emit(100)
+                    logger.info("Smoothing motor started at PWM 100")
 
                     # Log event
                     if self.event_logger:
@@ -375,7 +378,9 @@ class GPIOController(QObject):
 
                 if "OK:MOTOR_OFF" in response:
                     self.motor_enabled = False
+                    self.motor_speed_pwm = 0
                     self.smoothing_motor_changed.emit(False)
+                    self.motor_speed_changed.emit(0)
                     logger.info("Smoothing motor stopped")
 
                     # Log event
@@ -633,28 +638,39 @@ class GPIOController(QObject):
 
         with self._lock:
             try:
-                # Read vibration sensor
-                response = self._send_command("GET_VIBRATION")
+                # Read vibration level from accelerometer
+                response = self._send_command("GET_VIBRATION_LEVEL")
                 if "VIBRATION:" in response:
-                    value = response.split(":")[1].strip()
-                    current_vibration = value == "1"
+                    try:
+                        value_str = response.split(":")[1].strip()
+                        vibration_magnitude = float(value_str)
+                        self.vibration_level = vibration_magnitude
+                        self.vibration_level_changed.emit(vibration_magnitude)
 
-                    # Debounce vibration detection
-                    if current_vibration:
-                        self.vibration_debounce_count += 1
-                        if self.vibration_debounce_count >= self.vibration_debounce_threshold:
-                            if not self.vibration_detected:
-                                self.vibration_detected = True
-                                self.smoothing_vibration_changed.emit(True)
-                                logger.debug("Vibration detected (debounced)")
-                                self._update_safety_status()
-                    else:
-                        if self.vibration_detected:
+                        # Detect vibration above threshold (0.1g default)
+                        current_vibration = vibration_magnitude > 0.1
+
+                        # Debounce vibration detection
+                        if current_vibration:
+                            self.vibration_debounce_count += 1
+                            if self.vibration_debounce_count >= self.vibration_debounce_threshold:
+                                if not self.vibration_detected:
+                                    self.vibration_detected = True
+                                    self.smoothing_vibration_changed.emit(True)
+                                    logger.debug(f"Vibration detected: {vibration_magnitude:.3f}g")
+                    except (ValueError, IndexError) as e:
+                        logger.debug(f"Failed to parse vibration value: {e}")
+                else:
+                    # Reset debounce counter if no vibration
+                    if self.vibration_debounce_count > 0:
+                        self.vibration_debounce_count -= 1
+                        if self.vibration_debounce_count == 0 and self.vibration_detected:
                             self.vibration_detected = False
                             self.smoothing_vibration_changed.emit(False)
-                            logger.debug("Vibration stopped")
-                            self._update_safety_status()
-                        self.vibration_debounce_count = 0
+                            logger.debug("Vibration stopped (debounced)")
+
+                # Update safety interlock status
+                self._update_safety_status()
 
                 # Read photodiode voltage
                 response = self._send_command("GET_PHOTODIODE")
