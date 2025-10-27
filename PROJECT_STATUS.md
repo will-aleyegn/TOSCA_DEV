@@ -18,11 +18,11 @@ Transform tab-based GUI into integrated "Treatment Dashboard" for improved opera
 
 **Key Deliverables:**
 - ✅ UI Redesign Plan Document (`docs/UI_REDESIGN_PLAN.md`)
-- 🟡 Phase 1: Quick Wins (Global toolbar, master safety indicator, enhanced status bar)
+- ✅ Phase 1: Quick Wins (Global toolbar, master safety indicator, enhanced status bar) - COMPLETE
 - ⏳ Phase 2: Treatment Dashboard (Integrated mission control view)
 - ⏳ Phase 3: New Features (Protocol selector, camera snapshot, manual overrides)
 
-**Progress:** 5% (Planning complete, implementation starting)
+**Progress:** 25% (Phase 1 complete, Phase 2 planning)
 
 ---
 
@@ -66,12 +66,12 @@ Transform tab-based GUI into integrated "Treatment Dashboard" for improved opera
 #### Milestone 5: UI/UX Redesign (In Progress: 2025-10-27)
 **Target:** 2025-11-03
 
-**Phase 1 Objectives:**
-- [ ] Add global toolbar with E-STOP button
-- [ ] Implement master safety indicator in status bar
-- [ ] Add connection status icons
-- [ ] Move Dev Mode to menubar, remove redundant Close button
-- [ ] Remove redundant title label
+**Phase 1 Objectives:** ✅ **COMPLETE**
+- [x] Add global toolbar with E-STOP button
+- [x] Implement master safety indicator in status bar
+- [x] Add connection status icons
+- [x] Move Dev Mode to menubar, remove redundant Close button
+- [x] Remove redundant title label
 
 **Phase 2 Objectives:**
 - [ ] Create consolidated Interlocks status widget
@@ -128,7 +128,7 @@ Transform tab-based GUI into integrated "Treatment Dashboard" for improved opera
 
 | Widget | Status | Notes |
 |--------|--------|-------|
-| `MainWindow` | 🟡 Redesigning | Adding toolbar, improving status bar |
+| `MainWindow` | 🟢 Phase 1 Complete | Global toolbar, safety indicator, status bar enhanced |
 | `SubjectWidget` | ✅ Stable | Will move to combined Setup tab |
 | `CameraWidget` | ✅ Stable | Will integrate into Treatment Dashboard |
 | `TreatmentWidget` | 🟡 Redesigning | Restructuring as dashboard layout |
@@ -147,8 +147,8 @@ Transform tab-based GUI into integrated "Treatment Dashboard" for improved opera
 ### High Priority
 - [ ] **UI Tab-Switching During Treatment** - Operators must switch tabs to see safety status
   - *Resolution:* Phase 2 Treatment Dashboard addresses this
-- [ ] **No Global E-Stop** - E-Stop button only on Safety tab
-  - *Resolution:* Phase 1 adds global toolbar with E-Stop
+- [x] **No Global E-Stop** - ~~E-Stop button only on Safety tab~~ **RESOLVED**
+  - *Resolution:* Phase 1 added global toolbar with E-Stop accessible from all tabs
 
 ### Medium Priority
 - [ ] **Hardcoded Test Protocol** - Treatment uses placeholder protocol
@@ -273,12 +273,12 @@ Transform tab-based GUI into integrated "Treatment Dashboard" for improved opera
 
 ## Next Steps (Priority Order)
 
-1. **Phase 1 UI Quick Wins** (Week 1)
-   - Implement global toolbar with E-Stop
-   - Add master safety indicator
-   - Enhance status bar
+1. ✅ **Phase 1 UI Quick Wins** (Week 1) - **COMPLETE**
+   - ✓ Implemented global toolbar with E-Stop
+   - ✓ Added master safety indicator
+   - ✓ Enhanced status bar
 
-2. **Phase 2 Treatment Dashboard** (Weeks 2-3)
+2. **Phase 2 Treatment Dashboard** (Weeks 2-3) - **NEXT**
    - Restructure main treatment view
    - Create Interlocks widget
    - Integrate camera feed
