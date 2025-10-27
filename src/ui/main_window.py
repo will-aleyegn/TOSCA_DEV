@@ -3,6 +3,7 @@ Main application window with tab-based navigation.
 """
 
 import logging
+from typing import Any
 
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QCloseEvent
@@ -15,6 +16,7 @@ from PyQt6.QtWidgets import (
     QPushButton,
     QStatusBar,
     QTabWidget,
+    QToolBar,
     QVBoxLayout,
     QWidget,
 )
@@ -75,6 +77,7 @@ class MainWindow(QMainWindow):
         )
 
         self._init_ui()
+        self._init_toolbar()
         self._init_status_bar()
 
         logger.info("Main window initialized")
@@ -139,6 +142,66 @@ class MainWindow(QMainWindow):
         # Connect event logger to widgets
         self._connect_event_logger()
 
+    def _init_toolbar(self) -> None:
+        """Initialize global toolbar with critical controls."""
+        toolbar = QToolBar("Main Toolbar")
+        toolbar.setMovable(False)
+        self.addToolBar(toolbar)
+
+        # Global E-STOP button (always accessible)
+        self.global_estop_btn = QPushButton("🛑 EMERGENCY STOP")
+        self.global_estop_btn.setMinimumHeight(40)
+        self.global_estop_btn.setStyleSheet(
+            "QPushButton { background-color: #d32f2f; color: white; "
+            "padding: 8px 16px; font-weight: bold; font-size: 14px; }"
+            "QPushButton:hover { background-color: #b71c1c; }"
+        )
+        self.global_estop_btn.setToolTip("Emergency stop - immediately disable treatment laser")
+        self.global_estop_btn.clicked.connect(self._on_global_estop_clicked)
+        toolbar.addWidget(self.global_estop_btn)
+
+        toolbar.addSeparator()
+
+        # Connect All button
+        self.connect_all_btn = QPushButton("🔌 Connect All")
+        self.connect_all_btn.setMinimumHeight(35)
+        self.connect_all_btn.setStyleSheet(
+            "QPushButton { background-color: #1976D2; color: white; "
+            "padding: 6px 12px; font-weight: bold; }"
+            "QPushButton:hover { background-color: #1565C0; }"
+        )
+        self.connect_all_btn.setToolTip("Connect to all hardware (Camera, Laser, Actuator, GPIO)")
+        self.connect_all_btn.clicked.connect(self._on_connect_all_clicked)
+        toolbar.addWidget(self.connect_all_btn)
+
+        # Disconnect All button
+        self.disconnect_all_btn = QPushButton("Disconnect All")
+        self.disconnect_all_btn.setMinimumHeight(35)
+        self.disconnect_all_btn.setEnabled(False)
+        self.disconnect_all_btn.setToolTip("Disconnect from all hardware")
+        self.disconnect_all_btn.clicked.connect(self._on_disconnect_all_clicked)
+        toolbar.addWidget(self.disconnect_all_btn)
+
+        toolbar.addSeparator()
+
+        # Pause Protocol button
+        self.pause_protocol_btn = QPushButton("⏸ Pause")
+        self.pause_protocol_btn.setMinimumHeight(35)
+        self.pause_protocol_btn.setEnabled(False)
+        self.pause_protocol_btn.setToolTip("Pause current treatment protocol")
+        self.pause_protocol_btn.clicked.connect(self._on_pause_protocol_clicked)
+        toolbar.addWidget(self.pause_protocol_btn)
+
+        # Resume Protocol button
+        self.resume_protocol_btn = QPushButton("▶ Resume")
+        self.resume_protocol_btn.setMinimumHeight(35)
+        self.resume_protocol_btn.setEnabled(False)
+        self.resume_protocol_btn.setToolTip("Resume paused treatment protocol")
+        self.resume_protocol_btn.clicked.connect(self._on_resume_protocol_clicked)
+        toolbar.addWidget(self.resume_protocol_btn)
+
+        logger.info("Global toolbar initialized")
+
     def _init_status_bar(self) -> None:
         """Initialize status bar with connection indicators."""
         status_bar = QStatusBar()
@@ -177,9 +240,28 @@ class MainWindow(QMainWindow):
         self.close_btn.clicked.connect(self._on_close_program)
         status_layout.addWidget(self.close_btn)
 
+        status_layout.addWidget(QLabel("|"))
+
+        # Master Safety Indicator (always visible, right side)
+        self.master_safety_indicator = QLabel("SYSTEM SAFE")
+        self.master_safety_indicator.setStyleSheet(
+            "QLabel { background-color: #4CAF50; color: white; "
+            "padding: 8px 16px; font-weight: bold; font-size: 14px; "
+            "border-radius: 3px; }"
+        )
+        self.master_safety_indicator.setToolTip(
+            "Master safety status - reflects all interlock conditions"
+        )
+        status_layout.addWidget(self.master_safety_indicator)
+
         status_widget = QWidget()
         status_widget.setLayout(status_layout)
         status_bar.addWidget(status_widget)
+
+        # Connect safety manager to master indicator
+        if hasattr(self, "safety_manager") and self.safety_manager:
+            self.safety_manager.safety_state_changed.connect(self._update_master_safety_indicator)
+            logger.info("Master safety indicator connected to SafetyManager")
 
     def _on_close_program(self) -> None:
         """Handle close program button click."""
@@ -444,6 +526,140 @@ class MainWindow(QMainWindow):
         logger.info(f"Session {session_id} started - updating safety system")
         # Mark session as valid for safety system
         self.safety_manager.set_session_valid(True)
+
+    def _on_global_estop_clicked(self) -> None:
+        """Handle global E-STOP button click."""
+        logger.critical("GLOBAL E-STOP ACTIVATED BY USER")
+        if self.safety_manager:
+            self.safety_manager.trigger_emergency_stop()
+            # Disable E-Stop button after activation
+            self.global_estop_btn.setEnabled(False)
+            self.global_estop_btn.setText("🛑 E-STOP ACTIVE")
+
+    def _on_connect_all_clicked(self) -> None:
+        """Handle Connect All button click."""
+        logger.info("Connecting to all hardware...")
+
+        # Connect GPIO (Safety tab)
+        if hasattr(self.safety_widget, "gpio_widget") and self.safety_widget.gpio_widget:
+            gpio_widget = self.safety_widget.gpio_widget
+            if not gpio_widget.is_connected:
+                logger.info("Connecting GPIO...")
+                gpio_widget._on_connect_clicked()
+
+        # Connect Camera
+        if hasattr(self.camera_widget, "connect_camera"):
+            logger.info("Connecting Camera...")
+            self.camera_widget.connect_camera()
+
+        # Connect Laser (Treatment tab)
+        if hasattr(self.treatment_widget, "laser_widget"):
+            laser_widget = self.treatment_widget.laser_widget
+            if hasattr(laser_widget, "is_connected") and not laser_widget.is_connected:
+                logger.info("Connecting Laser...")
+                if hasattr(laser_widget, "_on_connect_clicked"):
+                    laser_widget._on_connect_clicked()
+
+        # Connect Actuator (Treatment tab)
+        if hasattr(self.treatment_widget, "actuator_widget"):
+            actuator_widget = self.treatment_widget.actuator_widget
+            if hasattr(actuator_widget, "is_connected") and not actuator_widget.is_connected:
+                logger.info("Connecting Actuator...")
+                if hasattr(actuator_widget, "_on_connect_clicked"):
+                    actuator_widget._on_connect_clicked()
+
+        # Update button states
+        self.connect_all_btn.setEnabled(False)
+        self.disconnect_all_btn.setEnabled(True)
+        logger.info("Connect All completed")
+
+    def _on_disconnect_all_clicked(self) -> None:
+        """Handle Disconnect All button click."""
+        logger.info("Disconnecting from all hardware...")
+
+        # Disconnect GPIO
+        if hasattr(self.safety_widget, "gpio_widget") and self.safety_widget.gpio_widget:
+            gpio_widget = self.safety_widget.gpio_widget
+            if gpio_widget.is_connected:
+                logger.info("Disconnecting GPIO...")
+                gpio_widget._on_disconnect_clicked()
+
+        # Disconnect Camera
+        if hasattr(self.camera_widget, "disconnect_camera"):
+            logger.info("Disconnecting Camera...")
+            self.camera_widget.disconnect_camera()
+
+        # Disconnect Laser
+        if hasattr(self.treatment_widget, "laser_widget"):
+            laser_widget = self.treatment_widget.laser_widget
+            if hasattr(laser_widget, "is_connected") and laser_widget.is_connected:
+                logger.info("Disconnecting Laser...")
+                if hasattr(laser_widget, "_on_disconnect_clicked"):
+                    laser_widget._on_disconnect_clicked()
+
+        # Disconnect Actuator
+        if hasattr(self.treatment_widget, "actuator_widget"):
+            actuator_widget = self.treatment_widget.actuator_widget
+            if hasattr(actuator_widget, "is_connected") and actuator_widget.is_connected:
+                logger.info("Disconnecting Actuator...")
+                if hasattr(actuator_widget, "_on_disconnect_clicked"):
+                    actuator_widget._on_disconnect_clicked()
+
+        # Update button states
+        self.connect_all_btn.setEnabled(True)
+        self.disconnect_all_btn.setEnabled(False)
+        logger.info("Disconnect All completed")
+
+    def _on_pause_protocol_clicked(self) -> None:
+        """Handle Pause Protocol button click."""
+        logger.info("Pausing treatment protocol...")
+        if self.protocol_engine and hasattr(self.protocol_engine, "pause"):
+            self.protocol_engine.pause()
+            self.pause_protocol_btn.setEnabled(False)
+            self.resume_protocol_btn.setEnabled(True)
+            logger.info("Protocol paused")
+        else:
+            logger.warning("Cannot pause: Protocol engine not available or pause not implemented")
+
+    def _on_resume_protocol_clicked(self) -> None:
+        """Handle Resume Protocol button click."""
+        logger.info("Resuming treatment protocol...")
+        if self.protocol_engine and hasattr(self.protocol_engine, "resume"):
+            self.protocol_engine.resume()
+            self.pause_protocol_btn.setEnabled(True)
+            self.resume_protocol_btn.setEnabled(False)
+            logger.info("Protocol resumed")
+        else:
+            logger.warning("Cannot resume: Protocol engine not available or resume not implemented")
+
+    def _update_master_safety_indicator(self, state: Any) -> None:
+        """
+        Update master safety indicator in status bar.
+
+        Args:
+            state: SafetyState enum value (SAFE, UNSAFE, EMERGENCY_STOP)
+        """
+        from core.safety import SafetyState
+
+        if state == SafetyState.SAFE:
+            text = "SYSTEM SAFE"
+            color = "#4CAF50"  # Green
+            logger.debug("Master safety indicator: SAFE")
+        elif state == SafetyState.UNSAFE:
+            text = "SYSTEM UNSAFE"
+            color = "#FF9800"  # Orange
+            logger.warning("Master safety indicator: UNSAFE")
+        else:  # EMERGENCY_STOP
+            text = "EMERGENCY STOP"
+            color = "#F44336"  # Red
+            logger.critical("Master safety indicator: E-STOP")
+
+        self.master_safety_indicator.setText(text)
+        self.master_safety_indicator.setStyleSheet(
+            f"QLabel {{ background-color: {color}; color: white; "
+            f"padding: 8px 16px; font-weight: bold; font-size: 14px; "
+            f"border-radius: 3px; }}"
+        )
 
     def closeEvent(self, event: QCloseEvent) -> None:
         """Handle window close event and cleanup resources."""
