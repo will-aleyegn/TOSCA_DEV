@@ -1,7 +1,7 @@
 # Safety Watchdog Timer Architecture
 
 **Document Version:** 1.0
-**Last Updated:** 2025-10-25
+**Last Updated:** 2025-10-26
 **Status:** Implemented
 **Priority:** CRITICAL - Required before clinical testing
 
@@ -233,7 +233,7 @@ class SafetyWatchdog(QObject):
 
 **File:** `src/hardware/gpio_controller.py`
 
-**Library:** pyserial (replaces pyfirmata2)
+**Library:** pyserial with custom serial protocol (replaced pyfirmata2 in Oct 2025)
 
 **Key Method:**
 ```python

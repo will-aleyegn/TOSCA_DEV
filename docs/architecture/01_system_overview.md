@@ -39,8 +39,8 @@ numpy                   # Image array operations
 pillow                  # Image saving/conversion
 
 # Hardware Interfaces
-pyserial               # Arroyo laser serial communication
-pyfirmata              # Arduino Nano GPIO/ADC support
+pyserial               # Arroyo laser serial communication + Arduino Nano COM4
+# pyfirmata            # REMOVED - replaced by custom serial protocol (Oct 2025)
 # Xeryon library        # Linear actuator control (existing)
 # VmbPy SDK            # Allied Vision camera interface (existing)
 
@@ -126,9 +126,10 @@ jsonschema            # Protocol validation
   - Treatment recording
 
 ### 4. GPIO Controller - Safety Interlocks and Monitoring (Arduino Nano)
-- **Device:** Arduino Nano (ATmega328P)
+- **Device:** Arduino Nano (ATmega328P) on COM4
+- **Migration Note:** Replaced FT232H GPIO expander in October 2025
 - **Firmware:** Custom watchdog firmware with serial protocol
-- **Communication:** USB serial (115200 baud)
+- **Communication:** USB serial (pyserial, 115200 baud)
 - **Digital I/O:**
   - **Pin D2 (Output):** Smoothing device motor control
   - **Pin D3 (Input):** Smoothing device vibration sensor
