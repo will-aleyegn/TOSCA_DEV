@@ -78,9 +78,6 @@ docs/.doctrees/
 *.key
 credentials.json
 
-# MCP Configuration with tokens
-.mcp.json
-
 # Temporary files
 *.tmp
 *.temp
@@ -112,6 +109,10 @@ safety_report.json
 # AI Configuration (required in root for Claude Code/MCP)
 .claude/
 .mcp.json
+
+# AI-related documentation and installation
+COMPONENT_RECOMMENDATIONS.md
+install.txt
 
 # Regulatory/FDA Strategy Documents (archive only)
 docs/regulatory_archive/
