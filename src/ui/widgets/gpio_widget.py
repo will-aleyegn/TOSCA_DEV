@@ -18,6 +18,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from config.config_loader import get_config
 from hardware.gpio_controller import GPIOController
 
 logger = logging.getLogger(__name__)
@@ -214,12 +215,17 @@ class GPIOWidget(QWidget):
                 self.connection_status_label.setText("Libraries not installed")
                 return
 
+        # Get COM port from config
+        config = get_config()
+        com_port = config.hardware.gpio.com_port
+
         # Connect to GPIO
-        success = self.controller.connect()
+        logger.info(f"Attempting to connect to Arduino on {com_port}")
+        success = self.controller.connect(port=com_port)
 
         if not success:
-            logger.error("Failed to connect to GPIO")
-            self.connection_status_label.setText("Connection failed")
+            logger.error(f"Failed to connect to GPIO on {com_port}")
+            self.connection_status_label.setText(f"Connection failed ({com_port})")
 
     @pyqtSlot()
     def _on_disconnect_clicked(self) -> None:
