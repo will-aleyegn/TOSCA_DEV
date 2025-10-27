@@ -17,7 +17,7 @@ hardware:
     position_check_loop_ms: 50  # Position loop check delay (ms)
 
   laser:
-    com_port: "COM4"  # Serial port for laser controller
+    com_port: "COM4"  # Serial port for laser controller (NOT CONNECTED - will fail gracefully)
     baudrate: 38400  # Serial baudrate
     timeout_s: 1.0  # Serial read timeout (seconds)
     write_timeout_s: 1.0  # Serial write timeout (seconds)
@@ -26,15 +26,26 @@ hardware:
     min_current_ma: 0.0  # Minimum laser current (mA)
 
   gpio:
-    com_port: "COM4"  # Serial port for Arduino Nano
+    com_port: "COM6"  # Serial port for Arduino Uno (v2.0 firmware)
     baudrate: 9600  # Serial baudrate
     timeout_s: 1.0  # Serial read timeout (seconds)
     write_timeout_s: 1.0  # Serial write timeout (seconds)
     monitor_timer_ms: 100  # Status update interval (ms)
     watchdog_timeout_ms: 1000  # Hardware watchdog timeout (ms)
-    motor_control_pin: 2  # Arduino digital pin for motor control
-    vibration_sensor_pin: 3  # Arduino digital pin for vibration sensor
-    photodiode_pin: 0  # Arduino analog pin for photodiode (A0-A7)
+
+    # Hardware Pin Configuration (NEW v2.0):
+    motor_pwm_pin: 9  # Arduino PWM pin for smoothing motor (D9)
+    motor_pwm_min: 0  # Minimum PWM value (stopped)
+    motor_pwm_max: 153  # Maximum PWM value (3.0V - DO NOT EXCEED)
+    motor_default_speed: 100  # Default motor speed (2.0V)
+
+    accelerometer_i2c: true  # Using I2C accelerometer (A4=SDA, A5=SCL)
+    accelerometer_address: 0  # Auto-detect (0x53=ADXL345, 0x68=MPU6050)
+    vibration_threshold: 0.1  # Vibration detection threshold (g's)
+
+    photodiode_pin: 0  # Arduino analog pin for photodiode (A0)
+    aiming_laser_pin: 4  # Arduino digital pin for aiming laser (D4)
+    footpedal_pin: 5  # Arduino digital pin for footpedal (D5 - future)
 
 safety:
   watchdog_enabled: true  # Enable hardware watchdog timer

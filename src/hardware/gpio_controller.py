@@ -62,7 +62,10 @@ class GPIOController(QObject):
 
     # Signals
     smoothing_motor_changed = pyqtSignal(bool)  # Motor state (on/off)
+    motor_speed_changed = pyqtSignal(int)  # Motor PWM speed (0-153)
     smoothing_vibration_changed = pyqtSignal(bool)  # Vibration detected
+    accelerometer_data_changed = pyqtSignal(float, float, float)  # X, Y, Z acceleration (g)
+    vibration_level_changed = pyqtSignal(float)  # Vibration magnitude (g)
     photodiode_voltage_changed = pyqtSignal(float)  # Voltage in V
     photodiode_power_changed = pyqtSignal(float)  # Calculated power in mW
     aiming_laser_changed = pyqtSignal(bool)  # Aiming laser state (on/off)
@@ -89,8 +92,14 @@ class GPIOController(QObject):
         # State tracking
         self.is_connected = False
         self.motor_enabled = False
+        self.motor_speed_pwm = 0  # PWM value (0-153)
         self.aiming_laser_enabled = False
         self.vibration_detected = False
+        self.accelerometer_initialized = False
+        self.accel_x = 0.0
+        self.accel_y = 0.0
+        self.accel_z = 0.0
+        self.vibration_level = 0.0
         self.photodiode_voltage = 0.0
         self.photodiode_power_mw = 0.0
 
@@ -388,6 +397,157 @@ class GPIOController(QObject):
                 logger.error(error_msg)
                 self.error_occurred.emit(error_msg)
                 return False
+
+    def set_motor_speed(self, pwm: int) -> bool:
+        """
+        Set smoothing motor speed using PWM (0-153).
+
+        PWM Range:
+            0   = Motor OFF (0V)
+            76  = 1.5V (minimum rated speed)
+            153 = 3.0V (maximum safe speed)
+
+        Args:
+            pwm: PWM value (0-153)
+
+        Returns:
+            True if speed set successfully
+        """
+        if not self.is_connected:
+            self.error_occurred.emit("GPIO not connected")
+            return False
+
+        # Clamp PWM to safe range
+        pwm = max(0, min(153, pwm))
+
+        with self._lock:
+            try:
+                if pwm == 0:
+                    # Stop motor
+                    response = self._send_command("MOTOR_OFF")
+                    if "OK:MOTOR_OFF" in response:
+                        self.motor_enabled = False
+                        self.motor_speed_pwm = 0
+                        self.motor_speed_changed.emit(0)
+                        self.smoothing_motor_changed.emit(False)
+                        logger.info("Motor stopped (PWM=0)")
+                        return True
+                else:
+                    # Set motor speed
+                    response = self._send_command(f"MOTOR_SPEED:{pwm}")
+
+                    if f"OK:MOTOR_SPEED:{pwm}" in response:
+                        self.motor_enabled = True
+                        self.motor_speed_pwm = pwm
+                        self.motor_speed_changed.emit(pwm)
+                        self.smoothing_motor_changed.emit(True)
+                        voltage = (pwm / 255.0) * 5.0
+                        logger.info(f"Motor speed set to PWM {pwm} ({voltage:.2f}V)")
+                        return True
+                    else:
+                        raise RuntimeError(f"Unexpected response: {response}")
+
+            except Exception as e:
+                error_msg = f"Failed to set motor speed: {e}"
+                logger.error(error_msg)
+                self.error_occurred.emit(error_msg)
+                return False
+
+    def init_accelerometer(self) -> bool:
+        """
+        Initialize MPU6050 accelerometer.
+
+        Must be called before reading acceleration data.
+        Uses motor-first sequence to avoid reset.
+
+        Returns:
+            True if accelerometer initialized successfully
+        """
+        if not self.is_connected:
+            self.error_occurred.emit("GPIO not connected")
+            return False
+
+        with self._lock:
+            try:
+                response = self._send_command("ACCEL_INIT")
+
+                if "OK:ACCEL_INITIALIZED" in response or "0x68" in response:
+                    self.accelerometer_initialized = True
+                    logger.info("Accelerometer (MPU6050) initialized at 0x68")
+                    return True
+                else:
+                    self.accelerometer_initialized = False
+                    raise RuntimeError(f"Accelerometer not found: {response}")
+
+            except Exception as e:
+                error_msg = f"Failed to initialize accelerometer: {e}"
+                logger.error(error_msg)
+                self.error_occurred.emit(error_msg)
+                self.accelerometer_initialized = False
+                return False
+
+    def get_acceleration(self) -> tuple[float, float, float] | None:
+        """
+        Read X, Y, Z acceleration from MPU6050.
+
+        Returns:
+            (x, y, z) acceleration in g's, or None if failed
+        """
+        if not self.is_connected or not self.accelerometer_initialized:
+            return None
+
+        with self._lock:
+            try:
+                response = self._send_command("GET_ACCEL")
+
+                # Parse response: "ACCEL:X,Y,Z"
+                for line in response.split("\n"):
+                    if "ACCEL:" in line:
+                        data = line.split("ACCEL:")[1].strip()
+                        x, y, z = map(float, data.split(","))
+
+                        self.accel_x = x
+                        self.accel_y = y
+                        self.accel_z = z
+                        self.accelerometer_data_changed.emit(x, y, z)
+
+                        return (x, y, z)
+
+                return None
+
+            except Exception as e:
+                logger.error(f"Failed to read acceleration: {e}")
+                return None
+
+    def get_vibration_level(self) -> float | None:
+        """
+        Read vibration magnitude from MPU6050.
+
+        Returns:
+            Vibration magnitude in g's, or None if failed
+        """
+        if not self.is_connected or not self.accelerometer_initialized:
+            return None
+
+        with self._lock:
+            try:
+                response = self._send_command("GET_VIBRATION_LEVEL")
+
+                # Parse response: "VIBRATION:magnitude"
+                for line in response.split("\n"):
+                    if "VIBRATION:" in line:
+                        vib = float(line.split("VIBRATION:")[1].strip())
+
+                        self.vibration_level = vib
+                        self.vibration_level_changed.emit(vib)
+
+                        return vib
+
+                return None
+
+            except Exception as e:
+                logger.error(f"Failed to read vibration level: {e}")
+                return None
 
     def start_aiming_laser(self) -> bool:
         """

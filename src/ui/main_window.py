@@ -121,6 +121,10 @@ class MainWindow(QMainWindow):
         self.dev_mode_changed.connect(self.camera_widget.set_dev_mode)
         self.dev_mode_changed.connect(self.treatment_widget.set_dev_mode)
 
+        # Connect dev mode to motor widget
+        if hasattr(self.treatment_widget, "motor_widget"):
+            self.dev_mode_changed.connect(self.treatment_widget.motor_widget.set_dev_mode)
+
         self.safety_widget = SafetyWidget(db_manager=self.db_manager)
         self.tabs.addTab(self.safety_widget, "Safety Status")
 
@@ -264,6 +268,12 @@ class MainWindow(QMainWindow):
                     laser_widget = self.treatment_widget.laser_widget
                     laser_widget.set_gpio_controller(gpio_widget.controller)
                     logger.info("GPIO controller connected to laser widget for aiming laser")
+
+                # Connect GPIO controller to motor widget for motor speed control and accelerometer
+                if hasattr(self.treatment_widget, "motor_widget"):
+                    motor_widget = self.treatment_widget.motor_widget
+                    motor_widget.set_gpio_controller(gpio_widget.controller)
+                    logger.info("GPIO controller connected to motor widget for motor control")
 
         # Connect safety manager to treatment widgets
         # Laser widget will check safety manager before enabling
