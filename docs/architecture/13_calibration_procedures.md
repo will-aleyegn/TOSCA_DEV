@@ -2,8 +2,30 @@
 
 **Document Version:** 1.0
 **Last Updated:** 2025-10-26
-**Status:** Planning - Implementation in Phase 6+
+**Status:** ⚠️ **NOT IMPLEMENTED** - Planning Only (Phase 6+)
 **Priority:** CRITICAL - Required for treatment accuracy and FDA compliance
+
+---
+
+> **⚠️ WARNING - No Calibration Procedures Implemented:**
+>
+> **Current Status:** ALL calibration procedures documented here are **PLANNED ONLY**.
+>
+> **NO calibration workflows are implemented** in the current codebase:
+> - ❌ Photodiode calibration - NOT implemented
+> - ❌ Actuator calibration - NOT implemented
+> - ❌ Camera pixel calibration - NOT implemented
+> - ❌ Power verification - NOT implemented
+> - ❌ Calibration database storage - NOT implemented
+>
+> **Current Operation:** System operates with factory defaults (no field calibration)
+>
+> **Implementation Target:** Phase 6 (before clinical testing)
+>
+> **This document serves as:**
+> - Design specification for future calibration workflows
+> - FDA submission documentation (planned procedures)
+> - NIST traceability requirements documentation
 
 ---
 
