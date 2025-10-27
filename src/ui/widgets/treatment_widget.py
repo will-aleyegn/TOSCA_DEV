@@ -8,16 +8,19 @@ from typing import Any, Optional
 
 from PyQt6.QtCore import QThread, pyqtSignal
 from PyQt6.QtWidgets import (
+    QGridLayout,
     QGroupBox,
     QHBoxLayout,
     QLabel,
     QProgressBar,
     QPushButton,
+    QTextEdit,
     QVBoxLayout,
     QWidget,
 )
 
 from ui.widgets.actuator_widget import ActuatorWidget
+from ui.widgets.interlocks_widget import InterlocksWidget
 from ui.widgets.laser_widget import LaserWidget
 from ui.widgets.motor_widget import MotorWidget
 
@@ -70,36 +73,123 @@ class TreatmentWidget(QWidget):
         super().__init__()
         self.dev_mode = False
         self.protocol_engine: Optional[Any] = None
+        self.safety_manager: Optional[Any] = None
+
+        # Hardware control widgets
         self.actuator_widget: ActuatorWidget = ActuatorWidget()
         self.laser_widget: LaserWidget = LaserWidget()
         self.motor_widget: MotorWidget = MotorWidget()
+
+        # Dashboard widgets
+        self.interlocks_widget: InterlocksWidget = InterlocksWidget()
+
         self._init_ui()
 
     def _init_ui(self) -> None:
-        """Initialize UI components."""
-        layout = QHBoxLayout()  # Horizontal layout for side-by-side controls
+        """Initialize UI components with dashboard layout."""
+        # Use grid layout for precise control over dashboard sections
+        layout = QGridLayout()
         self.setLayout(layout)
 
-        # Left side: Laser controls
-        left_layout = QVBoxLayout()
-        left_layout.addWidget(self.laser_widget)
-        left_layout.addStretch()
+        # === LEFT PANEL: Hardware Controls (Laser + Actuator) ===
+        left_panel = self._create_left_panel()
+        layout.addWidget(left_panel, 0, 0, 2, 1)  # Spans 2 rows, column 0
 
-        # Middle: Treatment controls
-        middle_layout = QVBoxLayout()
-        middle_layout.addWidget(self._create_treatment_control())
-        middle_layout.addStretch()
+        # === CENTER PANEL: Camera Feed + Treatment Controls ===
+        center_panel = self._create_center_panel()
+        layout.addWidget(center_panel, 0, 1, 2, 1)  # Spans 2 rows, column 1
 
-        # Right side: Actuator controls and Motor controls
-        right_layout = QVBoxLayout()
-        right_layout.addWidget(self.actuator_widget)
-        right_layout.addWidget(self.motor_widget)
-        right_layout.addStretch()
+        # === RIGHT PANEL: Interlocks + Smoothing + Events ===
+        right_panel = self._create_right_panel()
+        layout.addWidget(right_panel, 0, 2, 2, 1)  # Spans 2 rows, column 2
 
-        # Add to main layout
-        layout.addLayout(left_layout, 1)
-        layout.addLayout(middle_layout, 1)
-        layout.addLayout(right_layout, 1)
+        # Set column stretch factors (left:center:right = 2:3:2)
+        layout.setColumnStretch(0, 2)  # Left panel (hardware controls)
+        layout.setColumnStretch(1, 3)  # Center panel (camera + treatment)
+        layout.setColumnStretch(2, 2)  # Right panel (interlocks + status)
+
+    def _create_left_panel(self) -> QWidget:
+        """Create left panel with hardware controls."""
+        panel = QWidget()
+        layout = QVBoxLayout()
+        panel.setLayout(layout)
+
+        # Laser controls
+        layout.addWidget(self.laser_widget)
+
+        # Actuator controls
+        layout.addWidget(self.actuator_widget)
+
+        # Motor widget (will be moved to right panel in Phase 2.5)
+        # Keeping here temporarily for backward compatibility
+        layout.addWidget(self.motor_widget)
+
+        layout.addStretch()
+        return panel
+
+    def _create_center_panel(self) -> QWidget:
+        """Create center panel with camera feed and treatment controls."""
+        panel = QWidget()
+        layout = QVBoxLayout()
+        panel.setLayout(layout)
+
+        # Placeholder for camera feed (Phase 2.3)
+        camera_placeholder = QLabel("Camera Feed\n(Phase 2.3)")
+        camera_placeholder.setStyleSheet(
+            "QLabel { "
+            "background-color: #2b2b2b; "
+            "color: #666; "
+            "font-size: 18px; "
+            "border: 2px dashed #444; "
+            "padding: 60px; "
+            "}"
+        )
+        camera_placeholder.setMinimumHeight(300)
+        layout.addWidget(camera_placeholder, 2)  # Give camera feed more space
+
+        # Treatment controls at bottom of center panel
+        layout.addWidget(self._create_treatment_control(), 1)
+
+        return panel
+
+    def _create_right_panel(self) -> QWidget:
+        """Create right panel with interlocks, smoothing status, and mini event log."""
+        panel = QWidget()
+        layout = QVBoxLayout()
+        panel.setLayout(layout)
+
+        # Safety interlocks status
+        layout.addWidget(self.interlocks_widget)
+
+        # Placeholder for smoothing motor controls (Phase 2.5)
+        smoothing_placeholder = QGroupBox("Smoothing Motor")
+        smoothing_layout = QVBoxLayout()
+        smoothing_label = QLabel("(Phase 2.5)\nMotor controls will move here")
+        smoothing_label.setStyleSheet("color: #666; font-size: 11px; padding: 10px;")
+        smoothing_layout.addWidget(smoothing_label)
+        smoothing_placeholder.setLayout(smoothing_layout)
+        layout.addWidget(smoothing_placeholder)
+
+        # Mini event log
+        layout.addWidget(self._create_mini_event_log())
+
+        layout.addStretch()
+        return panel
+
+    def _create_mini_event_log(self) -> QGroupBox:
+        """Create mini event log for dashboard."""
+        group = QGroupBox("Recent Events")
+        layout = QVBoxLayout()
+
+        self.mini_event_log = QTextEdit()
+        self.mini_event_log.setReadOnly(True)
+        self.mini_event_log.setMaximumHeight(150)
+        self.mini_event_log.setPlaceholderText("Treatment events will appear here...")
+        self.mini_event_log.setStyleSheet("font-size: 10px;")
+        layout.addWidget(self.mini_event_log)
+
+        group.setLayout(layout)
+        return group
 
     def _create_treatment_control(self) -> QGroupBox:
         """Create treatment start/stop controls."""
@@ -201,6 +291,21 @@ class TreatmentWidget(QWidget):
             self.protocol_engine.on_progress_update = self._on_progress_update
             self.protocol_engine.on_state_change = self._on_state_change
             logger.info("Protocol engine callbacks connected for UI feedback")
+
+    def set_safety_manager(self, safety_manager: Any) -> None:
+        """
+        Set the safety manager for interlock monitoring.
+
+        Args:
+            safety_manager: SafetyManager instance for monitoring interlocks
+        """
+        self.safety_manager = safety_manager
+        logger.info("Safety manager connected to treatment widget")
+
+        # Connect interlocks widget to safety manager
+        if self.interlocks_widget and safety_manager:
+            self.interlocks_widget.set_safety_manager(safety_manager)
+            logger.info("InterlocksWidget connected to safety manager")
 
     def _on_start_treatment(self) -> None:
         """Handle start treatment button click."""

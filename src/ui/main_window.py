@@ -486,6 +486,10 @@ class MainWindow(QMainWindow):
         if hasattr(self.treatment_widget, "set_protocol_engine"):
             self.treatment_widget.set_protocol_engine(self.protocol_engine)
 
+        # Pass safety manager to treatment widget for interlock monitoring
+        if hasattr(self.treatment_widget, "set_safety_manager"):
+            self.treatment_widget.set_safety_manager(self.safety_manager)
+
         logger.info(
             f"Protocol engine initialized (laser: {laser_controller is not None}, "
             f"actuator: {actuator_controller is not None}, "
