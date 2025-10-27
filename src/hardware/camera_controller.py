@@ -324,6 +324,38 @@ class CameraController(QObject):
                     device_name="Allied Vision Camera",
                 )
 
+    def get_status(self) -> dict[str, Any]:
+        """
+        Get current camera status and state information.
+
+        Returns:
+            Dictionary containing:
+            - connected (bool): Connection status
+            - streaming (bool): Streaming state
+            - recording (bool): Recording state
+            - camera_id (str | None): Camera identifier if connected
+            - frame_rate (float | None): Current FPS if streaming
+        """
+        with self._lock:
+            status: dict[str, Any] = {
+                "connected": self.is_connected,
+                "streaming": self.is_streaming,
+                "recording": self.is_recording,
+                "camera_id": None,
+                "frame_rate": None,
+            }
+
+            if self.is_connected and self.camera:
+                try:
+                    status["camera_id"] = self.camera.get_id()
+                except Exception:
+                    pass
+
+            if self.is_streaming and self.stream_thread:
+                status["frame_rate"] = getattr(self.stream_thread, "current_fps", None)
+
+            return status
+
     def start_streaming(self) -> bool:
         """
         Start live camera streaming.
