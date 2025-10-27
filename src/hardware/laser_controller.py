@@ -173,6 +173,27 @@ class LaserController(QObject):
                         device_name="Arroyo Laser Driver",
                     )
 
+    def get_status(self) -> dict[str, Any]:
+        """
+        Get current laser status and state information.
+
+        Returns:
+            Dictionary containing:
+            - connected (bool): Connection status
+            - output_enabled (bool): Laser output state
+            - current_ma (float): Current setpoint in mA
+            - power_mw (float): Power setpoint in mW
+            - temperature_c (float): TEC temperature setpoint in °C
+        """
+        with self._lock:
+            return {
+                "connected": self.is_connected,
+                "output_enabled": self.is_output_enabled,
+                "current_ma": self.current_setpoint_ma,
+                "power_mw": self.power_setpoint_mw,
+                "temperature_c": self.temperature_setpoint_c,
+            }
+
     def _write_command(self, command: str) -> Optional[str]:
         """
         Send command to laser driver and return response.

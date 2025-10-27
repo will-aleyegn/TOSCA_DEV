@@ -208,6 +208,35 @@ class ActuatorController(QObject):
                     device_name="Xeryon Linear Stage",
                 )
 
+    def get_status(self) -> dict[str, Any]:
+        """
+        Get current actuator status and state information.
+
+        Returns:
+            Dictionary containing:
+            - connected (bool): Connection status
+            - homed (bool): Homing completion status
+            - position_um (float | None): Current position in micrometers
+            - low_limit_um (float): Lower position limit
+            - high_limit_um (float): Upper position limit
+        """
+        with self._lock:
+            status: dict[str, Any] = {
+                "connected": self.is_connected,
+                "homed": self.is_homed,
+                "position_um": None,
+                "low_limit_um": self.low_limit_um,
+                "high_limit_um": self.high_limit_um,
+            }
+
+            if self.is_connected:
+                try:
+                    status["position_um"] = self.get_position()
+                except Exception:
+                    pass
+
+            return status
+
     def find_index(self) -> bool:
         """
         Home the actuator (find encoder index).

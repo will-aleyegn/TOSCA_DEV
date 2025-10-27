@@ -224,6 +224,32 @@ class GPIOController(QObject):
                     device_name="Arduino Nano",
                 )
 
+    def get_status(self) -> dict[str, Any]:
+        """
+        Get current GPIO status and state information.
+
+        Returns:
+            Dictionary containing:
+            - connected (bool): Connection status
+            - motor_enabled (bool): Smoothing motor state
+            - vibration_detected (bool): Vibration sensor state
+            - aiming_laser_enabled (bool): Aiming laser state
+            - photodiode_voltage (float): Photodiode voltage in V
+            - photodiode_power_mw (float): Calculated power in mW
+            - safety_ok (bool): Overall safety interlock status
+        """
+        with self._lock:
+            safety_ok = self.motor_enabled and self.vibration_detected
+            return {
+                "connected": self.is_connected,
+                "motor_enabled": self.motor_enabled,
+                "vibration_detected": self.vibration_detected,
+                "aiming_laser_enabled": self.aiming_laser_enabled,
+                "photodiode_voltage": self.photodiode_voltage,
+                "photodiode_power_mw": self.photodiode_power_mw,
+                "safety_ok": safety_ok,
+            }
+
     def _send_command(self, command: str, expect_response: bool = True) -> str:
         """
         Send command to Arduino and read response.
