@@ -60,6 +60,11 @@ class GPIOController(QObject):
     - Hardware watchdog heartbeat
     """
 
+    # Calibrated vibration detection threshold (from motor calibration data)
+    # Motor OFF baseline: 0.14g, Motor ON minimum: 1.6g
+    # Threshold provides 5.7x safety margin above noise
+    VIBRATION_THRESHOLD_G = 0.8
+
     # Signals
     smoothing_motor_changed = pyqtSignal(bool)  # Motor state (on/off)
     motor_speed_changed = pyqtSignal(int)  # Motor PWM speed (0-153)
@@ -756,8 +761,8 @@ class GPIOController(QObject):
                         self.vibration_level = vibration_magnitude
                         self.vibration_level_changed.emit(vibration_magnitude)
 
-                        # Detect vibration above threshold (0.1g default)
-                        current_vibration = vibration_magnitude > 0.1
+                        # Detect vibration above calibrated threshold
+                        current_vibration = vibration_magnitude > self.VIBRATION_THRESHOLD_G
 
                         # Debounce vibration detection
                         if current_vibration:
