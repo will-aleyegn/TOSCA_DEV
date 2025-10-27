@@ -1,5 +1,5 @@
 """
-Simple motor vibration calibration - 1.5V to 3.0V
+Simple motor vibration calibration - 0V to 3.0V
 """
 
 import csv
@@ -10,8 +10,8 @@ import serial
 
 COM_PORT = "COM6"
 
-# Voltage range - SIMPLIFIED (4 voltages only)
-voltages = [1.5, 2.0, 2.5, 3.0]
+# Voltage range - INCLUDING 0V (motor off)
+voltages = [0.0, 1.5, 2.0, 2.5, 3.0]
 SAMPLES_PER_VOLTAGE = 5
 
 
