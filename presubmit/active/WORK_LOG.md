@@ -223,19 +223,99 @@ Added complete motor speed control and real-time vibration monitoring to TOSCA G
 
 ---
 
+### Action 2: Fixed GPIO Connection Button Bug ✅ COMPLETE
+**Task:** Debug and fix GPIO connection button not connecting to Arduino
+**Time:** ~15 minutes
+**Status:** ✅ Complete
+
+**Problem Identified:**
+- GPIO widget calling `controller.connect()` with no arguments
+- Default port hardcoded to COM4 in gpio_controller.py
+- Arduino actually on COM6 (per config.yaml)
+- Result: Connection always failing with "wrong port" error
+
+**Root Cause:**
+GPIO widget not reading configuration file before connecting.
+
+**Solution Implemented:**
+1. Added config import: `from config.config_loader import get_config`
+2. Read COM port from config: `config.hardware.gpio.com_port`
+3. Pass port to controller: `controller.connect(port=com_port)`
+4. Enhanced error messages to show COM port for debugging
+
+**Dependencies Fixed:**
+- Installed pydantic 2.12.3 (was in requirements.txt but not installed)
+- Installed pydantic-settings 2.11.0
+- Installed sqlalchemy (via pip install -r requirements.txt)
+
+**Files Modified:**
+- src/ui/widgets/gpio_widget.py (+6 lines, config integration)
+
+**Testing:**
+- ✅ Config loads COM6 correctly
+- ⏳ GUI connection test pending (requires Arduino hardware)
+
+**Commits:**
+- 8e13535: fix: GPIO widget now uses COM port from config.yaml
+
+**Result:** SUCCESS - GPIO widget now reads correct COM port from config
+**Next:** Test with physical Arduino hardware on COM6
+
+### Action 3: Fixed GPIO Method Name Mismatch ✅ COMPLETE
+**Task:** Fix AttributeError when clicking motor enable/disable buttons
+**Time:** ~5 minutes
+**Status:** ✅ Complete
+
+**Problem Identified:**
+```
+AttributeError: 'GPIOController' object has no attribute 'set_smoothing_motor'.
+Did you mean: 'start_smoothing_motor'?
+```
+
+**Root Cause:**
+GPIO widget calling wrong method name - `set_smoothing_motor(enable)` doesn't exist!
+
+**Controller Methods (Correct):**
+- `start_smoothing_motor()` - no parameters
+- `stop_smoothing_motor()` - no parameters
+
+**Widget Was Calling (Wrong):**
+- `set_smoothing_motor(enable)` - method doesn't exist
+
+**Solution:**
+Changed `_on_motor_clicked()` to call correct methods based on enable flag:
+```python
+if enable:
+    self.controller.start_smoothing_motor()
+else:
+    self.controller.stop_smoothing_motor()
+```
+
+**Verification:**
+- ✅ Reviewed all GPIO controller method names
+- ✅ Verified all GPIO widget method calls
+- ✅ Checked motor_widget method calls (all correct)
+- ✅ Verified signal connections (all correct)
+
+**Files Modified:**
+- src/ui/widgets/gpio_widget.py (+3 lines, -1 line)
+
+**Commits:**
+- 6ca4f7f: fix: Correct GPIO controller method names in gpio_widget
+
+**Result:** SUCCESS - Motor enable/disable buttons now call correct methods
+**Impact:** GPIO motor control buttons will now work without runtime errors
+
+---
+
 ## Next Immediate Actions
 
-1. **Complete documentation cleanup**
-   - Update PROJECT_STATUS.md with motor integration
-   - Archive old review documents
-   - Organize scattered test files
+1. **Test GPIO Connection** (READY)
+   - Connect Arduino Uno to COM6
+   - Launch GUI and test connection button
+   - Verify motor widget enables after connection
 
-2. **Commit recent work**
-   - Add new motor widget and documentation
-   - Update modified controllers
-   - Commit watchdog v2 firmware
-
-3. **Continue Week 2 Testing**
+2. **Continue Week 2 Testing**
    - Unit test coverage for hardware controllers
    - Core business logic tests
    - Database operations tests
