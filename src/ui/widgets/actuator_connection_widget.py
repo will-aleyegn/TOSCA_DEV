@@ -67,22 +67,30 @@ class ActuatorConnectionWidget(QWidget):
         group = QGroupBox("Connection & Homing")
         layout = QHBoxLayout()
 
-        # Connect button
+        # Connect button - fixed width for compact layout
         self.connect_btn = QPushButton("Connect")
+        self.connect_btn.setFixedWidth(120)
+        self.connect_btn.setMinimumHeight(32)
         self.connect_btn.clicked.connect(self._on_connect_clicked)
         layout.addWidget(self.connect_btn)
 
-        # Home button
+        # Home button - fixed width for compact layout
         self.home_btn = QPushButton("Find Home")
+        self.home_btn.setFixedWidth(120)
+        self.home_btn.setMinimumHeight(32)
         self.home_btn.clicked.connect(self._on_home_clicked)
         self.home_btn.setEnabled(False)
         layout.addWidget(self.home_btn)
 
-        # Disconnect button
+        # Disconnect button - fixed width for compact layout
         self.disconnect_btn = QPushButton("Disconnect")
+        self.disconnect_btn.setFixedWidth(120)
+        self.disconnect_btn.setMinimumHeight(32)
         self.disconnect_btn.clicked.connect(self._on_disconnect_clicked)
         self.disconnect_btn.setEnabled(False)
         layout.addWidget(self.disconnect_btn)
+
+        layout.addStretch()  # Push buttons to left, leave right space empty
 
         group.setLayout(layout)
         return group
