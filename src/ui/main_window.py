@@ -117,12 +117,12 @@ class MainWindow(QMainWindow):
         hardware_content.setLayout(hardware_layout)
 
         # === SECTION 1: CAMERA SYSTEM ===
-        camera_header = QLabel("📷 Camera System")
-        camera_header.setStyleSheet(
+        self.camera_header = QLabel("📷 Camera System ✗")
+        self.camera_header.setStyleSheet(
             "font-size: 13px; font-weight: bold; padding: 8px; margin-top: 4px; "
             "background-color: #37474F; color: #64B5F6; border-radius: 3px;"
         )
-        hardware_layout.addWidget(camera_header)
+        hardware_layout.addWidget(self.camera_header)
 
         # Camera connection widget (lightweight status + connect/disconnect)
         from ui.widgets.camera_hardware_panel import CameraHardwarePanel
@@ -131,24 +131,24 @@ class MainWindow(QMainWindow):
         hardware_layout.addWidget(self.camera_hardware_panel)
 
         # === SECTION 2: LINEAR ACTUATOR ===
-        actuator_header = QLabel("🔧 Linear Actuator Controller")
-        actuator_header.setStyleSheet(
+        self.actuator_header = QLabel("🔧 Linear Actuator Controller ✗")
+        self.actuator_header.setStyleSheet(
             "font-size: 13px; font-weight: bold; padding: 8px; margin-top: 12px; "
             "background-color: #37474F; color: #81C784; border-radius: 3px;"
         )
-        hardware_layout.addWidget(actuator_header)
+        hardware_layout.addWidget(self.actuator_header)
 
         # Actuator connection widget (will be created after ActuatorWidget in Protocol Builder tab)
         # Placeholder stored for later widget insertion
         self.actuator_header_index = hardware_layout.count() - 1  # Remember position for insertion
 
         # === SECTION 3: LASER SYSTEMS ===
-        laser_header = QLabel("⚡ Laser Systems (Aiming + Treatment)")
-        laser_header.setStyleSheet(
+        self.laser_header = QLabel("⚡ Laser Systems (Aiming + Treatment) ✗")
+        self.laser_header.setStyleSheet(
             "font-size: 13px; font-weight: bold; padding: 8px; margin-top: 12px; "
             "background-color: #37474F; color: #FFD54F; border-radius: 3px;"
         )
-        hardware_layout.addWidget(laser_header)
+        hardware_layout.addWidget(self.laser_header)
 
         # Laser Control Widget (aiming + treatment laser connection + configuration)
         from ui.widgets.laser_widget import LaserWidget
@@ -460,6 +460,51 @@ class MainWindow(QMainWindow):
         else:
             self.setWindowTitle("TOSCA Laser Control System")
             self.subject_widget.setEnabled(True)
+
+    def _update_camera_header_status(self, connected: bool) -> None:
+        """Update camera section header with connection status."""
+        if connected:
+            self.camera_header.setText("📷 Camera System ✓")
+            self.camera_header.setStyleSheet(
+                "font-size: 13px; font-weight: bold; padding: 8px; margin-top: 4px; "
+                "background-color: #2E7D32; color: white; border-radius: 3px;"
+            )
+        else:
+            self.camera_header.setText("📷 Camera System ✗")
+            self.camera_header.setStyleSheet(
+                "font-size: 13px; font-weight: bold; padding: 8px; margin-top: 4px; "
+                "background-color: #37474F; color: #64B5F6; border-radius: 3px;"
+            )
+
+    def _update_actuator_header_status(self, connected: bool) -> None:
+        """Update actuator section header with connection status."""
+        if connected:
+            self.actuator_header.setText("🔧 Linear Actuator Controller ✓")
+            self.actuator_header.setStyleSheet(
+                "font-size: 13px; font-weight: bold; padding: 8px; margin-top: 12px; "
+                "background-color: #2E7D32; color: white; border-radius: 3px;"
+            )
+        else:
+            self.actuator_header.setText("🔧 Linear Actuator Controller ✗")
+            self.actuator_header.setStyleSheet(
+                "font-size: 13px; font-weight: bold; padding: 8px; margin-top: 12px; "
+                "background-color: #37474F; color: #81C784; border-radius: 3px;"
+            )
+
+    def _update_laser_header_status(self, connected: bool) -> None:
+        """Update laser section header with connection status."""
+        if connected:
+            self.laser_header.setText("⚡ Laser Systems (Aiming + Treatment) ✓")
+            self.laser_header.setStyleSheet(
+                "font-size: 13px; font-weight: bold; padding: 8px; margin-top: 12px; "
+                "background-color: #2E7D32; color: white; border-radius: 3px;"
+            )
+        else:
+            self.laser_header.setText("⚡ Laser Systems (Aiming + Treatment) ✗")
+            self.laser_header.setStyleSheet(
+                "font-size: 13px; font-weight: bold; padding: 8px; margin-top: 12px; "
+                "background-color: #37474F; color: #FFD54F; border-radius: 3px;"
+            )
 
     def _connect_safety_system(self) -> None:
         """Connect safety system components."""
@@ -855,6 +900,9 @@ class MainWindow(QMainWindow):
             self.camera_status.setText("📷 Camera ✗")
             self.camera_status.setStyleSheet("color: #f44336;")  # Red
 
+        # Update hardware tab header
+        self._update_camera_header_status(connected)
+
     def update_laser_status(self, connected: bool) -> None:
         """Update laser connection status indicator."""
         if connected:
@@ -864,6 +912,9 @@ class MainWindow(QMainWindow):
             self.laser_status.setText("⚡ Laser ✗")
             self.laser_status.setStyleSheet("color: #f44336;")  # Red
 
+        # Update hardware tab header
+        self._update_laser_header_status(connected)
+
     def update_actuator_status(self, connected: bool) -> None:
         """Update actuator connection status indicator."""
         if connected:
@@ -872,6 +923,9 @@ class MainWindow(QMainWindow):
         else:
             self.actuator_status.setText("🔧 Actuator ✗")
             self.actuator_status.setStyleSheet("color: #f44336;")  # Red
+
+        # Update hardware tab header
+        self._update_actuator_header_status(connected)
 
     def closeEvent(self, event: QCloseEvent) -> None:
         """Handle window close event and cleanup resources."""
