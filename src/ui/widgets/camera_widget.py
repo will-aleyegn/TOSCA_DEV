@@ -732,9 +732,9 @@ class CameraWidget(QWidget):
         if main_window and hasattr(main_window, "update_camera_status"):
             main_window.update_camera_status(connected)
 
-        # Notify hardware tab connection widget (if available)
-        if main_window and hasattr(main_window, "camera_connection_widget"):
-            main_window.camera_connection_widget.update_connection_status(connected)
+        # Notify hardware tab panel (if available)
+        if main_window and hasattr(main_window, "camera_hardware_panel"):
+            main_window.camera_hardware_panel.update_connection_status(connected)
 
     @pyqtSlot(str)
     def _on_error(self, error_msg: str) -> None:
