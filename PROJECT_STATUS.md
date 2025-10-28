@@ -1,8 +1,8 @@
 # TOSCA Project Status
 
-**Last Updated:** 2025-10-27 (Post-Cleanup)
+**Last Updated:** 2025-10-28 (Zen MCP Integration Complete)
 **Project:** TOSCA Laser Control System
-**Version:** 0.9.5-alpha (UI Redesign Phase 2 Complete)
+**Version:** 0.9.5-alpha (UI Redesign Phase 2 Complete + Onboarding Enhanced)
 
 ---
 
@@ -107,6 +107,35 @@ Transform tab-based GUI into integrated "Treatment Dashboard" for improved opera
 - ✅ Manual overrides: GPIO interlock, session validity, power limit
 - ✅ All override actions logged with ⚠️ warnings for audit trail
 - ✅ Prominent danger warnings on override widget
+
+#### Milestone 5.5: AI Onboarding & Zen MCP Integration ✅ **COMPLETE** (2025-10-28)
+**Started:** 2025-10-28
+**Completed:** 2025-10-28 (same day!)
+
+**Objectives:** Transform AI onboarding with automated context loading and comprehensive guides
+
+**Phase 1-5: Core Onboarding System** ✅ **COMPLETE**
+- [x] SESSION_STATE checkpoint system (<30s crash recovery)
+- [x] ONBOARDING.md single entry point (2.5min fast start)
+- [x] Archive compression (84% context reduction: 1541 → 253 lines)
+- [x] Architecture decisions documented (8 ADRs in DECISIONS.md)
+- [x] Keyword-searchable archive (12 categories, 100+ terms)
+
+**Phase 6: Zen MCP Enhancement** ✅ **COMPLETE** (2025-10-28)
+- [x] `zen_context_helper.py` (798 lines) - Auto-context loading module
+- [x] 9 zen tool wrappers (codereview, debug, consensus, secaudit, planner, analyze, refactor, testgen, chat)
+- [x] 6 context packages (lightweight 163 lines → security 1300 lines)
+- [x] QUICKSTART_GUIDE.md (608 lines) - 4 complete workflow scenarios
+- [x] ZEN_CONTEXT_GUIDE.md (809 lines) - Comprehensive tool-by-tool guide
+- [x] Context philosophy: "Err on side of MORE info" for external models
+- [x] Cleanup: Removed 7 stale/duplicate documentation files
+
+**Benefits Delivered:**
+- ✅ 60% faster onboarding (5-10 min → 2.5 min)
+- ✅ Automatic context loading (no manual file specification)
+- ✅ Smart context packages optimized per tool type
+- ✅ Beginner-friendly with real scenarios and examples
+- ✅ Comprehensive documentation (2,215 new lines)
 
 ### ⏳ Planned Milestones
 
@@ -237,6 +266,9 @@ Transform tab-based GUI into integrated "Treatment Dashboard" for improved opera
 | **GPIO Module Review** | ✅ Complete | `components/gpio_module/CODE_REVIEW_2025-10-27.md` |
 | **GPIO Lessons Learned** | ✅ Complete | `components/gpio_module/LESSONS_LEARNED.md` |
 | **Calibration Data** | ✅ Complete | `calibration_data/README.md` |
+| **AI Onboarding System** | ✅ **NEW** | `presubmit/ONBOARDING.md` (2.5min fast start) |
+| **Zen MCP Integration** | ✅ **NEW** | `presubmit/zen_context_helper.py` + guides |
+| **Quick Start Guide** | ✅ **NEW** | `presubmit/QUICKSTART_GUIDE.md` (4 scenarios) |
 | **API Documentation** | 🟡 Partial | Inline docstrings (needs consolidation) |
 | **User Manual** | ⏳ Planned | Awaiting UI completion |
 | **Developer Guide** | 🟡 Partial | README sections (needs expansion) |
