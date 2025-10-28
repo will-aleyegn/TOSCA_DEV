@@ -1,0 +1,53 @@
+{
+  "name": "Linear Power Ramp",
+  "version": "1.0.0",
+  "description": "Gradual power ramp from low to high intensity",
+  "author": "System",
+  "created_date": "2025-10-27",
+  "max_power_watts": 3.0,
+  "max_duration_seconds": 600,
+  "actions": [
+    {
+      "action_id": 1,
+      "action_type": "MoveActuator",
+      "parameters": {
+        "target_position_um": 250.0,
+        "velocity_um_per_sec": 50.0
+      }
+    },
+    {
+      "action_id": 2,
+      "action_type": "Wait",
+      "parameters": {
+        "duration_seconds": 2.0
+      }
+    },
+    {
+      "action_id": 3,
+      "action_type": "RampLaserPower",
+      "parameters": {
+        "start_power_watts": 0.1,
+        "end_power_watts": 2.5,
+        "duration_seconds": 30.0,
+        "ramp_type": "linear"
+      }
+    },
+    {
+      "action_id": 4,
+      "action_type": "Wait",
+      "parameters": {
+        "duration_seconds": 10.0
+      }
+    },
+    {
+      "action_id": 5,
+      "action_type": "RampLaserPower",
+      "parameters": {
+        "start_power_watts": 2.5,
+        "end_power_watts": 0.0,
+        "duration_seconds": 20.0,
+        "ramp_type": "linear"
+      }
+    }
+  ]
+}

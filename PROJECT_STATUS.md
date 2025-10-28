@@ -93,10 +93,20 @@ Transform tab-based GUI into integrated "Treatment Dashboard" for improved opera
 - ✅ Fixed all unused imports, ran formatters (Black, isort)
 - ✅ Archived docs, consolidated status files, full repo cleanup
 
-**Phase 3 Objectives:**
-- [ ] Add protocol selector/loader
-- [ ] Implement camera snapshot feature
-- [ ] Add manual interlock overrides (dev mode only)
+**Phase 3 Objectives:** ✅ **COMPLETE** (3/3 - 100%) 🎉
+- [x] Add protocol selector/loader → `ProtocolSelectorWidget` with visual library browser
+- [x] Implement camera snapshot feature → Already exists, functionality verified
+- [x] Add manual interlock overrides (dev mode only) → `ManualOverrideWidget` created
+
+**Phase 3 Completion Details (2025-10-28 00:35):**
+- ✅ Created `ProtocolSelectorWidget` (~320 lines) - Visual protocol library browser
+- ✅ Created 3 example protocols: `basic_test.json`, `calibration.json`, `power_ramp.json`
+- ✅ Protocol selector shows preview with actions, limits, descriptions
+- ✅ Verified camera snapshot functionality (already implemented)
+- ✅ Created `ManualOverrideWidget` (~260 lines) - Dev-mode-only safety overrides
+- ✅ Manual overrides: GPIO interlock, session validity, power limit
+- ✅ All override actions logged with ⚠️ warnings for audit trail
+- ✅ Prominent danger warnings on override widget
 
 ### ⏳ Planned Milestones
 

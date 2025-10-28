@@ -1,0 +1,64 @@
+{
+  "name": "Actuator Calibration",
+  "version": "1.0.0",
+  "description": "Calibration routine for actuator positioning accuracy",
+  "author": "System",
+  "created_date": "2025-10-27",
+  "max_power_watts": 0.1,
+  "max_duration_seconds": 180,
+  "actions": [
+    {
+      "action_id": 1,
+      "action_type": "MoveActuator",
+      "parameters": {
+        "target_position_um": 0.0,
+        "velocity_um_per_sec": 100.0
+      }
+    },
+    {
+      "action_id": 2,
+      "action_type": "Wait",
+      "parameters": {
+        "duration_seconds": 1.0
+      }
+    },
+    {
+      "action_id": 3,
+      "action_type": "MoveActuator",
+      "parameters": {
+        "target_position_um": 500.0,
+        "velocity_um_per_sec": 100.0
+      }
+    },
+    {
+      "action_id": 4,
+      "action_type": "Wait",
+      "parameters": {
+        "duration_seconds": 1.0
+      }
+    },
+    {
+      "action_id": 5,
+      "action_type": "MoveActuator",
+      "parameters": {
+        "target_position_um": 1000.0,
+        "velocity_um_per_sec": 100.0
+      }
+    },
+    {
+      "action_id": 6,
+      "action_type": "Wait",
+      "parameters": {
+        "duration_seconds": 1.0
+      }
+    },
+    {
+      "action_id": 7,
+      "action_type": "MoveActuator",
+      "parameters": {
+        "target_position_um": 0.0,
+        "velocity_um_per_sec": 100.0
+      }
+    }
+  ]
+}
