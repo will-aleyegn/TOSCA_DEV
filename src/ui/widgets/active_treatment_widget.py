@@ -11,7 +11,6 @@ from typing import Any, Optional
 
 from PyQt6.QtCore import Qt, QThreadPool
 from PyQt6.QtWidgets import (
-    QGridLayout,
     QGroupBox,
     QHBoxLayout,
     QLabel,
