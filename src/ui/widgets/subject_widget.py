@@ -52,6 +52,9 @@ class SubjectWidget(QWidget):
         layout = QVBoxLayout()
         self.setLayout(layout)
 
+        # Constrain maximum width for compact subject selection
+        self.setMaximumWidth(400)
+
         layout.addWidget(self._create_subject_group())
         layout.addWidget(self._create_session_group())
         layout.addStretch()

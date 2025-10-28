@@ -22,7 +22,7 @@ Transform tab-based GUI into integrated "Treatment Dashboard" for improved opera
 - ⏳ Phase 2: Treatment Dashboard (Integrated mission control view)
 - ⏳ Phase 3: New Features (Protocol selector, camera snapshot, manual overrides)
 
-**Progress:** 25% (Phase 1 complete, Phase 2 planning)
+**Progress:** 57% (Phase 1 complete, Phase 2 complete, Phase 3: 0/3)
 
 ---
 
@@ -73,14 +73,15 @@ Transform tab-based GUI into integrated "Treatment Dashboard" for improved opera
 - [x] Move Dev Mode to menubar, remove redundant Close button
 - [x] Remove redundant title label
 
-**Phase 2 Objectives:**
-- [ ] Create consolidated Interlocks status widget
-- [ ] Restructure Treatment tab as integrated dashboard
-- [ ] Integrate camera feed into Treatment Dashboard
-- [ ] Implement collapsible control panels
-- [ ] Move smoothing motor controls to Treatment tab
-- [ ] Combine Subject + Camera into unified Setup tab
-- [ ] Create System Diagnostics tab for advanced tools
+**Phase 2 Objectives:** ✅ **COMPLETE** (7/7 - 100%) 🎉
+- [x] **CRITICAL: Unified Treatment Dashboard** (QStackedWidget for Setup/Active views)
+- [x] Create consolidated Interlocks status widget
+- [x] Restructure Treatment tab as integrated dashboard
+- [x] Optimize layouts for horizontal space utilization
+- [x] Integrate camera feed into Treatment Dashboard
+- [x] Move smoothing motor controls to Treatment tab
+- [x] **Combine Subject + Camera into unified Setup tab** (Horizontal layout 33%/66%)
+- [x] **Create System Diagnostics tab** (Renamed Safety tab, added engineering header)
 
 **Phase 3 Objectives:**
 - [ ] Add protocol selector/loader
@@ -131,13 +132,14 @@ Transform tab-based GUI into integrated "Treatment Dashboard" for improved opera
 | `MainWindow` | 🟢 Phase 1 Complete | Global toolbar, safety indicator, status bar enhanced |
 | `SubjectWidget` | ✅ Stable | Will move to combined Setup tab |
 | `CameraWidget` | ✅ Stable | Will integrate into Treatment Dashboard |
-| `TreatmentWidget` | 🟡 Redesigning | Restructuring as dashboard layout |
+| `TreatmentSetupWidget` | 🟢 Complete | Horizontal layout optimized for configuration |
+| `ActiveTreatmentWidget` | 🟢 Complete | Horizontal layout optimized for monitoring |
 | `LaserWidget` | ✅ Stable | Will become collapsible panel |
 | `ActuatorWidget` | ✅ Stable | Will become collapsible panel |
 | `MotorWidget` | ✅ Stable | Existing functionality preserved |
 | `SafetyWidget` | 🟡 Redesigning | Splitting into diagnostic + dashboard views |
 | `GPIOWidget` | ✅ Stable | Motor controls moving to dashboard |
-| `InterlocksWidget` | ⏳ Planned | New consolidated interlock display |
+| `InterlocksWidget` | 🟢 Complete | Consolidated safety interlock display |
 | `ProtocolSelectorWidget` | ⏳ Planned | Protocol management UI |
 
 ---
@@ -145,10 +147,12 @@ Transform tab-based GUI into integrated "Treatment Dashboard" for improved opera
 ## Technical Debt & Known Issues
 
 ### High Priority
-- [ ] **UI Tab-Switching During Treatment** - Operators must switch tabs to see safety status
-  - *Resolution:* Phase 2 Treatment Dashboard addresses this
+- [x] **UI Tab-Switching During Treatment** - ~~Operators must switch tabs to see safety status~~ **RESOLVED**
+  - *Resolution:* Phase 2 Interlocks widget consolidates all safety status in dashboard view
 - [x] **No Global E-Stop** - ~~E-Stop button only on Safety tab~~ **RESOLVED**
   - *Resolution:* Phase 1 added global toolbar with E-Stop accessible from all tabs
+- [x] **Vertical Layout Squishing** - ~~UI widgets get squished at full screen~~ **RESOLVED**
+  - *Resolution:* Phase 2 horizontal layouts optimize space utilization
 
 ### Medium Priority
 - [ ] **Hardcoded Test Protocol** - Treatment uses placeholder protocol
@@ -278,10 +282,11 @@ Transform tab-based GUI into integrated "Treatment Dashboard" for improved opera
    - ✓ Added master safety indicator
    - ✓ Enhanced status bar
 
-2. **Phase 2 Treatment Dashboard** (Weeks 2-3) - **NEXT**
-   - Restructure main treatment view
-   - Create Interlocks widget
-   - Integrate camera feed
+2. **Phase 2 Treatment Dashboard** (Weeks 2-3) - **IN PROGRESS** (3/7 complete)
+   - ✓ Create Interlocks widget
+   - ✓ Restructure main treatment view with horizontal layouts
+   - ✓ Optimize layouts for horizontal space utilization
+   - Next: Integrate camera feed into dashboard
 
 3. **Phase 3 New Features** (Week 4)
    - Protocol selector

@@ -16,6 +16,8 @@ from PyQt6.QtWidgets import (
     QMenuBar,
     QMessageBox,
     QPushButton,
+    QScrollArea,
+    QStackedWidget,
     QStatusBar,
     QTabWidget,
     QToolBar,
@@ -29,10 +31,10 @@ from core.safety import SafetyManager
 from core.safety_watchdog import SafetyWatchdog
 from core.session_manager import SessionManager
 from database.db_manager import DatabaseManager
+from ui.widgets.active_treatment_widget import ActiveTreatmentWidget
 from ui.widgets.camera_widget import CameraWidget
 from ui.widgets.safety_widget import SafetyWidget
 from ui.widgets.subject_widget import SubjectWidget
-from ui.widgets.active_treatment_widget import ActiveTreatmentWidget
 from ui.widgets.treatment_setup_widget import TreatmentSetupWidget
 
 logger = logging.getLogger(__name__)
@@ -58,7 +60,7 @@ class MainWindow(QMainWindow):
         logger.info("Initializing main window")
 
         self.setWindowTitle("TOSCA Laser Control System")
-        self.setGeometry(100, 100, 1400, 900)
+        self.setGeometry(100, 100, 1200, 900)  # Adjusted from 1400x900 for better vertical space
 
         # Initialize database and session managers
         self.db_manager = DatabaseManager()
@@ -100,13 +102,76 @@ class MainWindow(QMainWindow):
         self.tabs = QTabWidget()
         layout.addWidget(self.tabs)
 
+        # TAB 1: HARDWARE & DIAGNOSTICS
+        # Hardware status dashboard + GPIO diagnostics
+        hardware_tab = QWidget()
+        hardware_tab_layout = QVBoxLayout()
+        hardware_tab.setLayout(hardware_tab_layout)
+
+        # Create scroll area for hardware content (prevents vertical squishing)
+        hardware_scroll = QScrollArea()
+        hardware_scroll.setWidgetResizable(True)
+        hardware_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        hardware_scroll.setStyleSheet("QScrollArea { border: none; }")
+
+        # Content widget for scroll area
+        hardware_content = QWidget()
+        hardware_layout = QVBoxLayout()
+        hardware_content.setLayout(hardware_layout)
+
+        # Hardware Status Dashboard (placeholder for Phase 2)
+        hardware_status_label = QLabel("⚙ Hardware Status Dashboard")
+        hardware_status_label.setStyleSheet(
+            "font-size: 14px; font-weight: bold; padding: 8px; "
+            "background-color: #424242; color: #64B5F6; border-radius: 3px;"
+        )
+        hardware_layout.addWidget(hardware_status_label)
+
+        # TODO: Add HardwareStatusWidget here in Phase 2
+        hardware_placeholder = QLabel("Camera connection status (Phase 2)")
+        hardware_placeholder.setStyleSheet("padding: 10px; color: #888;")
+        hardware_layout.addWidget(hardware_placeholder)
+
+        # Laser Control Widget (for connection + configuration)
+        from ui.widgets.laser_widget import LaserWidget
+
+        self.laser_widget = LaserWidget()
+        hardware_layout.addWidget(self.laser_widget)
+
+        # GPIO Diagnostics (motor controls, vibration monitoring, interlocks, event log)
+        self.safety_widget = SafetyWidget(db_manager=self.db_manager)
+        hardware_layout.addWidget(self.safety_widget)
+
+        hardware_layout.addStretch()
+
+        # Add content to scroll area
+        hardware_scroll.setWidget(hardware_content)
+        hardware_tab_layout.addWidget(hardware_scroll)
+
+        self.tabs.addTab(hardware_tab, "Hardware & Diagnostics")
+
+        # TAB 2: TREATMENT WORKFLOW
+        # Subject management + Camera + Protocol selector + Execution monitoring
+        treatment_tab = QWidget()
+        treatment_layout = QVBoxLayout()
+        treatment_tab.setLayout(treatment_layout)
+
+        # Top Section: Subject Selection + Camera (33%/66% horizontal)
+        top_section = QWidget()
+        top_layout = QHBoxLayout()
+        top_section.setLayout(top_layout)
+
+        # Left: Subject Selection (33%)
         self.subject_widget = SubjectWidget()
         self.subject_widget.set_managers(self.db_manager, self.session_manager)
         self.subject_widget.session_started.connect(self._on_session_started)
-        self.tabs.addTab(self.subject_widget, "Subject Selection")
+        top_layout.addWidget(self.subject_widget, 1)
 
+        # Right: Camera/Alignment (66%)
         self.camera_widget = CameraWidget()
-        self.tabs.addTab(self.camera_widget, "Camera/Alignment")
+        top_layout.addWidget(self.camera_widget, 2)
+
+        treatment_layout.addWidget(top_section, 2)  # Top section gets 2x stretch
 
         # Initialize camera controller (if available)
         try:
@@ -119,23 +184,68 @@ class MainWindow(QMainWindow):
             logger.warning(f"Camera controller not available: {e}")
             self.camera_controller = None
 
-        # Treatment tabs: Setup (building) and Active (monitoring)
-        self.treatment_setup_widget = TreatmentSetupWidget()
-        self.tabs.addTab(self.treatment_setup_widget, "Treatment Setup")
+        # Middle/Bottom: QStackedWidget for Setup → Active transition
+        self.treatment_stack = QStackedWidget()
+        treatment_layout.addWidget(
+            self.treatment_stack, 3
+        )  # Bottom section gets 3x stretch (more vertical space for protocols)
 
+        # Add Setup view (index 0) - Protocol selector + Ready check
+        self.treatment_setup_widget = TreatmentSetupWidget()
+        self.treatment_stack.addWidget(self.treatment_setup_widget)
+
+        # Add Active view (index 1) - Monitoring during execution
         self.active_treatment_widget = ActiveTreatmentWidget()
-        self.tabs.addTab(self.active_treatment_widget, "Active Treatment")
+        self.treatment_stack.addWidget(self.active_treatment_widget)
+
+        # Start in Setup view
+        self.treatment_stack.setCurrentIndex(0)
+
+        self.tabs.addTab(treatment_tab, "Treatment Workflow")
+
+        # Connect camera widget to active treatment dashboard for monitoring
+        self.active_treatment_widget.set_camera_widget(self.camera_widget)
+        logger.info("Camera widget connected to active treatment dashboard")
+
+        # Connect "Start Treatment" button to switch to Active view
+        self.treatment_setup_widget.ready_button.clicked.connect(self._on_start_treatment)
+        logger.info("Start Treatment button connected to view transition")
 
         # Connect dev mode signal to widgets (after widgets are created)
         self.dev_mode_changed.connect(self.camera_widget.set_dev_mode)
         self.dev_mode_changed.connect(self.treatment_setup_widget.set_dev_mode)
+        # Motor widget removed from treatment setup - now only in GPIO diagnostics
 
-        # Connect dev mode to motor widget in treatment setup
-        if hasattr(self.treatment_setup_widget, "motor_widget"):
-            self.dev_mode_changed.connect(self.treatment_setup_widget.motor_widget.set_dev_mode)
+        # TAB 3: PROTOCOL BUILDER
+        # ActuatorWidget sequence builder for creating/editing treatment protocols
+        protocol_builder_tab = QWidget()
+        builder_layout = QVBoxLayout()
+        protocol_builder_tab.setLayout(builder_layout)
 
-        self.safety_widget = SafetyWidget(db_manager=self.db_manager)
-        self.tabs.addTab(self.safety_widget, "Safety Status")
+        # Header
+        builder_header = QLabel("📝 Protocol Builder - Create & Edit Treatment Sequences")
+        builder_header.setStyleSheet(
+            "font-size: 14px; font-weight: bold; padding: 8px; "
+            "background-color: #424242; color: #81C784; border-radius: 3px;"
+        )
+        builder_layout.addWidget(builder_header)
+
+        # ActuatorWidget (full sequence builder - 836 lines)
+        from ui.widgets.actuator_widget import ActuatorWidget
+
+        self.actuator_widget = ActuatorWidget()
+        builder_layout.addWidget(self.actuator_widget)
+
+        self.tabs.addTab(protocol_builder_tab, "Protocol Builder")
+
+        # NOW add Actuator Connection widget to Hardware tab (after ActuatorWidget exists)
+        # This widget shares the controller with ActuatorWidget
+        from ui.widgets.actuator_connection_widget import ActuatorConnectionWidget
+
+        self.actuator_connection_widget = ActuatorConnectionWidget(self.actuator_widget)
+        # Insert before GPIO widget in hardware layout
+        hardware_layout.insertWidget(2, self.actuator_connection_widget)
+        logger.info("Actuator connection widget added to Hardware tab (shared controller)")
 
         # Initialize safety manager
         self.safety_manager = SafetyManager()
@@ -337,12 +447,10 @@ class MainWindow(QMainWindow):
             gpio_widget.gpio_connection_changed.connect(self._on_gpio_connection_changed)
             logger.info("Main window connected to GPIO widget connection signal")
 
-        # Connect safety manager to treatment widgets
+        # Connect safety manager to laser widget (in Hardware & Diagnostics tab)
         # Laser widget will check safety manager before enabling
-        if hasattr(self.treatment_setup_widget, "laser_widget"):
-            laser_widget = self.treatment_setup_widget.laser_widget
-            # Store reference to safety manager in laser widget
-            laser_widget.safety_manager = self.safety_manager
+        if hasattr(self, "laser_widget"):
+            self.laser_widget.safety_manager = self.safety_manager
             logger.info("Safety manager connected to laser widget")
 
         # Log safety events (in addition to widget display)
@@ -381,12 +489,11 @@ class MainWindow(QMainWindow):
         self.safety_manager.trigger_emergency_stop()
 
         # 2. Disable treatment laser ONLY (selective shutdown)
-        if hasattr(self.treatment_setup_widget, "laser_widget"):
-            laser_widget = self.treatment_setup_widget.laser_widget
-            if hasattr(laser_widget, "controller") and laser_widget.controller:
-                if laser_widget.controller.is_connected:
+        if hasattr(self, "laser_widget"):
+            if hasattr(self.laser_widget, "controller") and self.laser_widget.controller:
+                if self.laser_widget.controller.is_connected:
                     logger.critical("Disabling treatment laser due to watchdog timeout")
-                    laser_widget.controller.set_output(False)
+                    self.laser_widget.controller.set_output(False)
                 else:
                     logger.warning(
                         "Laser controller not connected - cannot perform shutdown "
@@ -439,6 +546,12 @@ class MainWindow(QMainWindow):
                     # Signal already connected, ignore
                     pass
 
+                # Connect smoothing status widget in active treatment dashboard
+                if hasattr(self.active_treatment_widget, "smoothing_status_widget"):
+                    smoothing_widget = self.active_treatment_widget.smoothing_status_widget
+                    smoothing_widget.set_gpio_controller(gpio_widget.controller)
+                    logger.info("Smoothing status widget connected to GPIO controller")
+
                 # Attach GPIO controller to watchdog
                 self.safety_watchdog.gpio_controller = gpio_widget.controller
                 logger.info("GPIO controller attached to safety watchdog")
@@ -472,13 +585,12 @@ class MainWindow(QMainWindow):
         laser_controller = None
         actuator_controller = None
 
-        if hasattr(self.treatment_setup_widget, "laser_widget"):
-            laser_widget = self.treatment_setup_widget.laser_widget
-            laser_controller = getattr(laser_widget, "controller", None)
+        if hasattr(self, "laser_widget"):
+            laser_controller = getattr(self.laser_widget, "controller", None)
 
-        if hasattr(self.treatment_setup_widget, "actuator_widget"):
-            actuator_widget = self.treatment_setup_widget.actuator_widget
-            actuator_controller = getattr(actuator_widget, "controller", None)
+        # Actuator widget is now in Protocol Builder tab (Tab 3)
+        if hasattr(self, "actuator_widget"):
+            actuator_controller = getattr(self.actuator_widget, "controller", None)
 
         # Initialize protocol engine with available controllers
         self.protocol_engine = ProtocolEngine(
@@ -556,6 +668,22 @@ class MainWindow(QMainWindow):
         # Mark session as valid for safety system
         self.safety_manager.set_session_valid(True)
 
+    def _on_start_treatment(self) -> None:
+        """
+        Handle Start Treatment button click.
+
+        Transitions from Setup view to Active view within Treatment Dashboard.
+        This is a one-way transition - operator stays in Active view until
+        treatment completes.
+        """
+        logger.info("Starting treatment - switching to Active view")
+        self.treatment_stack.setCurrentIndex(1)  # Switch to Active view
+        logger.info("Treatment Dashboard now showing Active view (monitoring)")
+
+        # Optional: Disable Start Treatment button to prevent re-clicks
+        self.treatment_setup_widget.ready_button.setEnabled(False)
+        self.treatment_setup_widget.ready_button.setText("✓ Treatment Active")
+
     def _on_global_estop_clicked(self) -> None:
         """Handle global E-STOP button click."""
         logger.critical("GLOBAL E-STOP ACTIVATED BY USER")
@@ -581,21 +709,22 @@ class MainWindow(QMainWindow):
             logger.info("Connecting Camera...")
             self.camera_widget.connect_camera()
 
-        # Connect Laser (Treatment tab)
-        if hasattr(self.treatment_setup_widget, "laser_widget"):
-            laser_widget = self.treatment_setup_widget.laser_widget
-            if hasattr(laser_widget, "is_connected") and not laser_widget.is_connected:
+        # Connect Laser (Hardware & Diagnostics tab)
+        if hasattr(self, "laser_widget"):
+            if hasattr(self.laser_widget, "is_connected") and not self.laser_widget.is_connected:
                 logger.info("Connecting Laser...")
-                if hasattr(laser_widget, "_on_connect_clicked"):
-                    laser_widget._on_connect_clicked()
+                if hasattr(self.laser_widget, "_on_connect_clicked"):
+                    self.laser_widget._on_connect_clicked()
 
-        # Connect Actuator (Treatment tab)
-        if hasattr(self.treatment_setup_widget, "actuator_widget"):
-            actuator_widget = self.treatment_setup_widget.actuator_widget
-            if hasattr(actuator_widget, "is_connected") and not actuator_widget.is_connected:
+        # Connect Actuator (Protocol Builder tab)
+        if hasattr(self, "actuator_widget"):
+            if (
+                hasattr(self.actuator_widget, "is_connected")
+                and not self.actuator_widget.is_connected
+            ):
                 logger.info("Connecting Actuator...")
-                if hasattr(actuator_widget, "_on_connect_clicked"):
-                    actuator_widget._on_connect_clicked()
+                if hasattr(self.actuator_widget, "_on_connect_clicked"):
+                    self.actuator_widget._on_connect_clicked()
 
         # Update button states
         self.connect_all_btn.setEnabled(False)
@@ -619,20 +748,18 @@ class MainWindow(QMainWindow):
             self.camera_widget.disconnect_camera()
 
         # Disconnect Laser
-        if hasattr(self.treatment_setup_widget, "laser_widget"):
-            laser_widget = self.treatment_setup_widget.laser_widget
-            if hasattr(laser_widget, "is_connected") and laser_widget.is_connected:
+        if hasattr(self, "laser_widget"):
+            if hasattr(self.laser_widget, "is_connected") and self.laser_widget.is_connected:
                 logger.info("Disconnecting Laser...")
-                if hasattr(laser_widget, "_on_disconnect_clicked"):
-                    laser_widget._on_disconnect_clicked()
+                if hasattr(self.laser_widget, "_on_disconnect_clicked"):
+                    self.laser_widget._on_disconnect_clicked()
 
         # Disconnect Actuator
-        if hasattr(self.treatment_setup_widget, "actuator_widget"):
-            actuator_widget = self.treatment_setup_widget.actuator_widget
-            if hasattr(actuator_widget, "is_connected") and actuator_widget.is_connected:
+        if hasattr(self, "actuator_widget"):
+            if hasattr(self.actuator_widget, "is_connected") and self.actuator_widget.is_connected:
                 logger.info("Disconnecting Actuator...")
-                if hasattr(actuator_widget, "_on_disconnect_clicked"):
-                    actuator_widget._on_disconnect_clicked()
+                if hasattr(self.actuator_widget, "_on_disconnect_clicked"):
+                    self.actuator_widget._on_disconnect_clicked()
 
         # Update button states
         self.connect_all_btn.setEnabled(True)
@@ -737,15 +864,21 @@ class MainWindow(QMainWindow):
         if hasattr(self, "camera_widget") and self.camera_widget:
             self.camera_widget.cleanup()
 
-        # Cleanup treatment (actuator + laser)
+        # Cleanup treatment widgets
         if hasattr(self, "treatment_setup_widget") and self.treatment_setup_widget:
             self.treatment_setup_widget.cleanup()
         if hasattr(self, "active_treatment_widget") and self.active_treatment_widget:
             self.active_treatment_widget.cleanup()
 
-        # Cleanup safety (GPIO)
+        # Cleanup Hardware & Diagnostics (laser + GPIO)
+        if hasattr(self, "laser_widget") and self.laser_widget:
+            self.laser_widget.cleanup()
         if hasattr(self, "safety_widget") and self.safety_widget:
             self.safety_widget.cleanup()
+
+        # Cleanup Protocol Builder (actuator)
+        if hasattr(self, "actuator_widget") and self.actuator_widget:
+            self.actuator_widget.cleanup()
 
         # Cleanup database
         if hasattr(self, "db_manager") and self.db_manager:

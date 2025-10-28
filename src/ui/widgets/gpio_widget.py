@@ -55,6 +55,9 @@ class GPIOWidget(QWidget):
         """Initialize the user interface."""
         layout = QVBoxLayout(self)
 
+        # Constrain maximum width to prevent excessive horizontal stretching
+        self.setMaximumWidth(700)
+
         # Connection controls
         connection_group = self._create_connection_group()
         layout.addWidget(connection_group)

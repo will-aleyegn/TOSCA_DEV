@@ -22,13 +22,18 @@ from ui.widgets.gpio_widget import GPIOWidget
 
 class SafetyWidget(QWidget):
     """
-    Safety system monitoring.
+    System Diagnostics interface for engineering and troubleshooting.
 
-    Displays:
-    - GPIO safety controls (smoothing device, photodiode)
-    - Footpedal status (future)
-    - E-stop status
-    - Safety event log
+    Provides comprehensive technical information and diagnostic tools:
+    - GPIO hardware controls and monitoring (smoothing device, photodiode, accelerometer)
+    - Software interlock status and E-stop controls
+    - Comprehensive safety event log with filtering
+    - Hardware connection diagnostics
+
+    NOTE: Operator-critical safety info is displayed in:
+    - Global master safety indicator (status bar)
+    - InterlocksWidget (Treatment Dashboard)
+    This tab is for engineering/technical staff only.
     """
 
     def __init__(self, db_manager: Optional[Any] = None) -> None:
@@ -39,20 +44,35 @@ class SafetyWidget(QWidget):
         self._init_ui()
 
     def _init_ui(self) -> None:
-        """Initialize UI components."""
-        layout = QHBoxLayout()  # Changed to horizontal for side-by-side
-        self.setLayout(layout)
+        """Initialize UI components for System Diagnostics view."""
+        main_layout = QVBoxLayout()
+        self.setLayout(main_layout)
 
-        # Left side: GPIO controls
+        # Diagnostic header
+        header = QLabel("⚙ SYSTEM DIAGNOSTICS - Engineering Interface")
+        header.setStyleSheet(
+            "font-size: 14px; font-weight: bold; padding: 8px; "
+            "background-color: #424242; color: #FFA726; border-radius: 3px;"
+        )
+        main_layout.addWidget(header)
+
+        # Horizontal layout for main content
+        content_layout = QHBoxLayout()
+        main_layout.addLayout(content_layout)
+
+        # Left side: GPIO hardware diagnostics (66%)
         left_layout = QVBoxLayout()
+        gpio_header = QLabel("Hardware Diagnostics (GPIO)")
+        gpio_header.setStyleSheet("font-size: 12px; font-weight: bold; padding: 4px;")
+        left_layout.addWidget(gpio_header)
         left_layout.addWidget(self.gpio_widget)
-        layout.addLayout(left_layout, 2)
+        content_layout.addLayout(left_layout, 2)
 
-        # Right side: Software interlocks and event log
+        # Right side: Software interlocks and event log (33%)
         right_layout = QVBoxLayout()
         right_layout.addWidget(self._create_software_interlocks())
         right_layout.addWidget(self._create_event_log())
-        layout.addLayout(right_layout, 1)
+        content_layout.addLayout(right_layout, 1)
 
     def _create_software_interlocks(self) -> QGroupBox:
         """Create software interlock status group."""
