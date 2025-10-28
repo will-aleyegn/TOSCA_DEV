@@ -1,8 +1,8 @@
 # TOSCA Project Status
 
-**Last Updated:** 2025-10-27
+**Last Updated:** 2025-10-27 (Post-Cleanup)
 **Project:** TOSCA Laser Control System
-**Version:** 0.9.0-alpha (UI Redesign in Progress)
+**Version:** 0.9.5-alpha (UI Redesign Phase 2 Complete)
 
 ---
 
@@ -63,8 +63,9 @@ Transform tab-based GUI into integrated "Treatment Dashboard" for improved opera
 
 ### 🟡 In Progress Milestones
 
-#### Milestone 5: UI/UX Redesign (In Progress: 2025-10-27)
-**Target:** 2025-11-03
+#### Milestone 5: UI/UX Redesign ✅ **PHASE 1 & 2 COMPLETE** (2025-10-27)
+**Started:** 2025-10-27
+**Completed:** 2025-10-27 (same day!)
 
 **Phase 1 Objectives:** ✅ **COMPLETE**
 - [x] Add global toolbar with E-STOP button
@@ -73,7 +74,7 @@ Transform tab-based GUI into integrated "Treatment Dashboard" for improved opera
 - [x] Move Dev Mode to menubar, remove redundant Close button
 - [x] Remove redundant title label
 
-**Phase 2 Objectives:** ✅ **COMPLETE** (7/7 - 100%) 🎉
+**Phase 2 Objectives:** ✅ **COMPLETE** (8/8 - 100%) 🎉
 - [x] **CRITICAL: Unified Treatment Dashboard** (QStackedWidget for Setup/Active views)
 - [x] Create consolidated Interlocks status widget
 - [x] Restructure Treatment tab as integrated dashboard
@@ -82,6 +83,15 @@ Transform tab-based GUI into integrated "Treatment Dashboard" for improved opera
 - [x] Move smoothing motor controls to Treatment tab
 - [x] **Combine Subject + Camera into unified Setup tab** (Horizontal layout 33%/66%)
 - [x] **Create System Diagnostics tab** (Renamed Safety tab, added engineering header)
+- [x] **CRITICAL THREAD SAFETY FIX** - Replaced dangerous asyncio+QThread with safe QRunnable pattern
+
+**Phase 2.2 Completion Details (2025-10-27 23:00):**
+- ✅ Removed `ProtocolExecutionThread` (dangerous asyncio/QThread antipattern)
+- ✅ Implemented `ProtocolWorker` (safe QRunnable + QThreadPool + asyncio.run())
+- ✅ Added proper cleanup() with worker cancellation
+- ✅ Created `SmoothingStatusWidget` and `ActuatorConnectionWidget`
+- ✅ Fixed all unused imports, ran formatters (Black, isort)
+- ✅ Archived docs, consolidated status files, full repo cleanup
 
 **Phase 3 Objectives:**
 - [ ] Add protocol selector/loader

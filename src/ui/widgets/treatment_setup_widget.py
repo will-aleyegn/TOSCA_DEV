@@ -8,12 +8,11 @@ and hardware configuration. Used for building/planning treatments before executi
 import json
 import logging
 from pathlib import Path
-from typing import Any, Optional
+from typing import Optional
 
 from PyQt6.QtWidgets import (
     QFileDialog,
     QGroupBox,
-    QHBoxLayout,
     QLabel,
     QMessageBox,
     QPushButton,

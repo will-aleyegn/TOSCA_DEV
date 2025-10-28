@@ -5,7 +5,6 @@ Provides compact hardware setup interface without sequence building.
 """
 
 import logging
-from typing import Optional
 
 from PyQt6.QtCore import pyqtSlot
 from PyQt6.QtWidgets import (
@@ -17,8 +16,6 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-
-from hardware.actuator_controller import ActuatorController
 
 logger = logging.getLogger(__name__)
 
