@@ -5,12 +5,11 @@ This widget provides real-time monitoring of active treatments with minimal
 interactive controls. Focus is on situational awareness and safety.
 """
 
-import asyncio
 import logging
 from datetime import datetime
 from typing import Any, Optional
 
-from PyQt6.QtCore import QThread, Qt, pyqtSignal
+from PyQt6.QtCore import Qt, QThreadPool
 from PyQt6.QtWidgets import (
     QGridLayout,
     QGroupBox,
@@ -25,39 +24,10 @@ from PyQt6.QtWidgets import (
 )
 
 from ui.widgets.interlocks_widget import InterlocksWidget
+from ui.widgets.smoothing_status_widget import SmoothingStatusWidget
+from ui.workers.protocol_worker import ProtocolWorker
 
 logger = logging.getLogger(__name__)
-
-
-class ProtocolExecutionThread(QThread):
-    """Thread for executing protocols asynchronously."""
-
-    # Signals
-    execution_complete = pyqtSignal(bool, str)  # (success, message)
-    execution_error = pyqtSignal(str)  # error_message
-
-    def __init__(self, protocol_engine: Any, protocol: Any) -> None:
-        super().__init__()
-        self.protocol_engine = protocol_engine
-        self.protocol = protocol
-
-    def run(self) -> None:
-        """Run protocol execution in thread."""
-        try:
-            # Create event loop for async execution
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-
-            # Execute protocol
-            success, message = loop.run_until_complete(
-                self.protocol_engine.execute_protocol(self.protocol, record=True)
-            )
-
-            self.execution_complete.emit(success, message)
-
-        except Exception as e:
-            logger.error(f"Protocol execution error: {e}")
-            self.execution_error.emit(str(e))
 
 
 class ActiveTreatmentWidget(QWidget):
@@ -81,63 +51,71 @@ class ActiveTreatmentWidget(QWidget):
         self.protocol_engine: Optional[Any] = None
         self.safety_manager: Optional[Any] = None
         self.camera_widget: Optional[Any] = None  # Will be set from main_window
+        self.protocol_worker: Optional[ProtocolWorker] = None  # Thread-safe worker
 
         # Dashboard widgets
         self.interlocks_widget: InterlocksWidget = InterlocksWidget()
+        self.smoothing_status_widget: SmoothingStatusWidget = SmoothingStatusWidget()
 
         self._init_ui()
 
     def _init_ui(self) -> None:
-        """Initialize UI components with monitoring dashboard layout."""
-        layout = QGridLayout()
+        """Initialize UI components with horizontal monitoring layout."""
+        # Main horizontal layout
+        layout = QHBoxLayout()
+        layout.setContentsMargins(5, 5, 5, 5)
         self.setLayout(layout)
 
-        # === TOP: Camera Feed (Monitoring) ===
+        # === LEFT: Camera + Controls (3/5 width) ===
+        left_panel = QWidget()
+        left_layout = QVBoxLayout()
+        left_layout.setContentsMargins(0, 0, 0, 0)
+        left_panel.setLayout(left_layout)
+
+        # Camera monitoring (takes most space)
         camera_section = self._create_camera_section()
-        layout.addWidget(camera_section, 0, 0, 2, 2)  # Spans 2 rows, 2 columns
+        left_layout.addWidget(camera_section, 3)
 
-        # === RIGHT: Safety Status Panel ===
-        safety_panel = self._create_safety_panel()
-        layout.addWidget(safety_panel, 0, 2, 2, 1)  # Spans 2 rows, column 2
-
-        # === BOTTOM: Treatment Controls ===
+        # Treatment controls (compact, at bottom)
         control_section = self._create_control_section()
-        layout.addWidget(control_section, 2, 0, 1, 3)  # Row 2, spans all columns
+        left_layout.addWidget(control_section, 1)
 
-        # Set stretch factors (camera:safety = 3:1)
-        layout.setColumnStretch(0, 2)
-        layout.setColumnStretch(1, 1)
-        layout.setColumnStretch(2, 1)
+        layout.addWidget(left_panel, 3)
+
+        # === RIGHT: Safety Status Panel (2/5 width) ===
+        safety_panel = self._create_safety_panel()
+        layout.addWidget(safety_panel, 2)
 
     def _create_camera_section(self) -> QGroupBox:
         """Create camera monitoring section."""
-        group = QGroupBox("Treatment Monitoring")
+        group = QGroupBox("Camera Monitor")
         layout = QVBoxLayout()
+        layout.setContentsMargins(5, 5, 5, 5)
 
         # Camera feed placeholder (will be replaced with actual camera widget)
-        self.camera_display = QLabel("Camera Feed\n(Monitoring Only)")
+        self.camera_display = QLabel("Camera Feed\n(Monitoring)")
         self.camera_display.setStyleSheet(
             "QLabel { "
             "background-color: #2b2b2b; "
             "color: #666; "
-            "font-size: 20px; "
+            "font-size: 16px; "
             "border: 2px solid #444; "
             "}"
         )
-        self.camera_display.setMinimumHeight(400)
+        self.camera_display.setMinimumHeight(250)
         self.camera_display.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.camera_display)
 
-        # Real-time parameter display (read-only)
+        # Real-time parameter display (read-only, compact)
         params_layout = QHBoxLayout()
 
-        self.laser_power_label = self._create_status_display("Laser Power", "0.00 W")
+        self.laser_power_label = self._create_status_display("Laser", "0.00 W")
         params_layout.addWidget(self.laser_power_label)
 
-        self.actuator_pos_label = self._create_status_display("Actuator", "0 μm")
+        self.actuator_pos_label = self._create_status_display("Pos", "0 μm")
         params_layout.addWidget(self.actuator_pos_label)
 
-        self.motor_vibration_label = self._create_status_display("Vibration", "0.00 g")
+        self.motor_vibration_label = self._create_status_display("Vib", "0.00 g")
         params_layout.addWidget(self.motor_vibration_label)
 
         layout.addLayout(params_layout)
@@ -146,10 +124,11 @@ class ActiveTreatmentWidget(QWidget):
         return group
 
     def _create_status_display(self, label: str, initial_value: str) -> QWidget:
-        """Create a read-only status display."""
+        """Create a compact read-only status display."""
         widget = QWidget()
         layout = QVBoxLayout()
-        layout.setContentsMargins(5, 5, 5, 5)
+        layout.setContentsMargins(2, 2, 2, 2)
+        layout.setSpacing(2)
 
         label_widget = QLabel(label)
         label_widget.setStyleSheet("font-size: 11px; color: #888;")
@@ -158,8 +137,8 @@ class ActiveTreatmentWidget(QWidget):
 
         value_widget = QLabel(initial_value)
         value_widget.setStyleSheet(
-            "font-size: 18px; font-weight: bold; "
-            "padding: 8px; background-color: #3c3c3c; border-radius: 3px;"
+            "font-size: 13px; font-weight: bold; "
+            "padding: 4px; background-color: #3c3c3c; border-radius: 2px;"
         )
         value_widget.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(value_widget)
@@ -175,6 +154,7 @@ class ActiveTreatmentWidget(QWidget):
         scroll.setWidgetResizable(True)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         scroll.setStyleSheet("QScrollArea { border: none; }")
+        scroll.setMaximumWidth(450)  # Prevent excessive horizontal stretching
 
         content = QWidget()
         layout = QVBoxLayout()
@@ -182,6 +162,9 @@ class ActiveTreatmentWidget(QWidget):
 
         # Safety interlocks
         layout.addWidget(self.interlocks_widget)
+
+        # Smoothing motor status and controls
+        layout.addWidget(self.smoothing_status_widget)
 
         # Event log
         event_log_group = QGroupBox("Treatment Events")
@@ -191,7 +174,7 @@ class ActiveTreatmentWidget(QWidget):
         self.event_log.setReadOnly(True)
         self.event_log.setMaximumHeight(200)
         self.event_log.setPlaceholderText("Treatment events will appear here...")
-        self.event_log.setStyleSheet("font-size: 10px; font-family: monospace;")
+        self.event_log.setStyleSheet("font-size: 11px; font-family: monospace;")
         event_layout.addWidget(self.event_log)
 
         event_log_group.setLayout(event_layout)
@@ -203,24 +186,29 @@ class ActiveTreatmentWidget(QWidget):
         return scroll
 
     def _create_control_section(self) -> QGroupBox:
-        """Create treatment control section."""
-        group = QGroupBox("Treatment Control")
-        layout = QVBoxLayout()
+        """Create compact treatment control section."""
+        group = QGroupBox("Control")
+        layout = QHBoxLayout()  # Horizontal for compactness
+        layout.setContentsMargins(5, 5, 5, 5)
 
-        # Progress bar
+        # Left: Progress + Status (vertical)
+        left_layout = QVBoxLayout()
+        left_layout.setSpacing(3)
+
+        # Progress bar (compact)
         self.progress_bar = QProgressBar()
         self.progress_bar.setMinimum(0)
         self.progress_bar.setMaximum(100)
         self.progress_bar.setValue(0)
         self.progress_bar.setTextVisible(True)
-        self.progress_bar.setMinimumHeight(30)
+        self.progress_bar.setMaximumHeight(20)
         self.progress_bar.setStyleSheet(
             """
             QProgressBar {
-                border: 2px solid #444;
-                border-radius: 5px;
+                border: 1px solid #444;
+                border-radius: 3px;
                 text-align: center;
-                font-size: 14px;
+                font-size: 11px;
                 font-weight: bold;
             }
             QProgressBar::chunk {
@@ -228,35 +216,30 @@ class ActiveTreatmentWidget(QWidget):
             }
             """
         )
-        layout.addWidget(self.progress_bar)
+        left_layout.addWidget(self.progress_bar)
 
-        # Status and action labels
-        status_layout = QHBoxLayout()
-
+        # Status label (compact)
         self.status_label = QLabel("Status: Ready")
-        self.status_label.setStyleSheet("font-size: 13px; padding: 5px;")
-        status_layout.addWidget(self.status_label, 1)
+        self.status_label.setStyleSheet("font-size: 11px; padding: 2px;")
+        left_layout.addWidget(self.status_label)
 
+        # Action label (compact)
         self.action_label = QLabel("")
-        self.action_label.setStyleSheet("font-size: 12px; color: #888; padding: 5px;")
-        status_layout.addWidget(self.action_label, 1)
+        self.action_label.setStyleSheet("font-size: 11px; color: #888; padding: 2px;")
+        left_layout.addWidget(self.action_label)
 
-        layout.addLayout(status_layout)
+        layout.addLayout(left_layout, 2)
 
-        # Control buttons
-        button_layout = QHBoxLayout()
-
-        self.stop_button = QPushButton("⏹ STOP TREATMENT")
+        # Right: Stop button (compact)
+        self.stop_button = QPushButton("⏹ STOP")
         self.stop_button.setEnabled(False)
-        self.stop_button.setMinimumHeight(60)
+        self.stop_button.setMinimumHeight(45)
+        self.stop_button.setMaximumWidth(120)
         self.stop_button.setStyleSheet(
-            "font-size: 16px; font-weight: bold; "
-            "background-color: #f44336; color: white;"
+            "font-size: 14px; font-weight: bold; " "background-color: #f44336; color: white;"
         )
         self.stop_button.clicked.connect(self._on_stop_treatment)
-        button_layout.addWidget(self.stop_button)
-
-        layout.addLayout(button_layout)
+        layout.addWidget(self.stop_button, 0, Qt.AlignmentFlag.AlignRight)
 
         group.setLayout(layout)
         return group
@@ -269,8 +252,28 @@ class ActiveTreatmentWidget(QWidget):
             camera_widget: CameraWidget instance
         """
         self.camera_widget = camera_widget
-        # TODO: Replace placeholder with actual camera feed in Phase 2.3
-        logger.info("Camera widget connected to active treatment monitoring")
+
+        if camera_widget and hasattr(camera_widget, "camera_display"):
+            # Replace placeholder with actual camera feed display
+            # Remove the placeholder label
+            camera_section_layout = self.camera_display.parent().layout()
+            if camera_section_layout:
+                camera_section_layout.removeWidget(self.camera_display)
+                self.camera_display.deleteLater()
+
+                # Add the actual camera display from camera widget
+                # Note: We're sharing the QLabel between widgets - this works because
+                # QLabel can only have one parent, but we're using it in monitoring mode
+                self.camera_display = camera_widget.camera_display
+                camera_section_layout.insertWidget(0, self.camera_display)
+
+                # Reset both width and height for dashboard (more compact than alignment view)
+                # Width set to 0 allows layout manager to determine optimal size
+                self.camera_display.setMinimumSize(0, 250)
+
+                logger.info("Camera feed integrated into active treatment dashboard")
+        else:
+            logger.warning("Camera widget has no display attribute - using placeholder")
 
     def set_protocol_engine(self, protocol_engine: Any) -> None:
         """
@@ -338,5 +341,19 @@ class ActiveTreatmentWidget(QWidget):
         self.event_log.append(f"[{timestamp}] {message}")
 
     def cleanup(self) -> None:
-        """Cleanup resources."""
-        pass
+        """
+        Cleanup resources on widget shutdown.
+
+        Cancels any running protocol worker and waits for thread pool completion.
+        """
+        logger.info("Cleaning up ActiveTreatmentWidget...")
+
+        # Cancel any running protocol execution
+        if self.protocol_worker and not self.protocol_worker.is_cancelled():
+            logger.info("Cancelling active protocol worker")
+            self.protocol_worker.cancel()
+
+        # Wait for thread pool to complete (max 2 seconds)
+        QThreadPool.globalInstance().waitForDone(2000)
+
+        logger.info("ActiveTreatmentWidget cleanup complete")

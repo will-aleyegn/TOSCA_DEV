@@ -73,7 +73,9 @@ class CameraWidget(QWidget):
 
         self.camera_display = QLabel("Camera feed will appear here")
         self.camera_display.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.camera_display.setMinimumSize(800, 600)
+        self.camera_display.setMinimumSize(
+            640, 480
+        )  # Reduced from 800x600 for better layout proportions
         self.camera_display.setStyleSheet(
             "background-color: #2b2b2b; color: #888; font-size: 16px;"
         )
@@ -119,6 +121,9 @@ class CameraWidget(QWidget):
         """Create camera control panel."""
         group = QGroupBox("Camera Controls")
         layout = QVBoxLayout()
+
+        # Constrain maximum width for compact controls
+        group.setMaximumWidth(350)
 
         # Connection controls
         conn_group = self._create_connection_controls()
