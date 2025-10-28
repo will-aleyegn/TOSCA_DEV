@@ -49,7 +49,7 @@ class ActiveTreatmentWidget(QWidget):
         super().__init__()
         self.protocol_engine: Optional[Any] = None
         self.safety_manager: Optional[Any] = None
-        self.camera_widget: Optional[Any] = None  # Will be set from main_window
+        self.camera_live_view: Optional[Any] = None  # Will be set from main_window
         self.protocol_worker: Optional[ProtocolWorker] = None  # Thread-safe worker
 
         # Dashboard widgets
@@ -243,16 +243,16 @@ class ActiveTreatmentWidget(QWidget):
         group.setLayout(layout)
         return group
 
-    def set_camera_widget(self, camera_widget: Any) -> None:
+    def set_camera_live_view(self, camera_live_view: Any) -> None:
         """
-        Set the camera widget for live feed display.
+        Set the camera live view for live feed display.
 
         Args:
-            camera_widget: CameraWidget instance
+            camera_live_view: Camera live view widget instance
         """
-        self.camera_widget = camera_widget
+        self.camera_live_view = camera_live_view
 
-        if camera_widget and hasattr(camera_widget, "camera_display"):
+        if camera_live_view and hasattr(camera_live_view, "camera_display"):
             # Replace placeholder with actual camera feed display
             # Remove the placeholder label
             camera_section_layout = self.camera_display.parent().layout()
@@ -260,10 +260,10 @@ class ActiveTreatmentWidget(QWidget):
                 camera_section_layout.removeWidget(self.camera_display)
                 self.camera_display.deleteLater()
 
-                # Add the actual camera display from camera widget
+                # Add the actual camera display from camera live view
                 # Note: We're sharing the QLabel between widgets - this works because
                 # QLabel can only have one parent, but we're using it in monitoring mode
-                self.camera_display = camera_widget.camera_display
+                self.camera_display = camera_live_view.camera_display
                 camera_section_layout.insertWidget(0, self.camera_display)
 
                 # Reset both width and height for dashboard (more compact than alignment view)

@@ -125,10 +125,10 @@ class MainWindow(QMainWindow):
         hardware_layout.addWidget(camera_header)
 
         # Camera connection widget (lightweight status + connect/disconnect)
-        from ui.widgets.camera_connection_widget import CameraConnectionWidget
+        from ui.widgets.camera_hardware_panel import CameraHardwarePanel
 
-        self.camera_connection_widget = CameraConnectionWidget(None)  # Will set camera_widget later
-        hardware_layout.addWidget(self.camera_connection_widget)
+        self.camera_hardware_panel = CameraHardwarePanel(None)  # Will set camera_live_view later
+        hardware_layout.addWidget(self.camera_hardware_panel)
 
         # === SECTION 2: LINEAR ACTUATOR ===
         actuator_header = QLabel("🔧 Linear Actuator Controller")
@@ -188,11 +188,11 @@ class MainWindow(QMainWindow):
         top_layout.addWidget(self.subject_widget, 1)
 
         # Right: Camera/Alignment (66%)
-        self.camera_widget = CameraWidget()
+        self.camera_live_view = CameraWidget()
         # Hide connection controls in Treatment tab - hardware connection
         # managed in Hardware & Diagnostics tab only
-        self.camera_widget.hide_connection_controls()
-        top_layout.addWidget(self.camera_widget, 2)
+        self.camera_live_view.hide_connection_controls()
+        top_layout.addWidget(self.camera_live_view, 2)
 
         treatment_layout.addWidget(top_section, 2)  # Top section gets 2x stretch
 
@@ -201,14 +201,14 @@ class MainWindow(QMainWindow):
             from hardware.camera_controller import CameraController
 
             self.camera_controller = CameraController()
-            self.camera_widget.set_camera_controller(self.camera_controller)
+            self.camera_live_view.set_camera_controller(self.camera_controller)
             logger.info("Camera controller initialized")
         except ImportError as e:
             logger.warning(f"Camera controller not available: {e}")
             self.camera_controller = None
 
         # Wire camera connection widget to main camera widget for status updates
-        self.camera_connection_widget.camera_widget = self.camera_widget
+        self.camera_hardware_panel.camera_live_view = self.camera_live_view
         logger.info("Camera connection widget wired to main camera widget")
 
         # Middle/Bottom: QStackedWidget for Setup → Active transition
@@ -231,7 +231,7 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(treatment_tab, "Treatment Workflow")
 
         # Connect camera widget to active treatment dashboard for monitoring
-        self.active_treatment_widget.set_camera_widget(self.camera_widget)
+        self.active_treatment_widget.set_camera_live_view(self.camera_live_view)
         logger.info("Camera widget connected to active treatment dashboard")
 
         # Connect "Start Treatment" button to switch to Active view
@@ -239,7 +239,7 @@ class MainWindow(QMainWindow):
         logger.info("Start Treatment button connected to view transition")
 
         # Connect dev mode signal to widgets (after widgets are created)
-        self.dev_mode_changed.connect(self.camera_widget.set_dev_mode)
+        self.dev_mode_changed.connect(self.camera_live_view.set_dev_mode)
         self.dev_mode_changed.connect(self.treatment_setup_widget.set_dev_mode)
         # Motor widget removed from treatment setup - now only in GPIO diagnostics
 
@@ -734,9 +734,9 @@ class MainWindow(QMainWindow):
                 gpio_widget._on_connect_clicked()
 
         # Connect Camera
-        if hasattr(self.camera_widget, "connect_camera"):
+        if hasattr(self.camera_live_view, "connect_camera"):
             logger.info("Connecting Camera...")
-            self.camera_widget.connect_camera()
+            self.camera_live_view.connect_camera()
 
         # Connect Laser (Hardware & Diagnostics tab)
         if hasattr(self, "laser_widget"):
@@ -772,9 +772,9 @@ class MainWindow(QMainWindow):
                 gpio_widget._on_disconnect_clicked()
 
         # Disconnect Camera
-        if hasattr(self.camera_widget, "disconnect_camera"):
+        if hasattr(self.camera_live_view, "disconnect_camera"):
             logger.info("Disconnecting Camera...")
-            self.camera_widget.disconnect_camera()
+            self.camera_live_view.disconnect_camera()
 
         # Disconnect Laser
         if hasattr(self, "laser_widget"):
@@ -890,8 +890,8 @@ class MainWindow(QMainWindow):
             logger.info("Safety watchdog stopped")
 
         # Cleanup camera
-        if hasattr(self, "camera_widget") and self.camera_widget:
-            self.camera_widget.cleanup()
+        if hasattr(self, "camera_widget") and self.camera_live_view:
+            self.camera_live_view.cleanup()
 
         # Cleanup treatment widgets
         if hasattr(self, "treatment_setup_widget") and self.treatment_setup_widget:

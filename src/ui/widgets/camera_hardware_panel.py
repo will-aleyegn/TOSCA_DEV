@@ -1,5 +1,5 @@
 """
-Camera connection status widget for Hardware & Diagnostics tab.
+Camera hardware panel widget for Hardware & Diagnostics tab.
 
 Provides simple connection management without the full camera display.
 """
@@ -11,28 +11,28 @@ from PyQt6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidg
 logger = logging.getLogger(__name__)
 
 
-class CameraConnectionWidget(QWidget):
+class CameraHardwarePanel(QWidget):
     """
-    Simple camera connection status and control widget.
+    Camera hardware management panel for Hardware & Diagnostics tab.
 
     Provides:
     - Connection status indicator
     - Connect/Disconnect buttons
     - Basic camera info (resolution, FPS)
 
-    This widget is a lightweight companion to the full CameraWidget,
-    designed for the Hardware & Diagnostics tab.
+    This widget is a lightweight companion to the full camera live view,
+    designed specifically for hardware setup and diagnostics.
     """
 
-    def __init__(self, camera_widget) -> None:
+    def __init__(self, camera_live_view) -> None:
         """
-        Initialize camera connection widget.
+        Initialize camera hardware panel.
 
         Args:
-            camera_widget: Reference to main CameraWidget for control delegation
+            camera_live_view: Reference to main camera live view widget for control delegation
         """
         super().__init__()
-        self.camera_widget = camera_widget
+        self.camera_live_view = camera_live_view
         self._init_ui()
         self._connect_signals()
 
@@ -84,23 +84,23 @@ class CameraConnectionWidget(QWidget):
 
     def _connect_signals(self) -> None:
         """Connect to camera widget signals."""
-        if self.camera_widget:
+        if self.camera_live_view:
             # Monitor connection status changes
             # Camera widget will update our status via _on_connection_changed
             pass
 
     def _on_connect_clicked(self) -> None:
         """Handle connect button click - delegate to main camera widget."""
-        if self.camera_widget and hasattr(self.camera_widget, "connect_camera"):
+        if self.camera_live_view and hasattr(self.camera_live_view, "connect_camera"):
             logger.info("Camera connection requested from Hardware tab")
-            self.camera_widget.connect_camera()
+            self.camera_live_view.connect_camera()
             # Status will update via camera widget's connection_changed signal
 
     def _on_disconnect_clicked(self) -> None:
         """Handle disconnect button click - delegate to main camera widget."""
-        if self.camera_widget and hasattr(self.camera_widget, "disconnect_camera"):
+        if self.camera_live_view and hasattr(self.camera_live_view, "disconnect_camera"):
             logger.info("Camera disconnection requested from Hardware tab")
-            self.camera_widget.disconnect_camera()
+            self.camera_live_view.disconnect_camera()
             # Status will update via camera widget's connection_changed signal
 
     def update_connection_status(self, connected: bool) -> None:
@@ -118,11 +118,11 @@ class CameraConnectionWidget(QWidget):
 
             # Update info if camera controller available
             if (
-                self.camera_widget
-                and hasattr(self.camera_widget, "camera_controller")
-                and self.camera_widget.camera_controller
+                self.camera_live_view
+                and hasattr(self.camera_live_view, "camera_controller")
+                and self.camera_live_view.camera_controller
             ):
-                controller = self.camera_widget.camera_controller
+                controller = self.camera_live_view.camera_controller
                 info_text = "Camera connected"
                 if hasattr(controller, "get_frame_size"):
                     try:
@@ -130,8 +130,8 @@ class CameraConnectionWidget(QWidget):
                         info_text += f"\nResolution: {width}x{height}"
                     except Exception:
                         pass
-                if hasattr(self.camera_widget, "current_fps"):
-                    fps = self.camera_widget.current_fps
+                if hasattr(self.camera_live_view, "current_fps"):
+                    fps = self.camera_live_view.current_fps
                     info_text += f"\nFPS: {fps:.1f}"
                 self.info_label.setText(info_text)
             else:
