@@ -1,6 +1,20 @@
 # Start Here - Quick Project Setup
 
-**Purpose:** Fast 5-step setup guide for new development sessions
+⚠️ **DEPRECATION NOTICE:** This document is being replaced by the new streamlined onboarding system.
+
+**Please use instead:** `presubmit/ONBOARDING.md` (single entry point, 2-minute read)
+
+**Why the change:**
+- Reduces onboarding from 6 documents to 1
+- Automatic session resume from checkpoints
+- <30 second recovery after crashes
+- Better organized, machine-readable format
+
+**This document will remain for reference during transition period.**
+
+---
+
+**Purpose:** Fast 5-step setup guide for new development sessions (LEGACY)
 
 **Last Updated:** 2025-10-23
 
