@@ -100,7 +100,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.tabs)
 
         # TAB 1: HARDWARE & DIAGNOSTICS
-        # Hardware status dashboard + GPIO diagnostics
+        # Hardware connection status and diagnostic controls
         hardware_tab = QWidget()
         hardware_tab_layout = QVBoxLayout()
         hardware_tab.setLayout(hardware_tab_layout)
@@ -116,26 +116,49 @@ class MainWindow(QMainWindow):
         hardware_layout = QVBoxLayout()
         hardware_content.setLayout(hardware_layout)
 
-        # Hardware Status Dashboard (placeholder for Phase 2)
-        hardware_status_label = QLabel("⚙ Hardware Status Dashboard")
-        hardware_status_label.setStyleSheet(
-            "font-size: 14px; font-weight: bold; padding: 8px; "
-            "background-color: #424242; color: #64B5F6; border-radius: 3px;"
+        # === SECTION 1: CAMERA SYSTEM ===
+        camera_header = QLabel("📷 Camera System")
+        camera_header.setStyleSheet(
+            "font-size: 13px; font-weight: bold; padding: 8px; margin-top: 4px; "
+            "background-color: #37474F; color: #64B5F6; border-radius: 3px;"
         )
-        hardware_layout.addWidget(hardware_status_label)
+        hardware_layout.addWidget(camera_header)
 
-        # TODO: Add HardwareStatusWidget here in Phase 2
-        hardware_placeholder = QLabel("Camera connection status (Phase 2)")
-        hardware_placeholder.setStyleSheet("padding: 10px; color: #888;")
-        hardware_layout.addWidget(hardware_placeholder)
+        # Camera connection widget (lightweight status + connect/disconnect)
+        from ui.widgets.camera_connection_widget import CameraConnectionWidget
 
-        # Laser Control Widget (for connection + configuration)
+        self.camera_connection_widget = CameraConnectionWidget(None)  # Will set camera_widget later
+        hardware_layout.addWidget(self.camera_connection_widget)
+
+        # === SECTION 2: LINEAR ACTUATOR ===
+        actuator_header = QLabel("🔧 Linear Actuator Controller")
+        actuator_header.setStyleSheet(
+            "font-size: 13px; font-weight: bold; padding: 8px; margin-top: 12px; "
+            "background-color: #37474F; color: #81C784; border-radius: 3px;"
+        )
+        hardware_layout.addWidget(actuator_header)
+
+        # Actuator connection widget (will be created after ActuatorWidget in Protocol Builder tab)
+        # Placeholder stored for later widget insertion
+        self.actuator_header_index = hardware_layout.count() - 1  # Remember position for insertion
+
+        # === SECTION 3: LASER SYSTEMS ===
+        laser_header = QLabel("⚡ Laser Systems (Aiming + Treatment)")
+        laser_header.setStyleSheet(
+            "font-size: 13px; font-weight: bold; padding: 8px; margin-top: 12px; "
+            "background-color: #37474F; color: #FFD54F; border-radius: 3px;"
+        )
+        hardware_layout.addWidget(laser_header)
+
+        # Laser Control Widget (aiming + treatment laser connection + configuration)
         from ui.widgets.laser_widget import LaserWidget
 
         self.laser_widget = LaserWidget()
         hardware_layout.addWidget(self.laser_widget)
 
-        # GPIO Diagnostics (motor controls, vibration monitoring, interlocks, event log)
+        # === SECTION 4: GPIO DIAGNOSTICS ===
+        # GPIO widget contains smoothing device, photodiode, and safety interlocks
+        # Widget has its own internal headers and organization
         self.safety_widget = SafetyWidget(db_manager=self.db_manager)
         hardware_layout.addWidget(self.safety_widget)
 
@@ -166,6 +189,9 @@ class MainWindow(QMainWindow):
 
         # Right: Camera/Alignment (66%)
         self.camera_widget = CameraWidget()
+        # Hide connection controls in Treatment tab - hardware connection
+        # managed in Hardware & Diagnostics tab only
+        self.camera_widget.hide_connection_controls()
         top_layout.addWidget(self.camera_widget, 2)
 
         treatment_layout.addWidget(top_section, 2)  # Top section gets 2x stretch
@@ -180,6 +206,10 @@ class MainWindow(QMainWindow):
         except ImportError as e:
             logger.warning(f"Camera controller not available: {e}")
             self.camera_controller = None
+
+        # Wire camera connection widget to main camera widget for status updates
+        self.camera_connection_widget.camera_widget = self.camera_widget
+        logger.info("Camera connection widget wired to main camera widget")
 
         # Middle/Bottom: QStackedWidget for Setup → Active transition
         self.treatment_stack = QStackedWidget()
@@ -240,8 +270,10 @@ class MainWindow(QMainWindow):
         from ui.widgets.actuator_connection_widget import ActuatorConnectionWidget
 
         self.actuator_connection_widget = ActuatorConnectionWidget(self.actuator_widget)
-        # Insert before GPIO widget in hardware layout
-        hardware_layout.insertWidget(2, self.actuator_connection_widget)
+        # Insert right after actuator header in hardware layout
+        hardware_layout.insertWidget(
+            self.actuator_header_index + 1, self.actuator_connection_widget
+        )
         logger.info("Actuator connection widget added to Hardware tab (shared controller)")
 
         # Initialize safety manager

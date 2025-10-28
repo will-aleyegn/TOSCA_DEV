@@ -126,8 +126,8 @@ class CameraWidget(QWidget):
         group.setMaximumWidth(350)
 
         # Connection controls
-        conn_group = self._create_connection_controls()
-        layout.addWidget(conn_group)
+        self.connection_controls_group = self._create_connection_controls()
+        layout.addWidget(self.connection_controls_group)
 
         # Camera settings
         settings_group = self._create_camera_settings()
@@ -145,6 +145,81 @@ class CameraWidget(QWidget):
 
         group.setLayout(layout)
         return group
+
+    def hide_connection_controls(self) -> None:
+        """
+        Hide connection controls (for use in non-hardware tabs).
+
+        Connection should only be managed from Hardware & Diagnostics tab.
+        Other tabs (Treatment Workflow, Protocol Builder) should only use
+        already-connected hardware.
+        """
+        if hasattr(self, "connection_controls_group"):
+            self.connection_controls_group.setVisible(False)
+            logger.info("Camera connection controls hidden (non-hardware tab)")
+
+    def show_connection_controls(self) -> None:
+        """Show connection controls (for use in Hardware & Diagnostics tab)."""
+        if hasattr(self, "connection_controls_group"):
+            self.connection_controls_group.setVisible(True)
+            logger.info("Camera connection controls shown (hardware tab)")
+
+    def connect_camera(self) -> bool:
+        """
+        Public API: Connect to camera.
+
+        Returns:
+            bool: True if connection successful, False otherwise
+        """
+        if not self.camera_controller:
+            logger.warning("Cannot connect camera: controller not initialized")
+            return False
+
+        if self.is_connected:
+            logger.info("Camera already connected")
+            return True
+
+        logger.info("Connecting to camera...")
+        success = self.camera_controller.connect()
+        if success:
+            # Update slider ranges from camera
+            exp_min, exp_max = self.camera_controller.get_exposure_range()
+            self.exposure_slider.setMinimum(int(exp_min))
+            self.exposure_slider.setMaximum(int(exp_max))
+
+            gain_min, gain_max = self.camera_controller.get_gain_range()
+            self.gain_slider.setMinimum(int(gain_min * 10))
+            self.gain_slider.setMaximum(int(gain_max * 10))
+
+            logger.info("Camera connected successfully")
+        else:
+            logger.error("Failed to connect camera")
+
+        return success
+
+    def disconnect_camera(self) -> bool:
+        """
+        Public API: Disconnect from camera.
+
+        Returns:
+            bool: True if disconnection successful, False otherwise
+        """
+        if not self.camera_controller:
+            logger.warning("Cannot disconnect camera: controller not initialized")
+            return False
+
+        if not self.is_connected:
+            logger.info("Camera already disconnected")
+            return True
+
+        logger.info("Disconnecting from camera...")
+        success = self.camera_controller.disconnect()
+        if success:
+            logger.info("Camera disconnected successfully")
+        else:
+            logger.error("Failed to disconnect camera")
+
+        return success
 
     def _create_connection_controls(self) -> QGroupBox:
         """Create connection control group."""
@@ -651,6 +726,15 @@ class CameraWidget(QWidget):
             self.record_btn.setEnabled(False)
             self.camera_display.clear()
             self.camera_display.setText("Camera feed will appear here")
+
+        # Notify main window status bar (if available)
+        main_window = self.window()
+        if main_window and hasattr(main_window, "update_camera_status"):
+            main_window.update_camera_status(connected)
+
+        # Notify hardware tab connection widget (if available)
+        if main_window and hasattr(main_window, "camera_connection_widget"):
+            main_window.camera_connection_widget.update_connection_status(connected)
 
     @pyqtSlot(str)
     def _on_error(self, error_msg: str) -> None:
