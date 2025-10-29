@@ -1,8 +1,8 @@
 # TOSCA Project Status
 
-**Last Updated:** 2025-10-28 (Zen MCP Integration Complete)
+**Last Updated:** 2025-10-28 (Hardware Enhancements Complete)
 **Project:** TOSCA Laser Control System
-**Version:** 0.9.5-alpha (UI Redesign Phase 2 Complete + Onboarding Enhanced)
+**Version:** 0.9.6-alpha (UI Cleanup + Hardware Diagnostics Complete)
 
 ---
 
@@ -137,6 +137,51 @@ Transform tab-based GUI into integrated "Treatment Dashboard" for improved opera
 - ✅ Beginner-friendly with real scenarios and examples
 - ✅ Comprehensive documentation (2,215 new lines)
 
+#### Milestone 5.6: Hardware Tab Enhancements & Code Cleanup ✅ **COMPLETE** (2025-10-28)
+**Started:** 2025-10-28 afternoon
+**Completed:** 2025-10-28 evening (same day!)
+
+**Objectives:** Clean codebase, improve naming clarity, add hardware diagnostics
+
+**Code Cleanup (Priority 1)** ✅ **COMPLETE**
+- [x] Deep dive UI code analysis (UI_CODE_ANALYSIS_REPORT.md)
+- [x] Verified 100% button connectivity (17/17 buttons properly connected)
+- [x] Deleted 3 dead widget files (motor_widget, protocol_builder_widget, manual_override_widget)
+- [x] Identified confusing code patterns and added clarifying comments
+- [x] Overall code quality: A- (90%)
+
+**Naming Clarity (Priority 3)** ✅ **COMPLETE**
+- [x] Renamed `camera_connection_widget` → `camera_hardware_panel`
+- [x] Renamed `camera_widget` → `camera_live_view`
+- [x] Updated all references throughout codebase
+- [x] Applied "Intention-Revealing Names" principle from Clean Code
+
+**Enhancement 1: Connection Status Indicators** ✅ **COMPLETE**
+- [x] Add live ✓/✗ status to hardware section headers
+- [x] Headers turn green (#2E7D32) when connected, gray (#37474F) when disconnected
+- [x] Auto-update for Camera, Actuator, and Laser systems
+- [x] Immediate visual feedback reduces cognitive load
+
+**Enhancement 2: Test All Hardware Button** ✅ **COMPLETE**
+- [x] Purple "🧪 Test All Hardware" button in global toolbar
+- [x] Single-click diagnostic tests all 4 hardware systems
+- [x] Beautiful results dialog with pass/fail indicators
+- [x] Tests: Camera (connection, streaming, FPS, model), Actuator (connection, homing, position, range)
+- [x] Tests: Laser (aiming + treatment), GPIO (controller, smoothing motor, photodiode, interlocks)
+- [x] Overall summary: X/4 PASSED statistics
+
+**Enhancement 3: Hardware Info Cards** ❌ **SKIPPED**
+- [x] Created comprehensive metadata guide (HARDWARE_METADATA_SOURCES.md)
+- [x] Documented metadata availability for each hardware type
+- [x] Future enhancement - not implemented in this milestone
+
+**Results:**
+- ✅ 4 commits pushed (naming, cleanup, indicator, diagnostic)
+- ✅ 700+ net lines added (dialogs, test methods, status tracking)
+- ✅ 3 dead widget files removed (~750 lines of dead code)
+- ✅ Repository organized (screenshots moved to proper directory)
+- ✅ Code quality maintained: A- (90%)
+
 ### ⏳ Planned Milestones
 
 #### Milestone 6: Clinical Testing & Validation (Planned: Q1 2025)
@@ -178,18 +223,23 @@ Transform tab-based GUI into integrated "Treatment Dashboard" for improved opera
 
 | Widget | Status | Notes |
 |--------|--------|-------|
-| `MainWindow` | 🟢 Phase 1 Complete | Global toolbar, safety indicator, status bar enhanced |
-| `SubjectWidget` | ✅ Stable | Will move to combined Setup tab |
-| `CameraWidget` | ✅ Stable | Will integrate into Treatment Dashboard |
-| `TreatmentSetupWidget` | 🟢 Complete | Horizontal layout optimized for configuration |
-| `ActiveTreatmentWidget` | 🟢 Complete | Horizontal layout optimized for monitoring |
-| `LaserWidget` | ✅ Stable | Will become collapsible panel |
-| `ActuatorWidget` | ✅ Stable | Will become collapsible panel |
-| `MotorWidget` | ✅ Stable | Existing functionality preserved |
-| `SafetyWidget` | 🟡 Redesigning | Splitting into diagnostic + dashboard views |
-| `GPIOWidget` | ✅ Stable | Motor controls moving to dashboard |
-| `InterlocksWidget` | 🟢 Complete | Consolidated safety interlock display |
-| `ProtocolSelectorWidget` | ⏳ Planned | Protocol management UI |
+| `MainWindow` | ✅ Enhanced | Hardware diagnostics + connection status indicators |
+| `SubjectWidget` | ✅ Stable | Combined with camera in Treatment tab |
+| `CameraWidget` → `camera_live_view` | ✅ Renamed | Clear naming, integrated into Treatment Dashboard |
+| `CameraHardwarePanel` | ✅ Created | Hardware & Diagnostics tab camera management |
+| `TreatmentSetupWidget` | ✅ Complete | Protocol selector integrated |
+| `ActiveTreatmentWidget` | ✅ Complete | Horizontal layout for monitoring |
+| `LaserWidget` | ✅ Stable | Hardware tab connection management |
+| `ActuatorWidget` | ✅ Stable | Protocol Builder tab sequence management |
+| `ActuatorConnectionWidget` | ✅ Created | Hardware tab connection panel |
+| `SafetyWidget` | ✅ Complete | GPIO diagnostics with safety interlocks |
+| `GPIOWidget` | ✅ Stable | Motor controls in safety widget |
+| `InterlocksWidget` | ✅ Complete | Consolidated safety interlock display |
+| `ProtocolSelectorWidget` | ✅ Complete | Visual protocol library browser |
+| `HardwareTestDialog` | ✅ Created | Diagnostic results display |
+| ~~`MotorWidget`~~ | ❌ Deleted | Superseded by GPIOWidget |
+| ~~`ProtocolBuilderWidget`~~ | ❌ Deleted | Replaced by ProtocolSelectorWidget |
+| ~~`ManualOverrideWidget`~~ | ❌ Deleted | Never integrated, removed |
 
 ---
 
