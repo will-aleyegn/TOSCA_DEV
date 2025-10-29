@@ -186,29 +186,68 @@ class MainWindow(QMainWindow):
 
         # TAB 2: TREATMENT WORKFLOW
         # Subject management + Camera + Protocol selector + Execution monitoring
+        # Layout: 2-column (40% controls | 60% camera) with scrolling
         treatment_tab = QWidget()
-        treatment_layout = QVBoxLayout()
-        treatment_tab.setLayout(treatment_layout)
+        treatment_main_layout = QHBoxLayout()
+        treatment_tab.setLayout(treatment_main_layout)
 
-        # Top Section: Subject Selection + Camera (33%/66% horizontal)
-        top_section = QWidget()
-        top_layout = QHBoxLayout()
-        top_section.setLayout(top_layout)
+        # === LEFT COLUMN (40%): Workflow Controls ===
+        left_scroll = QScrollArea()
+        left_scroll.setWidgetResizable(True)
+        left_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        left_scroll.setStyleSheet("QScrollArea { border: none; }")
 
-        # Left: Subject Selection (33%)
+        left_content = QWidget()
+        left_layout = QVBoxLayout()
+        left_content.setLayout(left_layout)
+
+        # Subject Selection
         self.subject_widget = SubjectWidget()
         self.subject_widget.set_managers(self.db_manager, self.session_manager)
         self.subject_widget.session_started.connect(self._on_session_started)
-        top_layout.addWidget(self.subject_widget, 1)
+        left_layout.addWidget(self.subject_widget)
 
-        # Right: Camera/Alignment (66%)
+        # Treatment Setup/Active QStackedWidget
+        self.treatment_stack = QStackedWidget()
+
+        # Add Setup view (index 0) - Protocol selector + Ready check
+        self.treatment_setup_widget = TreatmentSetupWidget()
+        self.treatment_stack.addWidget(self.treatment_setup_widget)
+
+        # Add Active view (index 1) - Monitoring during execution
+        self.active_treatment_widget = ActiveTreatmentWidget()
+        self.treatment_stack.addWidget(self.active_treatment_widget)
+
+        # Start in Setup view
+        self.treatment_stack.setCurrentIndex(0)
+
+        left_layout.addWidget(self.treatment_stack)
+        left_layout.addStretch()
+
+        left_scroll.setWidget(left_content)
+        left_scroll.setMinimumWidth(400)  # Prevent excessive squishing
+        treatment_main_layout.addWidget(left_scroll, 2)  # 40% width (stretch=2)
+
+        # === RIGHT COLUMN (60%): Camera View ===
+        right_scroll = QScrollArea()
+        right_scroll.setWidgetResizable(True)
+        right_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        right_scroll.setStyleSheet("QScrollArea { border: none; }")
+
+        right_content = QWidget()
+        right_layout = QVBoxLayout()
+        right_content.setLayout(right_layout)
+
+        # Camera Widget with VISIBLE streaming controls
         self.camera_live_view = CameraWidget()
-        # Hide connection controls in Treatment tab - hardware connection
-        # managed in Hardware & Diagnostics tab only
-        self.camera_live_view.hide_connection_controls()
-        top_layout.addWidget(self.camera_live_view, 2)
+        # NOTE: NOT hiding connection controls - users need streaming during treatment
+        # Connection button connects to hardware, Start/Stop streaming controls feed
+        right_layout.addWidget(self.camera_live_view)
+        right_layout.addStretch()
 
-        treatment_layout.addWidget(top_section, 2)  # Top section gets 2x stretch
+        right_scroll.setWidget(right_content)
+        right_scroll.setMinimumWidth(640)  # Camera minimum size
+        treatment_main_layout.addWidget(right_scroll, 3)  # 60% width (stretch=3)
 
         # Initialize camera controller (if available)
         try:
@@ -224,23 +263,6 @@ class MainWindow(QMainWindow):
         # Wire camera connection widget to main camera widget for status updates
         self.camera_hardware_panel.camera_live_view = self.camera_live_view
         logger.info("Camera connection widget wired to main camera widget")
-
-        # Middle/Bottom: QStackedWidget for Setup → Active transition
-        self.treatment_stack = QStackedWidget()
-        treatment_layout.addWidget(
-            self.treatment_stack, 3
-        )  # Bottom section gets 3x stretch (more vertical space for protocols)
-
-        # Add Setup view (index 0) - Protocol selector + Ready check
-        self.treatment_setup_widget = TreatmentSetupWidget()
-        self.treatment_stack.addWidget(self.treatment_setup_widget)
-
-        # Add Active view (index 1) - Monitoring during execution
-        self.active_treatment_widget = ActiveTreatmentWidget()
-        self.treatment_stack.addWidget(self.active_treatment_widget)
-
-        # Start in Setup view
-        self.treatment_stack.setCurrentIndex(0)
 
         self.tabs.addTab(treatment_tab, "Treatment Workflow")
 
