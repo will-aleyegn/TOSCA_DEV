@@ -16,6 +16,7 @@ from PyQt6.QtWidgets import (
     QGroupBox,
     QHBoxLayout,
     QLabel,
+    QMessageBox,
     QPushButton,
     QVBoxLayout,
     QWidget,
@@ -180,6 +181,17 @@ class ActuatorConnectionWidget(QWidget):
         self.disconnect_btn.setEnabled(False)
         layout.addWidget(self.disconnect_btn)
 
+        # Query Settings button - for verifying device-stored settings
+        self.query_settings_btn = QPushButton("Query Settings")
+        self.query_settings_btn.setFixedWidth(120)
+        self.query_settings_btn.setMinimumHeight(32)
+        self.query_settings_btn.setToolTip(
+            "Query device-stored settings\n" "(Best used after homing completes)"
+        )
+        self.query_settings_btn.clicked.connect(self._on_query_settings_clicked)
+        self.query_settings_btn.setEnabled(False)
+        layout.addWidget(self.query_settings_btn)
+
         layout.addStretch()  # Push buttons to left, leave right space empty
 
         group.setLayout(layout)
@@ -233,7 +245,12 @@ class ActuatorConnectionWidget(QWidget):
             # Update state from controller
             self.is_connected = controller.is_connected
             self.is_homed = controller.is_homed
-            self.current_position_um = controller.current_position_um
+
+            # Get initial position from controller (returns None if not available)
+            position = controller.get_position()
+            if position is not None:
+                self.current_position_um = position
+
             self._update_ui_state()
 
             logger.info("ActuatorConnectionWidget connected to shared controller signals")
@@ -322,12 +339,15 @@ class ActuatorConnectionWidget(QWidget):
             self.connect_btn.setEnabled(False)
             self.disconnect_btn.setEnabled(True)
             self.home_btn.setEnabled(not self.is_homed)
+            # Query settings enabled when connected (best after homing)
+            self.query_settings_btn.setEnabled(True)
         else:
             self.connection_status_label.setText("Disconnected")
             self.connection_status_label.setStyleSheet("font-weight: bold; color: #f44336;")
             self.connect_btn.setEnabled(True)
             self.disconnect_btn.setEnabled(False)
             self.home_btn.setEnabled(False)
+            self.query_settings_btn.setEnabled(False)
 
         # Homing status
         if self.is_homed:
@@ -336,6 +356,124 @@ class ActuatorConnectionWidget(QWidget):
         else:
             self.homing_status_label.setText("Not Homed")
             self.homing_status_label.setStyleSheet("font-weight: bold; color: #f44336;")
+
+    def _on_query_settings_clicked(self) -> None:
+        """Handle query settings button click - queries and displays device settings."""
+        if not self.actuator_widget or not self.actuator_widget.controller:
+            QMessageBox.warning(
+                self,
+                "Not Connected",
+                "Actuator must be connected to query settings.",
+            )
+            return
+
+        logger.info("Querying device settings...")
+
+        # Query settings from controller
+        settings = self.actuator_widget.controller.query_device_settings()
+
+        # Check for errors
+        if "error" in settings:
+            QMessageBox.critical(
+                self,
+                "Query Failed",
+                f"Failed to query device settings:\n\n{settings['error']}",
+            )
+            return
+
+        # Build display message
+        available_count = settings.get("available_count", 0)
+        total_queried = settings.get("total_queried", 0)
+
+        if available_count == 0:
+            message = (
+                "No device settings available\n\n"
+                "This is expected if:\n"
+                "- Device is still initializing\n"
+                "- settings_default.txt is missing (intentional for TOSCA)\n"
+                "- Settings haven't been sent by device yet\n\n"
+                "The system is using conservative defaults:\n"
+                "- LLIM = -45000 µm\n"
+                "- HLIM = 45000 µm\n"
+                "- ACCE/DECE = 65500\n\n"
+                "Try again after homing completes or device has more time to initialize."
+            )
+            title = "No Settings Available"
+            icon = QMessageBox.Icon.Warning
+        else:
+            # Format settings nicely
+            lines = [f"Retrieved {available_count}/{total_queried} device settings\n"]
+
+            # Position limits
+            lines.append("Position Limits:")
+            llim = settings.get("LLIM")
+            hlim = settings.get("HLIM")
+            if llim:
+                lines.append(f"  LLIM (Low Limit) = {llim} µm")
+            else:
+                lines.append("  LLIM (Low Limit) = Not available")
+            if hlim:
+                lines.append(f"  HLIM (High Limit) = {hlim} µm")
+            else:
+                lines.append("  HLIM (High Limit) = Not available")
+
+            # Speed and motion
+            lines.append("\nSpeed & Motion:")
+            sspd = settings.get("SSPD")
+            acce = settings.get("ACCE")
+            dece = settings.get("DECE")
+            if sspd:
+                lines.append(f"  SSPD (Speed) = {sspd} µm/s")
+            else:
+                lines.append("  SSPD (Speed) = Not available")
+            if acce:
+                lines.append(f"  ACCE (Acceleration) = {acce}")
+            else:
+                lines.append("  ACCE (Acceleration) = Not available")
+            if dece:
+                lines.append(f"  DECE (Deceleration) = {dece}")
+            else:
+                lines.append("  DECE (Deceleration) = Not available")
+
+            # Tolerances
+            lines.append("\nPosition Tolerances:")
+            ptol = settings.get("PTOL")
+            pto2 = settings.get("PTO2")
+            tout = settings.get("TOUT")
+            if ptol:
+                lines.append(f"  PTOL (Primary) = {ptol} encoder units")
+            else:
+                lines.append("  PTOL (Primary) = Not available")
+            if pto2:
+                lines.append(f"  PTO2 (Secondary) = {pto2} encoder units")
+            else:
+                lines.append("  PTO2 (Secondary) = Not available")
+            if tout:
+                lines.append(f"  TOUT (Timeout) = {tout} ms")
+            else:
+                lines.append("  TOUT (Timeout) = Not available")
+
+            # Error limit
+            lines.append("\nError Limits:")
+            elim = settings.get("ELIM")
+            if elim:
+                lines.append(f"  ELIM (Error Limit) = {elim}")
+            else:
+                lines.append("  ELIM (Error Limit) = Not available")
+
+            lines.append("\nDevice-stored settings (manufacturer-calibrated)")
+
+            message = "\n".join(lines)
+            title = "Device Settings"
+            icon = QMessageBox.Icon.Information
+
+        # Show dialog
+        msg_box = QMessageBox(self)
+        msg_box.setIcon(icon)
+        msg_box.setWindowTitle(title)
+        msg_box.setText(message)
+        msg_box.setStandardButtons(QMessageBox.StandardButton.Ok)
+        msg_box.exec()
 
     def cleanup(self) -> None:
         """Cleanup resources (controller is shared, don't disconnect)."""
