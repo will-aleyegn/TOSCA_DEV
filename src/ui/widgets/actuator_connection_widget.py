@@ -4,8 +4,11 @@ Actuator connection and homing widget for Hardware & Diagnostics tab.
 Provides compact hardware setup interface without sequence building.
 """
 
+import json
 import logging
+from pathlib import Path
 
+import serial.tools.list_ports
 from PyQt6.QtCore import pyqtSlot
 from PyQt6.QtWidgets import (
     QComboBox,
@@ -19,6 +22,9 @@ from PyQt6.QtWidgets import (
 )
 
 logger = logging.getLogger(__name__)
+
+# Preferences file location
+PREFERENCES_FILE = Path("data/hardware_preferences.json")
 
 
 class ActuatorConnectionWidget(QWidget):
@@ -63,6 +69,56 @@ class ActuatorConnectionWidget(QWidget):
         # Initial state
         self._update_ui_state()
 
+    def _load_preferences(self) -> dict:
+        """Load hardware preferences from file."""
+        try:
+            if PREFERENCES_FILE.exists():
+                with open(PREFERENCES_FILE, "r") as f:
+                    return json.load(f)
+        except Exception as e:
+            logger.warning(f"Could not load preferences: {e}")
+        return {}
+
+    def _save_preference(self, key: str, value: str) -> None:
+        """Save a preference to file."""
+        try:
+            prefs = self._load_preferences()
+            prefs[key] = value
+            PREFERENCES_FILE.parent.mkdir(parents=True, exist_ok=True)
+            with open(PREFERENCES_FILE, "w") as f:
+                json.dump(prefs, f, indent=2)
+            logger.info(f"Saved preference: {key} = {value}")
+        except Exception as e:
+            logger.error(f"Could not save preference: {e}")
+
+    def _get_available_ports(self) -> list[tuple[str, bool]]:
+        """Get list of COM ports with availability status."""
+        available_ports = {p.device for p in serial.tools.list_ports.comports()}
+        all_ports = [f"COM{i}" for i in range(1, 21)]
+        return [(port, port in available_ports) for port in all_ports]
+
+    def _refresh_port_list(self) -> None:
+        """Refresh the COM port dropdown with current available ports."""
+        current_port = self.com_port_combo.currentData()
+        self.com_port_combo.clear()
+        ports_with_status = self._get_available_ports()
+        for port, is_available in ports_with_status:
+            if is_available:
+                self.com_port_combo.addItem(f"✓ {port}", userData=port)
+            else:
+                self.com_port_combo.addItem(f"  {port}", userData=port)
+        if current_port:
+            for i in range(self.com_port_combo.count()):
+                if self.com_port_combo.itemData(i) == current_port:
+                    self.com_port_combo.setCurrentIndex(i)
+                    break
+        logger.info(f"Refreshed port list: {sum(1 for _, avail in ports_with_status if avail)} available")
+
+    def _on_refresh_clicked(self) -> None:
+        """Handle refresh button click."""
+        logger.info("Refreshing COM port list...")
+        self._refresh_port_list()
+
     def _create_connection_group(self) -> QGroupBox:
         """Create connection control group."""
         group = QGroupBox("Connection & Homing")
@@ -74,15 +130,28 @@ class ActuatorConnectionWidget(QWidget):
 
         # COM Port selection
         self.com_port_combo = QComboBox()
-        self.com_port_combo.setFixedWidth(100)
-        # Populate with common Windows COM ports
-        for i in range(1, 21):
-            self.com_port_combo.addItem(f"COM{i}")
-        # Set default to COM3 (from config.yaml: actuator is on COM3)
-        index = self.com_port_combo.findText("COM3")
-        if index >= 0:
-            self.com_port_combo.setCurrentIndex(index)
+        self.com_port_combo.setFixedWidth(150)  # Wider for ✓ indicator
+        self.com_port_combo.setToolTip("Select COM port for Actuator\n✓ = Port detected and available")
         layout.addWidget(self.com_port_combo)
+
+        # Refresh button
+        self.refresh_btn = QPushButton("🔄")
+        self.refresh_btn.setFixedWidth(32)
+        self.refresh_btn.setToolTip("Refresh available COM ports")
+        self.refresh_btn.clicked.connect(self._on_refresh_clicked)
+        layout.addWidget(self.refresh_btn)
+
+        # Initial port population with detection
+        self._refresh_port_list()
+
+        # Set default from saved preference, or use COM3
+        prefs = self._load_preferences()
+        saved_port = prefs.get("actuator_com_port", "COM3")
+        for i in range(self.com_port_combo.count()):
+            if self.com_port_combo.itemData(i) == saved_port:
+                self.com_port_combo.setCurrentIndex(i)
+                logger.info(f"Loaded saved Actuator port: {saved_port}")
+                break
 
         # Connect button - fixed width for compact layout
         self.connect_btn = QPushButton("Connect")
@@ -174,8 +243,14 @@ class ActuatorConnectionWidget(QWidget):
             logger.error("No ActuatorWidget reference - cannot connect")
             return
 
-        # Get selected COM port
-        selected_port = self.com_port_combo.currentText()
+        # Get selected COM port (from userData to remove ✓ indicator)
+        selected_port = self.com_port_combo.currentData()
+        if not selected_port:
+            # Fallback to text if userData not set
+            selected_port = self.com_port_combo.currentText().replace("✓ ", "").strip()
+
+        # Save this port as preference for next time
+        self._save_preference("actuator_com_port", selected_port)
 
         # Trigger connect in the main ActuatorWidget (creates controller if needed)
         self.actuator_widget._on_connect_clicked(com_port=selected_port)
