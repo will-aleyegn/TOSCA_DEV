@@ -22,17 +22,17 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from core.event_logger import EventLogger, EventSeverity, EventType
-from core.protocol_engine import ProtocolEngine
-from core.safety import SafetyManager
-from core.safety_watchdog import SafetyWatchdog
-from core.session_manager import SessionManager
-from database.db_manager import DatabaseManager
-from ui.widgets.active_treatment_widget import ActiveTreatmentWidget
-from ui.widgets.camera_widget import CameraWidget
-from ui.widgets.safety_widget import SafetyWidget
-from ui.widgets.subject_widget import SubjectWidget
-from ui.widgets.treatment_setup_widget import TreatmentSetupWidget
+from src.core.event_logger import EventLogger, EventSeverity, EventType
+from src.core.protocol_engine import ProtocolEngine
+from src.core.safety import SafetyManager
+from src.core.safety_watchdog import SafetyWatchdog
+from src.core.session_manager import SessionManager
+from src.database.db_manager import DatabaseManager
+from src.ui.widgets.active_treatment_widget import ActiveTreatmentWidget
+from src.ui.widgets.camera_widget import CameraWidget
+from src.ui.widgets.safety_widget import SafetyWidget
+from src.ui.widgets.subject_widget import SubjectWidget
+from src.ui.widgets.treatment_setup_widget import TreatmentSetupWidget
 
 logger = logging.getLogger(__name__)
 

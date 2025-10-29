@@ -20,7 +20,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from hardware.laser_controller import LaserController
+from src.hardware.laser_controller import LaserController
 
 if TYPE_CHECKING:
     from hardware.gpio_controller import GPIOController

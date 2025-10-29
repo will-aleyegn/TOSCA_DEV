@@ -25,8 +25,8 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from hardware.actuator_controller import ActuatorController
-from hardware.actuator_sequence import ActionType, ActuatorSequence, SequenceAction
+from src.hardware.actuator_controller import ActuatorController
+from src.hardware.actuator_sequence import ActionType, ActuatorSequence, SequenceAction
 
 logger = logging.getLogger(__name__)
 

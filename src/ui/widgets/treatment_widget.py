@@ -20,10 +20,10 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from ui.widgets.actuator_widget import ActuatorWidget
-from ui.widgets.interlocks_widget import InterlocksWidget
-from ui.widgets.laser_widget import LaserWidget
-from ui.widgets.motor_widget import MotorWidget
+from src.ui.widgets.actuator_widget import ActuatorWidget
+from src.ui.widgets.interlocks_widget import InterlocksWidget
+from src.ui.widgets.laser_widget import LaserWidget
+from src.ui.widgets.motor_widget import MotorWidget
 
 logger = logging.getLogger(__name__)
 
@@ -331,7 +331,7 @@ class TreatmentWidget(QWidget):
             return
 
         # Create a simple test protocol for now
-        # TODO: Load protocol from file or configuration
+        # TODO(#129): Load protocol from file or configuration
         from core.protocol import (
             ActionType,
             MoveActuatorParams,

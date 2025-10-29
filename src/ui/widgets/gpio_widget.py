@@ -23,8 +23,8 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from config.config_loader import get_config
-from hardware.gpio_controller import GPIOController
+from src.config.config_loader import get_config
+from src.hardware.gpio_controller import GPIOController
 
 logger = logging.getLogger(__name__)
 
