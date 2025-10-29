@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
 """
-Laser hardware abstraction layer for Arroyo Instruments laser driver.
+TEC (Thermoelectric Cooler) hardware abstraction layer for Arroyo Instruments.
 
-Provides PyQt6-integrated laser control with:
-- Current control for laser diode
+Provides PyQt6-integrated TEC control with:
+- Temperature setpoint control
+- Temperature monitoring
 - Output enable/disable
+- PID control configuration
 - Safety limits
 - Status monitoring
 - Thread-safe serial communication
-
-Note: TEC temperature control is handled by separate TECController.
 """
 
 import logging
@@ -17,35 +17,35 @@ import threading
 from typing import Any, Optional
 
 import serial
-from PyQt6.QtCore import QObject, QTimer, pyqtSignal
+from PyQt6.QtCore import QTimer, pyqtSignal
+
+from .hardware_controller_base import HardwareControllerBase
 
 logger = logging.getLogger(__name__)
 
 
-class LaserController(QObject):
+class TECController(HardwareControllerBase):
     """
-    Arroyo laser driver controller with PyQt6 integration.
+    Arroyo TEC controller with PyQt6 integration.
 
-    Provides thread-safe laser operations with Qt signals.
-    Uses Arroyo serial command protocol.
+    Provides thread-safe TEC operations with Qt signals for temperature control.
+    Uses Arroyo serial command protocol (TEC: commands).
     """
 
     # Signals
-    power_changed = pyqtSignal(float)  # Current power in mW
-    current_changed = pyqtSignal(float)  # Current in mA
-    connection_changed = pyqtSignal(bool)  # True=connected, False=disconnected
+    temperature_changed = pyqtSignal(float)  # Actual temperature in °C
+    temperature_setpoint_changed = pyqtSignal(float)  # Setpoint temperature in °C
     output_changed = pyqtSignal(bool)  # True=enabled, False=disabled
-    error_occurred = pyqtSignal(str)  # Error message
+    current_changed = pyqtSignal(float)  # TEC current in A
+    voltage_changed = pyqtSignal(float)  # TEC voltage in V
     status_changed = pyqtSignal(str)  # Status description
     limit_warning = pyqtSignal(str)  # Limit warning message
 
     def __init__(self, event_logger: Optional[Any] = None) -> None:
-        super().__init__()
+        super().__init__(event_logger)
 
         self.ser: Optional[serial.Serial] = None
-        self.is_connected = False
         self.is_output_enabled = False
-        self.event_logger = event_logger
 
         # Thread safety lock for serial communication (reentrant for nested calls)
         self._lock = threading.RLock()
@@ -56,21 +56,20 @@ class LaserController(QObject):
         self.monitor_timer.setInterval(500)  # Update every 500ms
 
         # Settings
-        self.current_setpoint_ma = 0.0
-        self.power_setpoint_mw = 0.0
+        self.temperature_setpoint_c = 25.0
 
         # Safety limits (will be read from device)
-        self.max_current_ma = 2000.0
-        self.max_power_mw = 2000.0
+        self.max_temperature_c = 35.0
+        self.min_temperature_c = 15.0
 
-        logger.info("Laser controller initialized (thread-safe)")
+        logger.info("TEC controller initialized (thread-safe)")
 
-    def connect(self, com_port: str = "COM10", baudrate: int = 38400) -> bool:
+    def connect(self, com_port: str = "COM9", baudrate: int = 38400) -> bool:
         """
-        Connect to Arroyo laser driver.
+        Connect to Arroyo TEC controller.
 
         Args:
-            com_port: Serial port (e.g., "COM4")
+            com_port: Serial port (e.g., "COM9")
             baudrate: Communication speed (default 38400)
 
         Returns:
@@ -92,7 +91,7 @@ class LaserController(QObject):
                     # Test connection with ID query
                     response = self._write_command("*IDN?")
                     if response:
-                        logger.info(f"Connected to: {response}")
+                        logger.info(f"Connected to TEC: {response}")
                         self.is_connected = True
                         self.connection_changed.emit(True)
                         self.status_changed.emit("connected")
@@ -102,9 +101,9 @@ class LaserController(QObject):
                             from ..core.event_logger import EventType
 
                             self.event_logger.log_hardware_event(
-                                event_type=EventType.HARDWARE_LASER_CONNECT,
-                                description=f"Laser connected: {response.strip()}",
-                                device_name="Arroyo Laser Driver",
+                                event_type=EventType.HARDWARE_TEC_CONNECT,
+                                description=f"TEC connected: {response.strip()}",
+                                device_name="Arroyo TEC Controller",
                             )
 
                         # Read initial limits
@@ -115,7 +114,7 @@ class LaserController(QObject):
 
                         return True
                     else:
-                        logger.error("No response from laser driver")
+                        logger.error("No response from TEC controller")
                         self.ser.close()
                         return False
                 else:
@@ -132,9 +131,9 @@ class LaserController(QObject):
 
                     self.event_logger.log_event(
                         event_type=EventType.HARDWARE_ERROR,
-                        description=f"Laser connection failed: {e}",
+                        description=f"TEC connection failed: {e}",
                         severity=EventSeverity.WARNING,
-                        details={"device": "Arroyo Laser Driver", "port": com_port},
+                        details={"device": "Arroyo TEC Controller", "port": com_port},
                     )
 
                 return False
@@ -144,7 +143,7 @@ class LaserController(QObject):
                 return False
 
     def disconnect(self) -> None:
-        """Disconnect from laser driver."""
+        """Disconnect from TEC controller."""
         with self._lock:
             if self.ser and self.ser.is_open:
                 # Disable output before disconnecting
@@ -158,40 +157,38 @@ class LaserController(QObject):
                 self.is_connected = False
                 self.connection_changed.emit(False)
                 self.status_changed.emit("disconnected")
-                logger.info("Disconnected from laser driver")
+                logger.info("Disconnected from TEC controller")
 
                 # Log event
                 if self.event_logger:
                     from ..core.event_logger import EventType
 
                     self.event_logger.log_hardware_event(
-                        event_type=EventType.HARDWARE_LASER_DISCONNECT,
-                        description="Laser disconnected",
-                        device_name="Arroyo Laser Driver",
+                        event_type=EventType.HARDWARE_TEC_DISCONNECT,
+                        description="TEC disconnected",
+                        device_name="Arroyo TEC Controller",
                     )
 
     def get_status(self) -> dict[str, Any]:
         """
-        Get current laser status and state information.
+        Get current TEC status and state information.
 
         Returns:
             Dictionary containing:
             - connected (bool): Connection status
-            - output_enabled (bool): Laser output state
-            - current_setpoint_ma (float): Current setpoint in mA
-            - power_setpoint_mw (float): Power setpoint in mW
+            - output_enabled (bool): TEC output state
+            - temperature_setpoint_c (float): Temperature setpoint in °C
         """
         with self._lock:
             return {
                 "connected": self.is_connected,
                 "output_enabled": self.is_output_enabled,
-                "current_setpoint_ma": self.current_setpoint_ma,
-                "power_setpoint_mw": self.power_setpoint_mw,
+                "temperature_setpoint_c": self.temperature_setpoint_c,
             }
 
     def _write_command(self, command: str) -> Optional[str]:
         """
-        Send command to laser driver and return response.
+        Send command to TEC controller and return response.
 
         Args:
             command: ASCII command string
@@ -226,19 +223,25 @@ class LaserController(QObject):
     def _read_limits(self) -> None:
         """Read safety limits from device."""
         try:
-            # Read current limit
-            response = self._write_command("LAS:LIM:LDI?")
+            # Read TEC temperature limits
+            response = self._write_command("TEC:LIM:THI?")
             if response:
-                self.max_current_ma = float(response) * 1000  # Convert A to mA
+                self.max_temperature_c = float(response)
 
-            logger.info(f"Limits: Current={self.max_current_ma:.0f}mA")
+            response = self._write_command("TEC:LIM:TLO?")
+            if response:
+                self.min_temperature_c = float(response)
+
+            logger.info(
+                f"Limits: Temp={self.min_temperature_c:.1f}-{self.max_temperature_c:.1f}°C"
+            )
 
         except Exception as e:
             logger.warning(f"Failed to read limits: {e}")
 
     def set_output(self, enabled: bool) -> bool:
         """
-        Enable or disable laser output.
+        Enable or disable TEC output.
 
         Args:
             enabled: True to enable, False to disable
@@ -247,35 +250,33 @@ class LaserController(QObject):
             True if successful
         """
         if not self.is_connected:
-            logger.error("Not connected to laser driver")
+            logger.error("Not connected to TEC controller")
             return False
 
         with self._lock:
             try:
                 value = 1 if enabled else 0
-                self._write_command(f"LAS:OUT {value}")
+                self._write_command(f"TEC:OUT {value}")
 
                 # Verify
-                response = self._write_command("LAS:OUT?")
+                response = self._write_command("TEC:OUT?")
                 if response and int(response) == value:
                     self.is_output_enabled = enabled
                     self.output_changed.emit(enabled)
                     status = "enabled" if enabled else "disabled"
-                    logger.info(f"Laser output {status}")
+                    logger.info(f"TEC output {status}")
 
                     # Log event
                     if self.event_logger:
                         from ..core.event_logger import EventType
 
                         event_type = (
-                            EventType.TREATMENT_LASER_ON
-                            if enabled
-                            else EventType.TREATMENT_LASER_OFF
+                            EventType.TEC_ENABLED if enabled else EventType.TEC_DISABLED
                         )
                         self.event_logger.log_event(
                             event_type=event_type,
-                            description=f"Laser output {status}",
-                            details={"current_setpoint": self.current_setpoint_ma},
+                            description=f"TEC output {status}",
+                            details={"temperature_setpoint": self.temperature_setpoint_c},
                         )
 
                     return True
@@ -288,119 +289,111 @@ class LaserController(QObject):
                 self.error_occurred.emit(f"Output control failed: {e}")
                 return False
 
-    def set_current(self, current_ma: float) -> bool:
+    def set_temperature(self, temperature_c: float) -> bool:
         """
-        Set laser diode current.
+        Set TEC temperature setpoint.
 
         Args:
-            current_ma: Current in milliamps
+            temperature_c: Temperature in Celsius
 
         Returns:
             True if successful
         """
         if not self.is_connected:
-            logger.error("Not connected to laser driver")
+            logger.error("Not connected to TEC controller")
             return False
 
-        if current_ma > self.max_current_ma:
-            logger.error(f"Current {current_ma:.1f}mA exceeds limit {self.max_current_ma:.0f}mA")
-            self.limit_warning.emit(f"Current exceeds limit: {self.max_current_ma:.0f}mA")
+        if not (self.min_temperature_c <= temperature_c <= self.max_temperature_c):
+            logger.error(
+                f"Temperature {temperature_c:.1f}°C outside limits "
+                f"({self.min_temperature_c:.1f}-{self.max_temperature_c:.1f}°C)"
+            )
+            self.limit_warning.emit(
+                f"Temperature outside limits: "
+                f"{self.min_temperature_c:.1f}-{self.max_temperature_c:.1f}°C"
+            )
             return False
 
         with self._lock:
             try:
-                # Convert mA to A for command
-                current_a = current_ma / 1000.0
-                self._write_command(f"LAS:LDI {current_a:.4f}")
+                self._write_command(f"TEC:T {temperature_c:.2f}")
 
                 # Verify
-                response = self._write_command("LAS:SET:LDI?")
+                response = self._write_command("TEC:SET:T?")
                 if response:
-                    set_current = float(response) * 1000  # Convert A to mA
-                    if abs(set_current - current_ma) < 0.1:
-                        self.current_setpoint_ma = current_ma
-                        logger.info(f"Set laser current to {current_ma:.1f} mA")
+                    set_temp = float(response)
+                    if abs(set_temp - temperature_c) < 0.1:
+                        self.temperature_setpoint_c = temperature_c
+                        self.temperature_setpoint_changed.emit(temperature_c)
+                        logger.info(f"Set TEC temperature to {temperature_c:.1f}°C")
 
                         # Log event
                         if self.event_logger:
                             from ..core.event_logger import EventType
 
                             self.event_logger.log_event(
-                                event_type=EventType.TREATMENT_POWER_CHANGE,
-                                description=f"Laser current set to {current_ma:.1f} mA",
-                                details={"current_ma": current_ma},
+                                event_type=EventType.TEC_TEMP_CHANGE,
+                                description=f"TEC temperature set to {temperature_c:.1f}°C",
+                                details={"temperature_c": temperature_c},
                             )
 
                         return True
 
-                logger.error("Failed to set current")
+                logger.error("Failed to set temperature")
                 return False
 
             except Exception as e:
-                logger.error(f"Failed to set current: {e}")
-                self.error_occurred.emit(f"Current control failed: {e}")
+                logger.error(f"Failed to set temperature: {e}")
+                self.error_occurred.emit(f"Temperature control failed: {e}")
                 return False
 
-    def set_power(self, power_mw: float) -> bool:
+    def read_temperature(self) -> Optional[float]:
         """
-        Set laser power (if power mode is supported).
-
-        Args:
-            power_mw: Power in milliwatts
+        Read actual TEC temperature.
 
         Returns:
-            True if successful
+            Temperature in °C or None if error
         """
-        if not self.is_connected:
-            logger.error("Not connected to laser driver")
-            return False
-
-        if power_mw > self.max_power_mw:
-            logger.error(f"Power {power_mw:.1f}mW exceeds limit {self.max_power_mw:.0f}mW")
-            self.limit_warning.emit(f"Power exceeds limit: {self.max_power_mw:.0f}mW")
-            return False
-
         try:
-            # Note: Power mode may not be available on all models
-            # This is a placeholder for future implementation
-            self.power_setpoint_mw = power_mw
-            logger.warning("Power mode not yet implemented, using current mode")
-            # TODO(#128): Implement power mode when available (hardware may not support)
-            return False
-
+            response = self._write_command("TEC:T?")
+            if response:
+                return float(response)
+            return None
         except Exception as e:
-            logger.error(f"Failed to set power: {e}")
-            self.error_occurred.emit(f"Power control failed: {e}")
-            return False
-
+            logger.error(f"Failed to read temperature: {e}")
+            return None
 
     def read_current(self) -> Optional[float]:
         """
-        Read actual laser current.
+        Read actual TEC current.
 
         Returns:
-            Current in mA or None if error
+            Current in A or None if error
         """
         try:
-            response = self._write_command("LAS:LDI?")
+            response = self._write_command("TEC:ITE?")
             if response:
-                return float(response) * 1000  # Convert A to mA
+                return float(response)
             return None
         except Exception as e:
             logger.error(f"Failed to read current: {e}")
             return None
 
-
-    def read_power(self) -> Optional[float]:
+    def read_voltage(self) -> Optional[float]:
         """
-        Read actual laser power (if available).
+        Read actual TEC voltage.
 
         Returns:
-            Power in mW or None if error
+            Voltage in V or None if error
         """
-        # Note: Actual power measurement may require photodiode feedback
-        # This is a placeholder for future implementation
-        return None
+        try:
+            response = self._write_command("TEC:V?")
+            if response:
+                return float(response)
+            return None
+        except Exception as e:
+            logger.error(f"Failed to read voltage: {e}")
+            return None
 
     def _update_status(self) -> None:
         """Update status from device (called by timer)."""
@@ -409,13 +402,23 @@ class LaserController(QObject):
 
         with self._lock:
             try:
+                # Read temperature
+                temperature = self.read_temperature()
+                if temperature is not None:
+                    self.temperature_changed.emit(temperature)
+
                 # Read current
                 current = self.read_current()
                 if current is not None:
                     self.current_changed.emit(current)
 
+                # Read voltage
+                voltage = self.read_voltage()
+                if voltage is not None:
+                    self.voltage_changed.emit(voltage)
+
                 # Read output state
-                response = self._write_command("LAS:OUT?")
+                response = self._write_command("TEC:OUT?")
                 if response:
                     output_enabled = bool(int(response))
                     if output_enabled != self.is_output_enabled:
