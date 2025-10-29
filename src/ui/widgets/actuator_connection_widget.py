@@ -8,6 +8,7 @@ import logging
 
 from PyQt6.QtCore import pyqtSlot
 from PyQt6.QtWidgets import (
+    QComboBox,
     QGridLayout,
     QGroupBox,
     QHBoxLayout,
@@ -66,6 +67,22 @@ class ActuatorConnectionWidget(QWidget):
         """Create connection control group."""
         group = QGroupBox("Connection & Homing")
         layout = QHBoxLayout()
+
+        # COM Port label
+        port_label = QLabel("Port:")
+        layout.addWidget(port_label)
+
+        # COM Port selection
+        self.com_port_combo = QComboBox()
+        self.com_port_combo.setFixedWidth(100)
+        # Populate with common Windows COM ports
+        for i in range(1, 21):
+            self.com_port_combo.addItem(f"COM{i}")
+        # Set default to COM3 (from config.yaml: actuator is on COM3)
+        index = self.com_port_combo.findText("COM3")
+        if index >= 0:
+            self.com_port_combo.setCurrentIndex(index)
+        layout.addWidget(self.com_port_combo)
 
         # Connect button - fixed width for compact layout
         self.connect_btn = QPushButton("Connect")
@@ -157,8 +174,11 @@ class ActuatorConnectionWidget(QWidget):
             logger.error("No ActuatorWidget reference - cannot connect")
             return
 
+        # Get selected COM port
+        selected_port = self.com_port_combo.currentText()
+
         # Trigger connect in the main ActuatorWidget (creates controller if needed)
-        self.actuator_widget._on_connect_clicked()
+        self.actuator_widget._on_connect_clicked(com_port=selected_port)
 
         # Connect our signals after controller is created
         self.connect_signals()

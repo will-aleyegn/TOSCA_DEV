@@ -9,6 +9,7 @@ from typing import Optional
 
 from PyQt6.QtCore import pyqtSignal, pyqtSlot
 from PyQt6.QtWidgets import (
+    QComboBox,
     QDoubleSpinBox,
     QGridLayout,
     QGroupBox,
@@ -83,6 +84,24 @@ class GPIOWidget(QWidget):
         """Create connection control group."""
         group = QGroupBox("GPIO Connection")
         layout = QHBoxLayout()
+
+        # COM Port label
+        port_label = QLabel("Port:")
+        layout.addWidget(port_label)
+
+        # COM Port selection
+        self.com_port_combo = QComboBox()
+        self.com_port_combo.setFixedWidth(100)
+        # Populate with common Windows COM ports
+        for i in range(1, 21):
+            self.com_port_combo.addItem(f"COM{i}")
+        # Set default from config
+        config = get_config()
+        default_port = config.hardware.gpio.com_port
+        index = self.com_port_combo.findText(default_port)
+        if index >= 0:
+            self.com_port_combo.setCurrentIndex(index)
+        layout.addWidget(self.com_port_combo)
 
         # Connect button
         self.connect_btn = QPushButton("Connect")
@@ -264,7 +283,9 @@ class GPIOWidget(QWidget):
     @pyqtSlot()
     def _on_connect_clicked(self) -> None:
         """Handle connect button click."""
-        logger.info("Connecting to GPIO...")
+        # Get selected COM port
+        selected_port = self.com_port_combo.currentText()
+        logger.info(f"Connecting to GPIO on {selected_port}...")
 
         # Create controller if needed
         if not self.controller:
@@ -286,17 +307,13 @@ class GPIOWidget(QWidget):
                 self.connection_status_label.setText("Libraries not installed")
                 return
 
-        # Get COM port from config
-        config = get_config()
-        com_port = config.hardware.gpio.com_port
-
-        # Connect to GPIO
-        logger.info(f"Attempting to connect to Arduino on {com_port}")
-        success = self.controller.connect(port=com_port)
+        # Connect to GPIO using selected COM port
+        logger.info(f"Attempting to connect to Arduino on {selected_port}")
+        success = self.controller.connect(port=selected_port)
 
         if not success:
-            logger.error(f"Failed to connect to GPIO on {com_port}")
-            self.connection_status_label.setText(f"Connection failed ({com_port})")
+            logger.error(f"Failed to connect to GPIO on {selected_port}")
+            self.connection_status_label.setText(f"Connection failed ({selected_port})")
 
     @pyqtSlot()
     def _on_disconnect_clicked(self) -> None:
