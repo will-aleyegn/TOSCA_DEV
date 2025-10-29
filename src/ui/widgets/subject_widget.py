@@ -18,9 +18,9 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from core.session_manager import SessionManager
-from database.db_manager import DatabaseManager
-from database.models import Subject
+from src.core.session_manager import SessionManager
+from src.database.db_manager import DatabaseManager
+from src.database.models import Subject
 
 logger = logging.getLogger(__name__)
 

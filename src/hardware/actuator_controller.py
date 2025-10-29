@@ -320,10 +320,10 @@ class ActuatorController(QObject):
                     self.position_changed.emit(pos)
 
                     # Re-query device settings after homing completes
-                    # (Device sends stored settings after initialization, not at connection time)
+                    # (Device sends stored settings after init, not at connection)
                     logger.info("Re-querying device settings after homing...")
-                    self.get_limits()  # Updates low_limit_um, high_limit_um from device
-                    self.get_acceleration_settings()  # Updates acceleration, deceleration from device
+                    self.get_limits()  # Updates low_limit_um, high_limit_um
+                    self.get_acceleration_settings()  # Updates accel/decel
                     # Emit updated limits so UI can refresh
                     self.limits_changed.emit(self.low_limit_um, self.high_limit_um)
                     logger.info(
@@ -914,13 +914,25 @@ class ActuatorController(QObject):
         with self._lock:
             try:
                 raw_values = {}
-                setting_names = ["LLIM", "HLIM", "SSPD", "ACCE", "DECE",
-                                 "PTOL", "PTO2", "TOUT", "ELIM"]
+                setting_names = [
+                    "LLIM",
+                    "HLIM",
+                    "SSPD",
+                    "ACCE",
+                    "DECE",
+                    "PTOL",
+                    "PTO2",
+                    "TOUT",
+                    "ELIM",
+                ]
 
                 for name in setting_names:
                     raw_value = self.axis.getSetting(name)
                     raw_values[name] = str(raw_value) if raw_value is not None else "None"
-                    logger.debug(f"RAW getSetting('{name}') = {repr(raw_value)} (type: {type(raw_value).__name__})")
+                    logger.debug(
+                        f"RAW getSetting('{name}') = {repr(raw_value)} "
+                        f"(type: {type(raw_value).__name__})"
+                    )
 
                 return raw_values
             except Exception as e:

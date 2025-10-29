@@ -12,9 +12,9 @@ from typing import Optional
 from sqlalchemy import create_engine, select, text
 from sqlalchemy.orm import Session, sessionmaker
 
-from database.models import Base, SafetyLog
-from database.models import Session as SessionModel
-from database.models import Subject, TechUser
+from src.database.models import Base, SafetyLog
+from src.database.models import Session as SessionModel
+from src.database.models import Subject, TechUser
 
 logger = logging.getLogger(__name__)
 

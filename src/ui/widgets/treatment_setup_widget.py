@@ -20,7 +20,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from core.protocol import Protocol
+from src.core.protocol import Protocol
 
 # Hardware widgets removed - now in Hardware & Diagnostics and Protocol Builder tabs
 # This widget is protocol-centric

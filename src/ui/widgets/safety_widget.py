@@ -16,8 +16,8 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from core.safety import SafetyManager, SafetyState
-from ui.widgets.gpio_widget import GPIOWidget
+from src.core.safety import SafetyManager, SafetyState
+from src.ui.widgets.gpio_widget import GPIOWidget
 
 
 class SafetyWidget(QWidget):

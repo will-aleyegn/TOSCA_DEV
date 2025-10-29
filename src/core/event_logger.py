@@ -14,7 +14,7 @@ from typing import Any, Optional
 
 from PyQt6.QtCore import QObject, pyqtSignal
 
-from database.db_manager import DatabaseManager
+from src.database.db_manager import DatabaseManager
 
 logger = logging.getLogger(__name__)
 

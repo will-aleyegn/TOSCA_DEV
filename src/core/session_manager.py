@@ -11,8 +11,8 @@ from typing import Optional
 
 from PyQt6.QtCore import QObject, pyqtSignal
 
-from database.db_manager import DatabaseManager
-from database.models import Session, Subject
+from src.database.db_manager import DatabaseManager
+from src.database.models import Session, Subject
 
 logger = logging.getLogger(__name__)
 
