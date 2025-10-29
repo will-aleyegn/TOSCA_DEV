@@ -355,6 +355,20 @@ class MainWindow(QMainWindow):
 
         toolbar.addSeparator()
 
+        # Test All Hardware button
+        self.test_all_btn = QPushButton("🧪 Test All Hardware")
+        self.test_all_btn.setMinimumHeight(35)
+        self.test_all_btn.setStyleSheet(
+            "QPushButton { background-color: #6A1B9A; color: white; "
+            "padding: 6px 12px; font-weight: bold; }"
+            "QPushButton:hover { background-color: #4A148C; }"
+        )
+        self.test_all_btn.setToolTip("Run diagnostic check on all hardware components")
+        self.test_all_btn.clicked.connect(self._on_test_all_clicked)
+        toolbar.addWidget(self.test_all_btn)
+
+        toolbar.addSeparator()
+
         # Pause Protocol button
         self.pause_protocol_btn = QPushButton("⏸ Pause")
         self.pause_protocol_btn.setMinimumHeight(35)
@@ -839,6 +853,191 @@ class MainWindow(QMainWindow):
         self.connect_all_btn.setEnabled(True)
         self.disconnect_all_btn.setEnabled(False)
         logger.info("Disconnect All completed")
+
+    def _on_test_all_clicked(self) -> None:
+        """Run diagnostic test on all hardware components."""
+        logger.info("Starting hardware diagnostic test...")
+
+        # Run tests for each component
+        test_results = {
+            "camera": self._test_camera(),
+            "actuator": self._test_actuator(),
+            "laser": self._test_laser(),
+            "gpio": self._test_gpio(),
+        }
+
+        # Show results dialog
+        from ui.dialogs import HardwareTestDialog
+
+        dialog = HardwareTestDialog(test_results, parent=self)
+        dialog.exec()
+
+        logger.info("Hardware diagnostic test completed")
+
+    def _test_camera(self) -> dict:
+        """
+        Test camera system.
+
+        Returns:
+            Dict with name, passed status, and details list
+        """
+        result = {"name": "📷 Camera System", "passed": False, "details": []}
+
+        if hasattr(self, "camera_live_view") and self.camera_live_view:
+            if self.camera_live_view.is_connected:
+                result["passed"] = True
+                result["details"].append("Camera connected")
+
+                # Add FPS if streaming
+                if self.camera_live_view.is_streaming:
+                    fps = self.camera_live_view.current_fps
+                    result["details"].append(f"Streaming at {fps:.1f} FPS")
+                else:
+                    result["details"].append("Not streaming (OK)")
+
+                # Add controller info if available
+                if (
+                    hasattr(self.camera_live_view, "camera_controller")
+                    and self.camera_live_view.camera_controller
+                ):
+                    controller = self.camera_live_view.camera_controller
+                    if hasattr(controller, "camera") and controller.camera:
+                        try:
+                            model = controller.camera.get_model()
+                            result["details"].append(f"Model: {model}")
+                        except Exception:
+                            pass
+            else:
+                result["details"].append("Camera not connected")
+        else:
+            result["details"].append("Camera widget not initialized")
+
+        return result
+
+    def _test_actuator(self) -> dict:
+        """
+        Test linear actuator system.
+
+        Returns:
+            Dict with name, passed status, and details list
+        """
+        result = {"name": "🔧 Linear Actuator", "passed": False, "details": []}
+
+        if hasattr(self, "actuator_widget") and self.actuator_widget:
+            if hasattr(self.actuator_widget, "is_connected") and self.actuator_widget.is_connected:
+                result["passed"] = True
+                result["details"].append("Actuator connected")
+
+                # Add homing status
+                if hasattr(self.actuator_widget, "is_homed") and self.actuator_widget.is_homed:
+                    result["details"].append("Homed and ready")
+                else:
+                    result["details"].append("Not homed (requires homing)")
+
+                # Add position if available
+                if hasattr(self.actuator_widget, "current_position_um"):
+                    pos_mm = self.actuator_widget.current_position_um / 1000.0
+                    result["details"].append(f"Position: {pos_mm:.2f} mm")
+
+                # Add range if available
+                if hasattr(self.actuator_widget, "max_position_um"):
+                    max_mm = self.actuator_widget.max_position_um / 1000.0
+                    result["details"].append(f"Range: 0-{max_mm:.1f} mm")
+            else:
+                result["details"].append("Actuator not connected")
+        else:
+            result["details"].append("Actuator widget not initialized")
+
+        return result
+
+    def _test_laser(self) -> dict:
+        """
+        Test laser systems (aiming + treatment).
+
+        Returns:
+            Dict with name, passed status, and details list
+        """
+        result = {"name": "⚡ Laser Systems", "passed": False, "details": []}
+
+        if hasattr(self, "laser_widget") and self.laser_widget:
+            # Check aiming laser
+            aiming_connected = False
+            treatment_connected = False
+
+            if hasattr(self.laser_widget, "aiming_laser") and self.laser_widget.aiming_laser:
+                if (
+                    hasattr(self.laser_widget.aiming_laser, "is_connected")
+                    and self.laser_widget.aiming_laser.is_connected
+                ):
+                    aiming_connected = True
+                    result["details"].append("Aiming laser: Connected")
+                else:
+                    result["details"].append("Aiming laser: Not connected")
+            else:
+                result["details"].append("Aiming laser: Not initialized")
+
+            # Check treatment laser
+            if hasattr(self.laser_widget, "treatment_laser") and self.laser_widget.treatment_laser:
+                if (
+                    hasattr(self.laser_widget.treatment_laser, "is_connected")
+                    and self.laser_widget.treatment_laser.is_connected
+                ):
+                    treatment_connected = True
+                    result["details"].append("Treatment laser: Connected")
+                else:
+                    result["details"].append("Treatment laser: Not connected")
+            else:
+                result["details"].append("Treatment laser: Not initialized")
+
+            # Pass if at least one laser is connected
+            result["passed"] = aiming_connected or treatment_connected
+        else:
+            result["details"].append("Laser widget not initialized")
+
+        return result
+
+    def _test_gpio(self) -> dict:
+        """
+        Test GPIO system (smoothing motor + photodiode).
+
+        Returns:
+            Dict with name, passed status, and details list
+        """
+        result = {"name": "🔌 GPIO Diagnostics", "passed": False, "details": []}
+
+        if hasattr(self, "safety_widget") and self.safety_widget:
+            if hasattr(self.safety_widget, "gpio_widget") and self.safety_widget.gpio_widget:
+                gpio_widget = self.safety_widget.gpio_widget
+
+                # Check GPIO connection
+                if hasattr(gpio_widget, "is_connected") and gpio_widget.is_connected:
+                    result["passed"] = True
+                    result["details"].append("GPIO controller connected")
+
+                    # Check smoothing motor
+                    if hasattr(gpio_widget, "smoothing_motor_voltage"):
+                        voltage = gpio_widget.smoothing_motor_voltage
+                        result["details"].append(f"Smoothing motor: {voltage:.2f}V")
+
+                    # Check photodiode
+                    if hasattr(gpio_widget, "photodiode_voltage"):
+                        voltage = gpio_widget.photodiode_voltage
+                        result["details"].append(f"Photodiode: {voltage:.2f}V")
+
+                    # Check interlocks
+                    if (
+                        hasattr(self.safety_widget, "safety_manager")
+                        and self.safety_widget.safety_manager
+                    ):
+                        result["details"].append("Safety interlocks active")
+                else:
+                    result["details"].append("GPIO controller not connected")
+            else:
+                result["details"].append("GPIO widget not initialized")
+        else:
+            result["details"].append("Safety widget not initialized")
+
+        return result
 
     def _on_pause_protocol_clicked(self) -> None:
         """Handle Pause Protocol button click."""
