@@ -148,9 +148,9 @@ class ActuatorWidget(QWidget):
         self._update_sequence_buttons()
 
     @pyqtSlot()
-    def _on_connect_clicked(self) -> None:
+    def _on_connect_clicked(self, com_port: str = "COM3") -> None:
         """Handle connect button click."""
-        logger.info("Connecting to actuator...")
+        logger.info(f"Connecting to actuator on {com_port}...")
 
         # Create controller if needed
         if not self.controller:
@@ -167,11 +167,11 @@ class ActuatorWidget(QWidget):
             self.controller.limit_warning.connect(self._on_limit_warning)
 
         # Connect without auto-homing (user must click Find Home button)
-        success = self.controller.connect("COM3", auto_home=False)
+        success = self.controller.connect(com_port, auto_home=False)
 
         if not success:
-            logger.error("Failed to connect to actuator")
-            self.connection_status_label.setText("Status: Connection failed")
+            logger.error(f"Failed to connect to actuator on {com_port}")
+            self.connection_status_label.setText(f"Status: Connection failed ({com_port})")
 
     @pyqtSlot()
     def _on_disconnect_clicked(self) -> None:
