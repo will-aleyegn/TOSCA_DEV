@@ -898,6 +898,35 @@ class ActuatorController(QObject):
                 logger.error(f"Failed to get status: {e}")
                 return {"connected": self.is_connected, "error": str(e)}
 
+    def query_raw_settings(self) -> dict[str, str]:
+        """
+        Query raw device settings without any conversion.
+
+        Returns exact string values from getSetting() for diagnostic purposes.
+        Helps debug unit conversion and value interpretation issues.
+
+        Returns:
+            Dictionary mapping setting names to raw string values
+        """
+        if not self.axis or not self.is_connected:
+            return {"error": "Device not connected"}
+
+        with self._lock:
+            try:
+                raw_values = {}
+                setting_names = ["LLIM", "HLIM", "SSPD", "ACCE", "DECE",
+                                 "PTOL", "PTO2", "TOUT", "ELIM"]
+
+                for name in setting_names:
+                    raw_value = self.axis.getSetting(name)
+                    raw_values[name] = str(raw_value) if raw_value is not None else "None"
+                    logger.debug(f"RAW getSetting('{name}') = {repr(raw_value)} (type: {type(raw_value).__name__})")
+
+                return raw_values
+            except Exception as e:
+                logger.error(f"Failed to query raw settings: {e}")
+                return {"error": str(e)}
+
     def query_device_settings(self) -> dict[str, Any]:
         """
         Query all device-stored settings from actuator.
@@ -929,6 +958,10 @@ class ActuatorController(QObject):
         with self._lock:
             try:
                 # Query all relevant device settings
+                # DIAGNOSTIC: Log raw values to debug ±36mm vs ±45mm discrepancy
+                logger.debug("=== Raw getSetting() values (for debugging) ===")
+                logger.debug(f"Current working units: {self.working_units}")
+
                 settings = {
                     # Position limits
                     "LLIM": self.axis.getSetting("LLIM"),
@@ -944,6 +977,13 @@ class ActuatorController(QObject):
                     # Additional settings
                     "ELIM": self.axis.getSetting("ELIM"),  # Error limit
                 }
+
+                # DIAGNOSTIC: Log raw types and repr
+                for key, value in settings.items():
+                    logger.debug(
+                        f"  {key} = {repr(value)} "
+                        f"(type: {type(value).__name__ if value is not None else 'None'})"
+                    )
 
                 # Count how many settings are actually available
                 available_count = sum(1 for v in settings.values() if v is not None)
