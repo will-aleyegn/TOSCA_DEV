@@ -162,6 +162,20 @@ class MainWindow(QMainWindow):
         self.safety_widget = SafetyWidget(db_manager=self.db_manager)
         hardware_layout.addWidget(self.safety_widget)
 
+        # === SECTION 5: CONFIGURATION DISPLAY ===
+        self.config_header = QLabel("⚙️ System Configuration")
+        self.config_header.setStyleSheet(
+            "font-size: 13px; font-weight: bold; padding: 8px; margin-top: 12px; "
+            "background-color: #37474F; color: #B0BEC5; border-radius: 3px;"
+        )
+        hardware_layout.addWidget(self.config_header)
+
+        # Configuration display widget (read-only config.yaml values)
+        from ui.widgets.config_display_widget import ConfigDisplayWidget
+
+        self.config_display_widget = ConfigDisplayWidget()
+        hardware_layout.addWidget(self.config_display_widget)
+
         hardware_layout.addStretch()
 
         # Add content to scroll area
