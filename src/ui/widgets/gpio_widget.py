@@ -147,7 +147,9 @@ class GPIOWidget(QWidget):
                 self.com_port_combo.setCurrentIndex(i)
                 break
 
-        logger.info(f"Refreshed port list: {sum(1 for _, avail in ports_with_status if avail)} available")
+        logger.info(
+            f"Refreshed port list: {sum(1 for _, avail in ports_with_status if avail)} available"
+        )
 
     def _create_connection_group(self) -> QGroupBox:
         """Create connection control group."""
@@ -161,7 +163,9 @@ class GPIOWidget(QWidget):
         # COM Port selection
         self.com_port_combo = QComboBox()
         self.com_port_combo.setFixedWidth(150)  # Wider for ✓ indicator
-        self.com_port_combo.setToolTip("Select COM port for Arduino\n✓ = Port detected and available")
+        self.com_port_combo.setToolTip(
+            "Select COM port for Arduino\n✓ = Port detected and available"
+        )
         layout.addWidget(self.com_port_combo)
 
         # Refresh button

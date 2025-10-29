@@ -112,7 +112,9 @@ class ActuatorConnectionWidget(QWidget):
                 if self.com_port_combo.itemData(i) == current_port:
                     self.com_port_combo.setCurrentIndex(i)
                     break
-        logger.info(f"Refreshed port list: {sum(1 for _, avail in ports_with_status if avail)} available")
+        logger.info(
+            f"Refreshed port list: {sum(1 for _, avail in ports_with_status if avail)} available"
+        )
 
     def _on_refresh_clicked(self) -> None:
         """Handle refresh button click."""
@@ -131,7 +133,9 @@ class ActuatorConnectionWidget(QWidget):
         # COM Port selection
         self.com_port_combo = QComboBox()
         self.com_port_combo.setFixedWidth(150)  # Wider for ✓ indicator
-        self.com_port_combo.setToolTip("Select COM port for Actuator\n✓ = Port detected and available")
+        self.com_port_combo.setToolTip(
+            "Select COM port for Actuator\n✓ = Port detected and available"
+        )
         layout.addWidget(self.com_port_combo)
 
         # Refresh button
