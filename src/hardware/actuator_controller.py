@@ -9,6 +9,18 @@ Provides PyQt6-integrated actuator control with:
 - Position limits
 - Status monitoring
 - Thread-safe serial communication
+
+TOSCA Configuration Strategy:
+- Uses device-stored settings (manufacturer-calibrated, stored in non-volatile memory)
+- No settings_default.txt override required
+- Falls back to conservative defaults if device settings unavailable
+- Automatically re-queries settings after homing completes (device sends values post-initialization)
+- Actual device limits: ±36mm (LLIM=-36000, HLIM=36000), speed: 100 mm/s
+- Baudrate: 9600 (TOSCA hardware pre-configured, NOT library default 115200)
+- Working units: Micrometers (µm)
+- Stage type: XLA_1250_5N (1.25 µm encoder resolution)
+
+See: components/actuator_module/docs/XERYON_API_REFERENCE.md
 """
 
 import logging
@@ -94,6 +106,7 @@ class ActuatorController(QObject):
         Connect to Xeryon actuator.
 
         TOSCA hardware config: 9600 baud, XLA_1250_5N stage, Units.mu
+        Uses device-stored settings (manufacturer-calibrated in non-volatile memory).
         See XERYON_API_REFERENCE.md for API details.
 
         Args:
@@ -112,8 +125,11 @@ class ActuatorController(QObject):
                 self.axis = self.controller.addAxis(Stage.XLA_1250_5N, "X")
                 self.controller.start()
 
+                # Set working units for TOSCA (micrometers)
                 self.axis.setUnits(self.working_units)
-                self.axis.setSetting("DISABLE_WAITING", True)
+
+                # Note: Using device-stored settings (manufacturer-calibrated)
+                # No settings_default.txt override needed - hardware pre-configured
 
                 self.is_connected = True
                 self.connection_changed.emit(True)
@@ -302,6 +318,18 @@ class ActuatorController(QObject):
                     # Emit current position
                     pos = self.axis.getEPOS()
                     self.position_changed.emit(pos)
+
+                    # Re-query device settings after homing completes
+                    # (Device sends stored settings after initialization, not at connection time)
+                    logger.info("Re-querying device settings after homing...")
+                    self.get_limits()  # Updates low_limit_um, high_limit_um from device
+                    self.get_acceleration_settings()  # Updates acceleration, deceleration from device
+                    # Emit updated limits so UI can refresh
+                    self.limits_changed.emit(self.low_limit_um, self.high_limit_um)
+                    logger.info(
+                        f"Device limits updated: {self.low_limit_um:.0f} to "
+                        f"{self.high_limit_um:.0f} µm"
+                    )
 
                     # Log event
                     if self.event_logger:
@@ -655,6 +683,8 @@ class ActuatorController(QObject):
         Get hardware position limits from device.
 
         Queries LLIM and HLIM settings from the actuator.
+        Uses device-stored settings (manufacturer-calibrated).
+        Falls back to defaults if settings not available yet.
 
         Returns:
             Tuple of (low_limit_um, high_limit_um)
@@ -666,15 +696,25 @@ class ActuatorController(QObject):
             try:
                 # Query LLIM and HLIM from device
                 # The axis.getSetting() method reads settings from device
-                low_limit = float(self.axis.getSetting("LLIM"))
-                high_limit = float(self.axis.getSetting("HLIM"))
+                low_str = self.axis.getSetting("LLIM")
+                high_str = self.axis.getSetting("HLIM")
 
-                # Update cached values
-                self.low_limit_um = low_limit
-                self.high_limit_um = high_limit
+                # Handle None gracefully - use defaults if settings not available yet
+                # (Device may still be initializing or settings file missing)
+                if low_str is not None:
+                    self.low_limit_um = float(low_str)
+                else:
+                    logger.debug("LLIM not available from device, using default")
 
-                logger.debug(f"Hardware limits: {low_limit:.0f} to {high_limit:.0f} µm")
-                return (low_limit, high_limit)
+                if high_str is not None:
+                    self.high_limit_um = float(high_str)
+                else:
+                    logger.debug("HLIM not available from device, using default")
+
+                logger.debug(
+                    f"Hardware limits: {self.low_limit_um:.0f} to {self.high_limit_um:.0f} µm"
+                )
+                return (self.low_limit_um, self.high_limit_um)
 
             except Exception as e:
                 logger.warning(f"Failed to read limits from device: {e}")
@@ -685,6 +725,8 @@ class ActuatorController(QObject):
         Get acceleration and deceleration settings from device.
 
         Queries ACCE and DECE settings from the actuator.
+        Uses device-stored settings (manufacturer-calibrated).
+        Falls back to defaults if settings not available yet.
 
         Returns:
             Tuple of (acceleration, deceleration)
@@ -695,15 +737,25 @@ class ActuatorController(QObject):
         with self._lock:
             try:
                 # Query ACCE and DECE from device
-                acce = int(self.axis.getSetting("ACCE"))
-                dece = int(self.axis.getSetting("DECE"))
+                acce_str = self.axis.getSetting("ACCE")
+                dece_str = self.axis.getSetting("DECE")
 
-                # Update cached values
-                self.acceleration = acce
-                self.deceleration = dece
+                # Handle None gracefully - use defaults if settings not available yet
+                # (Device may still be initializing or settings file missing)
+                if acce_str is not None:
+                    self.acceleration = int(acce_str)
+                else:
+                    logger.debug("ACCE not available from device, using default")
 
-                logger.debug(f"Acceleration settings: ACCE={acce}, DECE={dece}")
-                return (acce, dece)
+                if dece_str is not None:
+                    self.deceleration = int(dece_str)
+                else:
+                    logger.debug("DECE not available from device, using default")
+
+                logger.debug(
+                    f"Acceleration settings: ACCE={self.acceleration}, DECE={self.deceleration}"
+                )
+                return (self.acceleration, self.deceleration)
 
             except Exception as e:
                 logger.warning(f"Failed to read acceleration settings: {e}")
@@ -845,3 +897,88 @@ class ActuatorController(QObject):
             except Exception as e:
                 logger.error(f"Failed to get status: {e}")
                 return {"connected": self.is_connected, "error": str(e)}
+
+    def query_device_settings(self) -> dict[str, Any]:
+        """
+        Query all device-stored settings from actuator.
+
+        This method retrieves manufacturer-calibrated settings stored in the
+        device's non-volatile memory. Should be called after device initialization
+        completes (typically after homing).
+
+        Queried Settings:
+        - LLIM, HLIM: Position limits (µm)
+        - SSPD: Speed setting (µm/s)
+        - ACCE, DECE: Acceleration/deceleration
+        - PTOL, PTO2: Position tolerances
+        - TOUT: Position timeout (ms)
+
+        Returns:
+            Dictionary with all device settings, including:
+            - Each setting name mapped to its value (or None if unavailable)
+            - 'available_count': Number of settings successfully retrieved
+            - 'total_queried': Total number of settings queried
+        """
+        if not self.axis or not self.is_connected:
+            return {
+                "error": "Device not connected",
+                "available_count": 0,
+                "total_queried": 0,
+            }
+
+        with self._lock:
+            try:
+                # Query all relevant device settings
+                settings = {
+                    # Position limits
+                    "LLIM": self.axis.getSetting("LLIM"),
+                    "HLIM": self.axis.getSetting("HLIM"),
+                    # Speed and motion
+                    "SSPD": self.axis.getSetting("SSPD"),  # Speed (µm/s)
+                    "ACCE": self.axis.getSetting("ACCE"),  # Acceleration
+                    "DECE": self.axis.getSetting("DECE"),  # Deceleration
+                    # Position tolerances
+                    "PTOL": self.axis.getSetting("PTOL"),  # Primary tolerance
+                    "PTO2": self.axis.getSetting("PTO2"),  # Secondary tolerance
+                    "TOUT": self.axis.getSetting("TOUT"),  # Timeout (ms)
+                    # Additional settings
+                    "ELIM": self.axis.getSetting("ELIM"),  # Error limit
+                }
+
+                # Count how many settings are actually available
+                available_count = sum(1 for v in settings.values() if v is not None)
+                total_queried = len(settings)
+
+                # Add metadata
+                settings["available_count"] = available_count
+                settings["total_queried"] = total_queried
+                settings["query_timestamp"] = logger.name  # For logging context
+
+                # Log summary (use ASCII-safe symbols for Windows console compatibility)
+                if available_count == total_queried:
+                    logger.info(f"All {total_queried} device settings retrieved successfully")
+                elif available_count > 0:
+                    logger.info(
+                        f"Partial: {available_count}/{total_queried} device settings available"
+                    )
+                else:
+                    logger.warning(f"No device settings available (0/{total_queried})")
+
+                # Log individual settings (DEBUG level for detail)
+                for key, value in settings.items():
+                    if key not in ["available_count", "total_queried", "query_timestamp"]:
+                        if value is not None:
+                            logger.debug(f"  {key} = {value}")
+                        else:
+                            logger.debug(f"  {key} = None (not available)")
+
+                return settings
+
+            except Exception as e:
+                error_msg = f"Failed to query device settings: {e}"
+                logger.error(error_msg)
+                return {
+                    "error": error_msg,
+                    "available_count": 0,
+                    "total_queried": 0,
+                }

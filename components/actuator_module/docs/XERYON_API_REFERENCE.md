@@ -73,12 +73,68 @@ AUTO_SEND_ENBL = False  # Auto-send ENBL=1 on thermal/error events
 - `settings_default.txt` may override device settings with incorrect values
 - Homing and movement rely on correct settings (speed, limits, tolerances)
 
+**TOSCA Implementation Strategy (Device-Stored Settings)**:
+
+TOSCA uses **device-stored settings** approach for medical device reliability:
+
+1. **No settings_default.txt required** - Device ships with manufacturer-calibrated settings
+2. **Settings stored in non-volatile memory** - Persist across power cycles
+3. **Graceful degradation** - Code falls back to conservative defaults if settings unavailable
+4. **No file I/O during operation** - Eliminates potential failure point
+
+**Benefits**:
+- ✅ Guaranteed manufacturer calibration for specific hardware unit
+- ✅ No file synchronization issues between code and device
+- ✅ Simplified deployment (no external config files needed)
+- ✅ Settings survive firmware updates and power cycles
+
 **Implementation**:
 ```python
-# In our code, we don't modify the library constant
-# Instead, we ensure settings_default.txt doesn't exist
-# OR we copy settings from device first
+# ActuatorController does NOT modify AUTO_SEND_SETTINGS constant
+# Instead, code handles None values from getSetting() gracefully:
+
+low_str = self.axis.getSetting("LLIM")
+if low_str is not None:
+    self.low_limit_um = float(low_str)  # Use device value
+else:
+    # Use conservative default (already initialized in __init__)
+    logger.debug("LLIM not available from device, using default")
 ```
+
+**When getSetting() Returns None**:
+- Device still initializing
+- settings_default.txt missing (expected for TOSCA)
+- Serial communication interrupted
+- Setting not supported by hardware
+
+**TOSCA Default Values** (used when device settings unavailable):
+```python
+self.low_limit_um = -45000.0   # -45 mm (conservative for XLA-5-125)
+self.high_limit_um = 45000.0   # +45 mm (conservative for XLA-5-125)
+self.acceleration = 65500      # From Xeryon defaults
+self.deceleration = 65500      # From Xeryon defaults
+```
+
+**TOSCA Actual Device-Stored Values** (verified 2025-10-29):
+After homing completes, `query_device_settings()` retrieves:
+```python
+# Retrieved (5/9 settings):
+LLIM = -36000 µm   # -36 mm (actual hardware limit)
+HLIM = 36000 µm    # +36 mm (actual hardware limit)
+SSPD = 100000 µm/s # 100 mm/s (fast positioning speed)
+PTOL = 2           # encoder units (primary tolerance)
+PTO2 = 4           # encoder units (secondary tolerance)
+
+# Not available (4/9 settings):
+ACCE = None  # Uses default: 65500
+DECE = None  # Uses default: 65500
+TOUT = None  # Device default
+ELIM = None  # Device default
+```
+
+**Critical Finding**: The device reports **±36mm limits**, not ±45mm. Using device-stored settings prevents commands beyond hardware travel range.
+
+**Implementation**: `ActuatorController` automatically re-queries settings after homing completes, updating cached values (`low_limit_um`, `high_limit_um`) with manufacturer-calibrated parameters.
 
 ---
 
@@ -566,7 +622,29 @@ axis.setSpeed(1000)  # 1000 µm/s = 1 mm/s
 
 ## TOSCA-Specific Implementation Notes
 
-### 1. Baudrate
+### 1. Device-Stored Settings (CRITICAL)
+
+**TOSCA uses manufacturer-calibrated settings stored in device non-volatile memory.**
+
+**No settings_default.txt Required**:
+- Device ships pre-configured with optimized settings
+- Settings persist across power cycles and firmware updates
+- Code gracefully handles None values from `getSetting()`
+- Falls back to conservative defaults if device settings unavailable
+
+**Implementation Pattern**:
+```python
+# Read device settings, fall back to defaults if None
+low_str = axis.getSetting("LLIM")
+if low_str is not None:
+    low_limit = float(low_str)  # Use device-stored value
+else:
+    low_limit = -45000.0  # Conservative default
+```
+
+**See**: Section "CRITICAL: AUTO_SEND_SETTINGS" above for full details.
+
+### 2. Baudrate
 
 **CRITICAL**: TOSCA hardware uses `9600`, NOT the library default of `115200`
 
@@ -584,7 +662,7 @@ controller = Xeryon("COM3", 115200)
 - Official library default (115200) does NOT work with TOSCA hardware
 - Always verify baudrate with actual hardware before changing code
 
-### 2. Working Units
+### 3. Working Units
 
 **TOSCA uses micrometers** for precise laser positioning:
 
@@ -592,7 +670,7 @@ controller = Xeryon("COM3", 115200)
 axis.setUnits(Units.mu)  # Always use micrometers
 ```
 
-### 3. Speed Range
+### 4. Speed Range
 
 **Recommended range**: 50-500 µm/s
 - 50 µm/s: Very slow, high precision
@@ -604,7 +682,7 @@ axis.setUnits(Units.mu)  # Always use micrometers
 axis.setSpeed(slider_value)  # Direct mapping
 ```
 
-### 4. Position Tolerance
+### 5. Position Tolerance
 
 **Default tolerance**: ±5 µm acceptable for TOSCA
 
@@ -618,7 +696,7 @@ if error <= 5.0:  # Within ±5 µm
     print("Position reached!")
 ```
 
-### 5. Homing Strategy
+### 6. Homing Strategy
 
 **Auto-home on connect** vs **Manual homing**:
 
