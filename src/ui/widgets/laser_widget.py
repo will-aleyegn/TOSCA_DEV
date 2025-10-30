@@ -145,8 +145,8 @@ class LaserWidget(QWidget):
         self.current_slider.setEnabled(False)
         layout.addWidget(self.current_slider)
 
-        # Link spinbox and slider
-        self.current_spinbox.valueChanged.connect(self.current_slider.setValue)
+        # Link spinbox and slider (convert float to int for slider)
+        self.current_spinbox.valueChanged.connect(lambda val: self.current_slider.setValue(int(val)))
         self.current_slider.valueChanged.connect(self.current_spinbox.setValue)
 
         # Output control buttons
