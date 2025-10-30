@@ -138,6 +138,8 @@ class TECWidget(QWidget):
         setpoint_layout.addWidget(QLabel("Setpoint (°C):"))
 
         self.temp_spinbox = QDoubleSpinBox()
+        # Range will be updated from device limits after connection
+        # Initial safe range for medical/biological applications
         self.temp_spinbox.setRange(15, 35)
         self.temp_spinbox.setValue(25.0)
         self.temp_spinbox.setDecimals(1)
@@ -255,6 +257,17 @@ class TECWidget(QWidget):
             self.connection_status_label.setText("Connected (COM9)")
             self.connection_status_label.setStyleSheet("color: green; font-weight: bold;")
             logger.info("TEC controller connected successfully")
+
+            # Update temperature spinbox range from device limits
+            if self.controller:
+                self.temp_spinbox.setRange(
+                    self.controller.min_temperature_c,
+                    self.controller.max_temperature_c
+                )
+                logger.info(
+                    f"Temperature range updated: {self.controller.min_temperature_c:.1f}°C "
+                    f"to {self.controller.max_temperature_c:.1f}°C"
+                )
         else:
             self.connection_status_label.setText("Disconnected")
             self.connection_status_label.setStyleSheet("color: red; font-weight: bold;")
