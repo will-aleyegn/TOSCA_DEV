@@ -241,7 +241,12 @@ class TECWidget(QWidget):
     def _on_connect_clicked(self) -> None:
         """Handle connect button click."""
         if not self.controller:
-            logger.error("TECWidget: No controller available (should be injected by MainWindow)")
+            error_msg = (
+                "Software Error: TEC controller not initialized. "
+                "This indicates a configuration issue. "
+                "Please restart the application."
+            )
+            logger.error(f"TECWidget: No controller available (DI not configured properly)")
             self.connection_status_label.setText("Error: No controller")
             return
 
@@ -251,8 +256,14 @@ class TECWidget(QWidget):
         success = self.controller.connect("COM9")
 
         if not success:
-            logger.error("Failed to connect to TEC controller")
-            self.connection_status_label.setText("Connection failed")
+            error_msg = (
+                "Failed to connect to TEC controller on COM9. "
+                "Check: (1) Device is powered on, "
+                "(2) USB cable is connected, "
+                "(3) COM9 is correct port (check Device Manager)"
+            )
+            logger.error(error_msg)
+            self.connection_status_label.setText("Connection failed - check device")
 
     @pyqtSlot()
     def _on_disconnect_clicked(self) -> None:

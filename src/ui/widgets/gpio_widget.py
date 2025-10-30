@@ -436,7 +436,12 @@ class GPIOWidget(QWidget):
         self._save_preference("gpio_com_port", selected_port)
 
         if not self.controller:
-            logger.error("GPIOWidget: No controller available (should be injected by MainWindow)")
+            error_msg = (
+                "Software Error: GPIO controller not initialized. "
+                "This indicates a configuration issue. "
+                "Please restart the application."
+            )
+            logger.error(f"GPIOWidget: No controller available (DI not configured properly)")
             self.connection_status_label.setText("Error: No controller")
             return
 
@@ -445,8 +450,15 @@ class GPIOWidget(QWidget):
         success = self.controller.connect(port=selected_port)
 
         if not success:
-            logger.error(f"Failed to connect to GPIO on {selected_port}")
-            self.connection_status_label.setText(f"Connection failed ({selected_port})")
+            error_msg = (
+                f"Failed to connect to GPIO Arduino on {selected_port}. "
+                f"Check: (1) Arduino is powered/connected, "
+                f"(2) Correct COM port selected, "
+                f"(3) No other app using port, "
+                f"(4) Arduino has safety firmware loaded"
+            )
+            logger.error(error_msg)
+            self.connection_status_label.setText(f"Connection failed - check device")
 
     @pyqtSlot()
     def _on_disconnect_clicked(self) -> None:
@@ -582,6 +594,9 @@ class GPIOWidget(QWidget):
     def _on_error(self, error_msg: str) -> None:
         """Handle error from controller."""
         logger.error(f"GPIO error: {error_msg}")
+        # Update UI to show error to user
+        self.connection_status_label.setText(f"Error: {error_msg}")
+        self.connection_status_label.setStyleSheet("color: red; font-weight: bold;")
 
     def cleanup(self) -> None:
         """Cleanup resources."""
