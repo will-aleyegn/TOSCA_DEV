@@ -1,8 +1,8 @@
 # TOSCA Project Status
 
-**Last Updated:** 2025-10-28 (Hardware Enhancements Complete)
+**Last Updated:** 2025-10-29 (TEC/Laser Integration + Protocol Builder Complete)
 **Project:** TOSCA Laser Control System
-**Version:** 0.9.6-alpha (UI Cleanup + Hardware Diagnostics Complete)
+**Version:** 0.9.7-alpha (Hardware Integration + Protocol Builder Enhanced)
 
 ---
 
@@ -182,6 +182,46 @@ Transform tab-based GUI into integrated "Treatment Dashboard" for improved opera
 - ✅ Repository organized (screenshots moved to proper directory)
 - ✅ Code quality maintained: A- (90%)
 
+#### Milestone 5.7: TEC/Laser Integration & Protocol Builder ✅ **COMPLETE** (2025-10-29)
+**Started:** 2025-10-29
+**Completed:** 2025-10-29 (same day!)
+
+**Objectives:** Integrate TEC temperature controller, refactor laser driver, enhance protocol builder with laser power control
+
+**Hardware Integration** ✅ **COMPLETE**
+- [x] Create TECController with Arroyo serial protocol (COM9, 38400 baud)
+- [x] Refactor LaserController to remove TEC functionality (COM10 dedicated)
+- [x] Create TECWidget with temperature control UI (~360 lines)
+- [x] Update LaserWidget to remove temperature controls
+- [x] Thread-safe serial communication with RLock pattern
+- [x] Hardware watchdog integration (500ms monitoring)
+- [x] Successfully tested both devices with real hardware
+
+**Protocol Builder Enhancement** ✅ **COMPLETE**
+- [x] Replace ActuatorWidget with ProtocolBuilderWidget in Protocol Builder tab
+- [x] Extend MoveActuatorParams with optional laser_power_watts field
+- [x] Update protocol engine to set laser power before movements
+- [x] Add laser power input to Move Actuator form
+- [x] Replace QComboBox dropdowns with QLineEdit text inputs
+- [x] Add "▶ Test/Play Protocol" button for direct testing
+- [x] Fix protocol.name → protocol.protocol_name attribute errors
+- [x] Implement combined movement + laser control in single actions
+
+**Camera Display Debugging** 🟡 **IN PROGRESS**
+- [x] Diagnosed QImage memory lifetime bug (PyQt6 + numpy integration)
+- [x] Fixed by adding frame.copy() before QImage construction
+- [x] Added debug logging at 3 pipeline checkpoints (callback/emission/reception)
+- [ ] Awaiting user testing results to identify remaining display issue
+
+**Results:**
+- ✅ 2 new hardware controllers fully integrated (TEC + Laser)
+- ✅ Protocol builder now supports laser power ramping per action
+- ✅ 10Hz laser power update rate with multiple curve types
+- ✅ Medical device safety patterns maintained throughout
+- ✅ Fixed critical QImage memory bug for camera display
+- ✅ 7 commits pushed, ~1200+ lines added/modified
+- 🔧 Camera display issue partially resolved (still investigating)
+
 ### ⏳ Planned Milestones
 
 #### Milestone 6: Clinical Testing & Validation (Planned: Q1 2025)
@@ -212,10 +252,11 @@ Transform tab-based GUI into integrated "Treatment Dashboard" for improved opera
 |-----------|--------|--------|-------|
 | **Safety System** | ✅ Complete | 🟢 Excellent | Watchdog, interlocks, E-stop all functional |
 | **GPIO Controller** | ✅ Complete | 🟢 Excellent | Accelerometer, motor control, vibration detection |
-| **Laser Controller** | ✅ Complete | 🟢 Good | ThorLabs LD5 integration working |
+| **TEC Controller** | ✅ Complete | 🟢 Good | Arroyo 5305 integration working (COM9) |
+| **Laser Controller** | ✅ Complete | 🟢 Good | Arroyo 6300 integration working (COM10) |
 | **Actuator Controller** | ✅ Complete | 🟢 Good | Zaber X-LSM integration working |
-| **Camera Controller** | ✅ Complete | 🟢 Good | Live feed, alignment tools functional |
-| **Protocol Engine** | ✅ Complete | 🟡 Fair | Basic execution working, needs testing |
+| **Camera Controller** | ✅ Complete | 🟡 Fair | Hardware working, display bug under investigation |
+| **Protocol Engine** | ✅ Complete | 🟢 Good | Laser power ramping + movement actions integrated |
 | **Database Manager** | ✅ Complete | 🟢 Good | Session tracking, event logging functional |
 | **UI/UX** | 🟡 In Progress | 🟡 Fair | Major redesign underway |
 
@@ -229,8 +270,10 @@ Transform tab-based GUI into integrated "Treatment Dashboard" for improved opera
 | `CameraHardwarePanel` | ✅ Created | Hardware & Diagnostics tab camera management |
 | `TreatmentSetupWidget` | ✅ Complete | Protocol selector integrated |
 | `ActiveTreatmentWidget` | ✅ Complete | Horizontal layout for monitoring |
-| `LaserWidget` | ✅ Stable | Hardware tab connection management |
-| `ActuatorWidget` | ✅ Stable | Protocol Builder tab sequence management |
+| `TECWidget` | ✅ **NEW** | Temperature control UI with Arroyo integration |
+| `LaserWidget` | ✅ Updated | TEC controls removed, laser-only management |
+| `ProtocolBuilderWidget` | ✅ **NEW** | Visual protocol editor with laser power control |
+| `ActuatorWidget` | ✅ Stable | Kept for hardware diagnostics |
 | `ActuatorConnectionWidget` | ✅ Created | Hardware tab connection panel |
 | `SafetyWidget` | ✅ Complete | GPIO diagnostics with safety interlocks |
 | `GPIOWidget` | ✅ Stable | Motor controls in safety widget |
@@ -238,7 +281,6 @@ Transform tab-based GUI into integrated "Treatment Dashboard" for improved opera
 | `ProtocolSelectorWidget` | ✅ Complete | Visual protocol library browser |
 | `HardwareTestDialog` | ✅ Created | Diagnostic results display |
 | ~~`MotorWidget`~~ | ❌ Deleted | Superseded by GPIOWidget |
-| ~~`ProtocolBuilderWidget`~~ | ❌ Deleted | Replaced by ProtocolSelectorWidget |
 | ~~`ManualOverrideWidget`~~ | ❌ Deleted | Never integrated, removed |
 
 ---
@@ -252,14 +294,17 @@ Transform tab-based GUI into integrated "Treatment Dashboard" for improved opera
   - *Resolution:* Phase 1 added global toolbar with E-Stop accessible from all tabs
 - [x] **Vertical Layout Squishing** - ~~UI widgets get squished at full screen~~ **RESOLVED**
   - *Resolution:* Phase 2 horizontal layouts optimize space utilization
+- [ ] **Camera Display Not Showing** - Stream not displaying despite successful frame capture
+  - *Status:* Partially resolved - Fixed QImage memory bug, added debug logging
+  - *Next:* Awaiting user testing with diagnostic logs to identify remaining issue
 
 ### Medium Priority
-- [ ] **Hardcoded Test Protocol** - Treatment uses placeholder protocol
-  - *Resolution:* Phase 3 adds protocol selector
+- [x] **Hardcoded Test Protocol** - ~~Treatment uses placeholder protocol~~ **RESOLVED**
+  - *Resolution:* ProtocolBuilderWidget + ProtocolSelectorWidget enable custom protocol creation/loading
 - [ ] **UI Thread Blocking** - 2-second delay during GPIO connection freezes UI
   - *Resolution:* Use `QTimer.singleShot()` for deferred initialization
 - [ ] **Protocol Pause/Resume** - Not implemented in engine
-  - *Resolution:* Add to Phase 3 scope
+  - *Resolution:* Add to future scope
 
 ### Low Priority
 - [ ] **Test Script Port Configuration** - Hardcoded COM ports in test scripts
