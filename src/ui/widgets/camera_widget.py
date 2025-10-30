@@ -449,6 +449,9 @@ class CameraWidget(QWidget):
         controller.connection_changed.connect(self._on_connection_changed)
         controller.error_occurred.connect(self._on_error)
         controller.recording_status_changed.connect(self._on_recording_status_changed)
+        # Connect camera setting signals for hardware feedback loop
+        controller.exposure_changed.connect(self._on_exposure_hardware_changed)
+        controller.gain_changed.connect(self._on_gain_hardware_changed)
 
         logger.info("Camera controller connected to widget")
 
@@ -564,13 +567,10 @@ class CameraWidget(QWidget):
             logger.error(f"Error during camera cleanup: {e}")
 
     def _on_exposure_changed(self, value: int) -> None:
-        """Handle exposure slider change."""
+        """Handle exposure slider change - sends command to camera."""
         if self.camera_controller:
+            # Only send command - UI update will come from hardware signal
             self.camera_controller.set_exposure(float(value))
-            self.exposure_value_label.setText(f"{value} us")
-            self.exposure_input.setText(str(value))
-            # Update info display
-            self.exposure_info.setText(f"Exposure: {value} µs")
 
     def _on_exposure_input_changed(self) -> None:
         """Handle exposure input box change."""
@@ -581,14 +581,11 @@ class CameraWidget(QWidget):
             logger.warning(f"Invalid exposure value: {self.exposure_input.text()}")
 
     def _on_gain_changed(self, value: int) -> None:
-        """Handle gain slider change."""
+        """Handle gain slider change - sends command to camera."""
         if self.camera_controller:
+            # Only send command - UI update will come from hardware signal
             gain_db = value / 10.0
             self.camera_controller.set_gain(gain_db)
-            self.gain_value_label.setText(f"{gain_db:.1f} dB")
-            self.gain_input.setText(f"{gain_db:.1f}")
-            # Update info display
-            self.gain_info.setText(f"Gain: {gain_db:.1f} dB")
 
     def _on_gain_input_changed(self) -> None:
         """Handle gain input box change."""
@@ -636,6 +633,62 @@ class CameraWidget(QWidget):
 
         if self.camera_controller:
             self.camera_controller.set_auto_white_balance(enabled)
+
+    def _on_exposure_hardware_changed(self, exposure_us: float) -> None:
+        """
+        Handle exposure changed signal from camera hardware (thread-safe feedback).
+        
+        This is called when the camera confirms an exposure change.
+        Updates ALL UI elements to reflect the actual hardware state.
+        
+        Args:
+            exposure_us: Actual exposure time from camera hardware
+        """
+        exposure_int = int(exposure_us)
+        
+        # Block signals to prevent triggering set_exposure again
+        self.exposure_slider.blockSignals(True)
+        self.exposure_input.blockSignals(True)
+        
+        # Update all exposure UI elements
+        self.exposure_slider.setValue(exposure_int)
+        self.exposure_value_label.setText(f"{exposure_int} us")
+        self.exposure_input.setText(str(exposure_int))
+        self.exposure_info.setText(f"Exposure: {exposure_int} µs")
+        
+        # Re-enable signals
+        self.exposure_slider.blockSignals(False)
+        self.exposure_input.blockSignals(False)
+        
+        logger.debug(f"UI updated with hardware exposure: {exposure_int} µs")
+
+    def _on_gain_hardware_changed(self, gain_db: float) -> None:
+        """
+        Handle gain changed signal from camera hardware (thread-safe feedback).
+        
+        This is called when the camera confirms a gain change.
+        Updates ALL UI elements to reflect the actual hardware state.
+        
+        Args:
+            gain_db: Actual gain from camera hardware in dB
+        """
+        gain_int = int(gain_db * 10)  # Convert dB to slider value
+        
+        # Block signals to prevent triggering set_gain again
+        self.gain_slider.blockSignals(True)
+        self.gain_input.blockSignals(True)
+        
+        # Update all gain UI elements
+        self.gain_slider.setValue(gain_int)
+        self.gain_value_label.setText(f"{gain_db:.1f} dB")
+        self.gain_input.setText(f"{gain_db:.1f}")
+        self.gain_info.setText(f"Gain: {gain_db:.1f} dB")
+        
+        # Re-enable signals
+        self.gain_slider.blockSignals(False)
+        self.gain_input.blockSignals(False)
+        
+        logger.debug(f"UI updated with hardware gain: {gain_db:.1f} dB")
 
     def _on_scale_changed(self, index: int) -> None:
         """Handle display scale selection change."""

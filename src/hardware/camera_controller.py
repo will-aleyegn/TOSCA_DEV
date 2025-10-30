@@ -255,6 +255,11 @@ class CameraController(QObject):
                 cameras = self.vmb.get_all_cameras()
                 if not cameras:
                     self.error_occurred.emit("No cameras detected")
+                    # Clean up VmbSystem context on early return
+                    try:
+                        self.vmb.__exit__(None, None, None)
+                    except Exception as cleanup_e:
+                        logger.warning(f"Error during VmbPy cleanup: {cleanup_e}")
                     return False
 
                 if camera_id:
@@ -264,6 +269,26 @@ class CameraController(QObject):
 
                 self.camera.__enter__()
                 self.is_connected = True
+
+                # Set explicit pixel format for predictable streaming (per Allied Vision docs)
+                try:
+                    supported_formats = self.camera.get_pixel_formats()
+                    # Prefer Bgr8 (native OpenCV format) > Rgb8 > Mono8
+                    if vmbpy.PixelFormat.Bgr8 in supported_formats:
+                        self.camera.set_pixel_format(vmbpy.PixelFormat.Bgr8)
+                        logger.info("Camera pixel format set to Bgr8 (native OpenCV format)")
+                    elif vmbpy.PixelFormat.Rgb8 in supported_formats:
+                        self.camera.set_pixel_format(vmbpy.PixelFormat.Rgb8)
+                        logger.info("Camera pixel format set to Rgb8")
+                    elif vmbpy.PixelFormat.Mono8 in supported_formats:
+                        self.camera.set_pixel_format(vmbpy.PixelFormat.Mono8)
+                        logger.info("Camera pixel format set to Mono8")
+                    else:
+                        current_fmt = self.camera.get_pixel_format()
+                        logger.warning(f"Using camera default pixel format: {current_fmt}")
+                except Exception as e:
+                    logger.error(f"Failed to set pixel format: {e}")
+
                 self.connection_changed.emit(True)
 
                 camera_id_str = self.camera.get_id()
@@ -292,6 +317,19 @@ class CameraController(QObject):
                 error_msg = f"Camera connection failed: {e}"
                 logger.error(error_msg)
                 self.error_occurred.emit(error_msg)
+
+                # Clean up contexts on failure
+                if self.camera:
+                    try:
+                        self.camera.__exit__(None, None, None)
+                    except Exception as cleanup_e:
+                        logger.warning(f"Error during camera cleanup: {cleanup_e}")
+                    self.camera = None
+
+                try:
+                    self.vmb.__exit__(None, None, None)
+                except Exception as cleanup_e:
+                    logger.warning(f"Error during VmbPy cleanup: {cleanup_e}")
 
                 # Log error event
                 if self.event_logger:
@@ -602,7 +640,7 @@ class CameraController(QObject):
 
     def set_exposure(self, exposure_us: float) -> bool:
         """
-        Set camera exposure time.
+        Set camera exposure time (thread-safe).
 
         Args:
             exposure_us: Exposure time in microseconds
@@ -610,21 +648,26 @@ class CameraController(QObject):
         Returns:
             True if successful
         """
-        if not self.camera:
-            return False
+        with self._lock:
+            if not self.camera:
+                return False
 
-        try:
-            # Use get_feature_by_name (per LESSONS_LEARNED.md)
-            self.camera.get_feature_by_name("ExposureTime").set(exposure_us)
-            logger.debug(f"Exposure set to {exposure_us} us")
-            return True
-        except Exception as e:
-            logger.error(f"Failed to set exposure: {e}")
-            return False
+            try:
+                # Use get_feature_by_name (per LESSONS_LEARNED.md)
+                self.camera.get_feature_by_name("ExposureTime").set(exposure_us)
+
+                # Read back actual value and emit signal
+                actual_exposure = self.camera.get_feature_by_name("ExposureTime").get()
+                logger.debug(f"Exposure set to {actual_exposure} us (requested: {exposure_us})")
+                self.exposure_changed.emit(actual_exposure)
+                return True
+            except Exception as e:
+                logger.error(f"Failed to set exposure: {e}")
+                return False
 
     def set_gain(self, gain_db: float) -> bool:
         """
-        Set camera gain.
+        Set camera gain (thread-safe).
 
         Args:
             gain_db: Gain in dB
@@ -632,17 +675,56 @@ class CameraController(QObject):
         Returns:
             True if successful
         """
-        if not self.camera:
-            return False
+        with self._lock:
+            if not self.camera:
+                return False
 
-        try:
-            # Use get_feature_by_name (per LESSONS_LEARNED.md)
-            self.camera.get_feature_by_name("Gain").set(gain_db)
-            logger.debug(f"Gain set to {gain_db} dB")
-            return True
-        except Exception as e:
-            logger.error(f"Failed to set gain: {e}")
-            return False
+            try:
+                # Use get_feature_by_name (per LESSONS_LEARNED.md)
+                self.camera.get_feature_by_name("Gain").set(gain_db)
+
+                # Read back actual value and emit signal
+                actual_gain = self.camera.get_feature_by_name("Gain").get()
+                logger.debug(f"Gain set to {actual_gain} dB (requested: {gain_db})")
+                self.gain_changed.emit(actual_gain)
+                return True
+            except Exception as e:
+                logger.error(f"Failed to set gain: {e}")
+                return False
+
+    def get_exposure(self) -> float:
+        """
+        Get current camera exposure time (thread-safe).
+
+        Returns:
+            Current exposure time in microseconds, or 0.0 if not connected
+        """
+        with self._lock:
+            if not self.camera:
+                return 0.0
+
+            try:
+                return self.camera.get_feature_by_name("ExposureTime").get()
+            except Exception as e:
+                logger.error(f"Failed to get exposure: {e}")
+                return 0.0
+
+    def get_gain(self) -> float:
+        """
+        Get current camera gain (thread-safe).
+
+        Returns:
+            Current gain in dB, or 0.0 if not connected
+        """
+        with self._lock:
+            if not self.camera:
+                return 0.0
+
+            try:
+                return self.camera.get_feature_by_name("Gain").get()
+            except Exception as e:
+                logger.error(f"Failed to get gain: {e}")
+                return 0.0
 
     def get_exposure_range(self) -> tuple:
         """Get min/max exposure values in microseconds."""
