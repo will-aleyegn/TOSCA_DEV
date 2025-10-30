@@ -661,6 +661,15 @@ class CameraWidget(QWidget):
             frame: Numpy array frame from camera
         """
         try:
+            # Debug: Log first few received frames
+            if not hasattr(self, "_frame_receive_count"):
+                self._frame_receive_count = 0
+            self._frame_receive_count += 1
+            if self._frame_receive_count <= 5:
+                logger.info(
+                    f"CameraWidget received frame #{self._frame_receive_count}, shape: {frame.shape}"
+                )
+
             # Update resolution info (only when changed)
             if len(frame.shape) == 2:
                 height, width = frame.shape

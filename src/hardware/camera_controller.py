@@ -65,12 +65,17 @@ class CameraStreamThread(QThread):
         def frame_callback(cam: Any, stream: Any, frame: Any) -> None:
             """Callback for each frame."""
             if not self.running:
+                logger.debug("Frame callback called but running=False")
                 return
 
             try:
                 # Convert frame to numpy array
                 self.frame_count += 1
                 current_time = time.time()
+
+                # Debug: Log first few frames
+                if self.frame_count <= 5:
+                    logger.info(f"Frame callback invoked: frame #{self.frame_count}")
 
                 # Throttle GUI updates to target FPS
                 time_since_last_gui_frame = current_time - self.last_gui_frame_time
@@ -79,6 +84,12 @@ class CameraStreamThread(QThread):
                 if time_since_last_gui_frame >= min_frame_interval:
                     # Only process frame data when we're actually going to send it
                     frame_data = np.ascontiguousarray(frame.as_numpy_ndarray())
+
+                    # Debug: Log first few GUI frames
+                    if self.gui_frame_count < 5:
+                        logger.info(
+                            f"Emitting frame to GUI: #{self.gui_frame_count + 1}, shape: {frame_data.shape}"
+                        )
 
                     # Emit frame to GUI (no copy needed - Qt signals handle data safely)
                     self.frame_ready.emit(frame_data)
