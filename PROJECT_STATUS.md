@@ -1,8 +1,8 @@
 # TOSCA Project Status
 
-**Last Updated:** 2025-10-29 (TEC/Laser Integration + Protocol Builder Complete)
+**Last Updated:** 2025-10-30 (Camera Thread Safety & API Compliance Complete)
 **Project:** TOSCA Laser Control System
-**Version:** 0.9.7-alpha (Hardware Integration + Protocol Builder Enhanced)
+**Version:** 0.9.8-alpha (Production-Ready Camera + Protocol Builder)
 
 ---
 
