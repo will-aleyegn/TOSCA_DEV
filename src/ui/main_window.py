@@ -143,18 +143,24 @@ class MainWindow(QMainWindow):
         self.actuator_header_index = hardware_layout.count() - 1  # Remember position for insertion
 
         # === SECTION 3: LASER SYSTEMS ===
-        self.laser_header = QLabel("⚡ Laser Systems (Aiming + Treatment) ✗")
+        self.laser_header = QLabel("⚡ Laser Systems (Driver + TEC) ✗")
         self.laser_header.setStyleSheet(
             "font-size: 13px; font-weight: bold; padding: 8px; margin-top: 12px; "
             "background-color: #37474F; color: #FFD54F; border-radius: 3px;"
         )
         hardware_layout.addWidget(self.laser_header)
 
-        # Laser Control Widget (aiming + treatment laser connection + configuration)
+        # Laser Driver Control Widget (COM10 - laser diode current control)
         from ui.widgets.laser_widget import LaserWidget
 
         self.laser_widget = LaserWidget()
         hardware_layout.addWidget(self.laser_widget)
+
+        # TEC Control Widget (COM9 - temperature control)
+        from ui.widgets.tec_widget import TECWidget
+
+        self.tec_widget = TECWidget()
+        hardware_layout.addWidget(self.tec_widget)
 
         # === SECTION 4: GPIO DIAGNOSTICS ===
         # GPIO widget contains smoothing device, photodiode, and safety interlocks
