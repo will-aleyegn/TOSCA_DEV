@@ -400,6 +400,12 @@ class ProtocolEngine:
 
     async def _execute_move_actuator(self, params: MoveActuatorParams) -> None:
         """Execute MoveActuator action."""
+        # Set laser power if specified for this move action
+        if params.laser_power_watts is not None:
+            logger.debug(f"Setting laser power to {params.laser_power_watts}W for move action")
+            power_params = SetLaserPowerParams(power_watts=params.laser_power_watts)
+            await self._execute_set_laser_power(power_params)
+
         logger.debug(
             f"Moving actuator to {params.target_position_um}µm " f"at {params.speed_um_per_sec}µm/s"
         )

@@ -79,9 +79,10 @@ class MoveActuatorParams(ActionParameters):
 
     target_position_um: float
     speed_um_per_sec: float
+    laser_power_watts: Optional[float] = None  # Optional laser power during move
 
     def validate(
-        self, min_position: float, max_position: float, max_speed: float
+        self, min_position: float, max_position: float, max_speed: float, max_power: float
     ) -> tuple[bool, str]:
         """Validate parameters against safety limits."""
         if self.target_position_um < min_position:
@@ -92,6 +93,11 @@ class MoveActuatorParams(ActionParameters):
             return False, "Speed must be positive"
         if self.speed_um_per_sec > max_speed:
             return False, f"Speed exceeds limit {max_speed} µm/s"
+        if self.laser_power_watts is not None:
+            if self.laser_power_watts < 0:
+                return False, "Laser power cannot be negative"
+            if self.laser_power_watts > max_power:
+                return False, f"Laser power {self.laser_power_watts}W exceeds limit {max_power}W"
         return True, ""
 
 
@@ -157,6 +163,8 @@ class ProtocolAction:
                 "target_position_um": self.parameters.target_position_um,
                 "speed_um_per_sec": self.parameters.speed_um_per_sec,
             }
+            if self.parameters.laser_power_watts is not None:
+                params_dict["laser_power_watts"] = self.parameters.laser_power_watts
 
         elif isinstance(self.parameters, WaitParams):
             params_dict = {"duration_seconds": self.parameters.duration_seconds}
@@ -198,6 +206,7 @@ class ProtocolAction:
             params = MoveActuatorParams(
                 target_position_um=params_data["target_position_um"],
                 speed_um_per_sec=params_data["speed_um_per_sec"],
+                laser_power_watts=params_data.get("laser_power_watts"),
             )
 
         elif action_type == ActionType.WAIT:
@@ -306,6 +315,7 @@ class Protocol:
                 self.safety_limits.min_actuator_position_um,
                 self.safety_limits.max_actuator_position_um,
                 self.safety_limits.max_actuator_speed_um_per_sec,
+                self.safety_limits.max_power_watts,
             )
 
         elif isinstance(action.parameters, WaitParams):
