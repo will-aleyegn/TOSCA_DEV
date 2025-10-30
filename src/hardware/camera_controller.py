@@ -212,6 +212,8 @@ class CameraController(QObject):
     connection_changed = pyqtSignal(bool)  # True=connected, False=disconnected
     error_occurred = pyqtSignal(str)
     recording_status_changed = pyqtSignal(bool)  # True=recording, False=stopped
+    exposure_changed = pyqtSignal(float)  # Emits new exposure in µs (thread-safe)
+    gain_changed = pyqtSignal(float)  # Emits new gain in dB (thread-safe)
 
     def __init__(self, event_logger: Optional[Any] = None) -> None:
         super().__init__()
