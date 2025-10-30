@@ -318,26 +318,29 @@ class CameraWidget(QWidget):
         wb_layout.addStretch()
         layout.addLayout(wb_layout)
 
-        # Binning control (resolution vs speed trade-off)
-        binning_layout = QHBoxLayout()
-        binning_layout.addWidget(QLabel("Binning:"))
-        self.binning_combo = QComboBox()
-        self.binning_combo.addItems([
-            "Full Resolution (1×1)",
-            "2×2 Binning (~4× faster)",
-            "4×4 Binning (~15× faster)",
-            "8×8 Binning (~60× faster)"
+        # Display scale control (software downsampling for performance)
+        scale_layout = QHBoxLayout()
+        scale_layout.addWidget(QLabel("Display Scale:"))
+        self.scale_combo = QComboBox()
+        self.scale_combo.addItems([
+            "Full (1×) - High detail, slower",
+            "Half (½×) - Balanced",
+            "Quarter (¼×) - Fast, smooth"
         ])
-        self.binning_combo.setCurrentIndex(0)  # Default to full resolution
-        self.binning_combo.setEnabled(False)
-        self.binning_combo.setToolTip(
-            "Binning combines pixels for higher frame rates.\n"
-            "Higher binning = lower resolution but smoother video."
+        self.scale_combo.setCurrentIndex(2)  # Default to quarter resolution for speed
+        self.scale_combo.setEnabled(True)
+        self.scale_combo.setToolTip(
+            "Software downsampling for display only.\n"
+            "Lower scale = faster frame rates.\n"
+            "Captured images always use full resolution."
         )
-        self.binning_combo.currentIndexChanged.connect(self._on_binning_changed)
-        binning_layout.addWidget(self.binning_combo)
-        binning_layout.addStretch()
-        layout.addLayout(binning_layout)
+        self.scale_combo.currentIndexChanged.connect(self._on_scale_changed)
+        scale_layout.addWidget(self.scale_combo)
+        scale_layout.addStretch()
+        layout.addLayout(scale_layout)
+
+        # Store display scale factor
+        self.display_scale = 0.25  # Start at quarter resolution
 
         group.setLayout(layout)
         return group
@@ -528,7 +531,6 @@ class CameraWidget(QWidget):
             self.auto_exposure_check.setEnabled(False)
             self.auto_gain_check.setEnabled(False)
             self.auto_wb_check.setEnabled(False)
-            self.binning_combo.setEnabled(True)  # Re-enable binning after streaming stops
         else:
             success = self.camera_controller.start_streaming()
             if success:
@@ -542,7 +544,6 @@ class CameraWidget(QWidget):
                 self.gain_input.setEnabled(True)
                 self.auto_exposure_check.setEnabled(True)
                 self.auto_gain_check.setEnabled(True)
-                self.binning_combo.setEnabled(False)  # Disable binning during streaming
 
                 # Initialize info displays with current slider values
                 exp_value = self.exposure_slider.value()
@@ -636,23 +637,13 @@ class CameraWidget(QWidget):
         if self.camera_controller:
             self.camera_controller.set_auto_white_balance(enabled)
 
-    def _on_binning_changed(self, index: int) -> None:
-        """Handle binning selection change."""
-        # Map combo box index to binning factor
-        binning_map = {0: 1, 1: 2, 2: 4, 3: 8}
-        binning_factor = binning_map.get(index, 1)
+    def _on_scale_changed(self, index: int) -> None:
+        """Handle display scale selection change."""
+        # Map combo box index to scale factor
+        scale_map = {0: 1.0, 1: 0.5, 2: 0.25}
+        self.display_scale = scale_map.get(index, 0.25)
 
-        logger.info(f"Binning changed to {binning_factor}×{binning_factor}")
-
-        if self.camera_controller:
-            success = self.camera_controller.set_binning(binning_factor)
-            if success:
-                # Update resolution info to reflect binning
-                fps_info = self.camera_controller.get_acquisition_frame_rate_info()
-                logger.info(
-                    f"Camera FPS after binning change: {fps_info['current_fps']:.2f} "
-                    f"(max: {fps_info['max_fps']:.2f})"
-                )
+        logger.info(f"Display scale changed to {self.display_scale}× (software downsampling)")
 
     def _on_capture_image(self) -> None:
         """Handle capture image button click."""
@@ -717,15 +708,31 @@ class CameraWidget(QWidget):
                     f"shape: {frame.shape}"
                 )
 
-            # Update resolution info (only when changed)
+            # Get original resolution
             if len(frame.shape) == 2:
-                height, width = frame.shape
+                orig_height, orig_width = frame.shape
             else:
-                height, width, _ = frame.shape
+                orig_height, orig_width, _ = frame.shape
 
-            resolution_text = f"Resolution: {width}x{height}"
+            # Update resolution info to show original resolution
+            resolution_text = f"Resolution: {orig_width}x{orig_height}"
             if self.resolution_info.text() != resolution_text:
                 self.resolution_info.setText(resolution_text)
+
+            # Apply software downsampling if scale < 1.0
+            if hasattr(self, 'display_scale') and self.display_scale < 1.0:
+                import cv2
+                new_width = int(orig_width * self.display_scale)
+                new_height = int(orig_height * self.display_scale)
+                frame = cv2.resize(frame, (new_width, new_height), interpolation=cv2.INTER_AREA)
+
+                # Update dimensions for QImage
+                if len(frame.shape) == 2:
+                    height, width = frame.shape
+                else:
+                    height, width, _ = frame.shape
+            else:
+                height, width = orig_height, orig_width
 
             # Convert to QImage
             # IMPORTANT: Must copy frame data to ensure it persists after function returns
@@ -781,7 +788,6 @@ class CameraWidget(QWidget):
             self.connection_status.setStyleSheet("color: green;")
             self.connect_btn.setText("Disconnect")
             self.stream_btn.setEnabled(True)
-            self.binning_combo.setEnabled(True)  # Enable binning control
         else:
             self.connection_status.setText("Status: Not Connected")
             self.connection_status.setStyleSheet("color: red;")
@@ -789,7 +795,6 @@ class CameraWidget(QWidget):
             self.stream_btn.setEnabled(False)
             self.capture_btn.setEnabled(False)
             self.record_btn.setEnabled(False)
-            self.binning_combo.setEnabled(False)  # Disable binning control
             self.camera_display.clear()
             self.camera_display.setText("Camera feed will appear here")
 
