@@ -168,9 +168,127 @@ Jumped to implementation without fully clarifying the user's intent. The phrase 
 
 ---
 
+### 5. Dependency Injection for Hardware Controllers
+
+**Date:** 2025-10-30
+**Severity:** 🔴 Critical (Architectural)
+**Category:** Design Pattern, Testing, Medical Device Compliance
+
+#### Problem
+Hardware widgets were self-instantiating controllers inside UI event handlers, creating multiple architectural problems:
+
+```python
+# BROKEN PATTERN - Self-instantiation in event handler
+class LaserWidget(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.controller = None  # ❌ No dependency injection
+
+    def _on_connect_clicked(self):
+        # ❌ Controller created inside UI event
+        self.controller = LaserController()
+        self.controller.connect("COM10")
+        # ❌ Signal connections inside event handler
+        self.controller.connection_changed.connect(...)
+```
+
+**Issues:**
+1. **Untestable:** Cannot mock controller for unit tests
+2. **Unclear Lifecycle:** Who owns the controller? Widget or MainWindow?
+3. **Inconsistent:** Some widgets used DI (ActuatorConnectionWidget), others self-instantiated
+4. **Medical Device Risk:** No centralized shutdown point for safety watchdog
+5. **Hidden Dependencies:** Constructor signature doesn't show what's needed
+
+#### Root Cause
+Widgets evolved independently without architectural consistency. ActuatorConnectionWidget used DI pattern (Phase 2) but other 4 hardware widgets followed legacy self-instantiation pattern.
+
+#### Solution
+**Complete Dependency Injection (Phase 4):**
+
+```python
+# FIXED PATTERN - Constructor injection
+class LaserWidget(QWidget):
+    def __init__(self, controller: Optional[LaserController] = None) -> None:
+        super().__init__()
+        self.controller = controller  # ✅ Injected from MainWindow
+        self._init_ui()
+
+        # ✅ Conditional signal connection
+        if self.controller:
+            self._connect_controller_signals()
+
+    def _connect_controller_signals(self) -> None:
+        """✅ Extracted for clarity and testability"""
+        if not self.controller:
+            return
+        self.controller.connection_changed.connect(...)
+        logger.debug("LaserWidget signals connected")
+```
+
+**MainWindow Pattern (Centralized Management):**
+```python
+class MainWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+
+        # ✅ Single instantiation point
+        self.laser_controller = LaserController()
+        self.gpio_controller = GPIOController()
+        self.tec_controller = TECController()
+        self.camera_controller = CameraController(event_logger=self.event_logger)
+
+        # ✅ Inject controllers into widgets
+        self.laser_widget = LaserWidget(controller=self.laser_controller)
+        self.gpio_widget = GPIOWidget(controller=self.gpio_controller)
+```
+
+#### Benefits
+
+**Testability:**
+- ✅ All controllers mockable for unit tests
+- ✅ Widgets testable in isolation with mock controllers
+- ✅ Signal connections verifiable
+
+**Architectural Consistency:**
+- ✅ All 5 hardware widgets follow identical pattern
+- ✅ Clear ownership model (MainWindow owns controllers)
+- ✅ Hollywood Principle: "Don't call us, we'll call you"
+
+**Medical Device Compliance:**
+- ✅ **IEC 62304:** Simplified validation (single lifecycle pattern)
+- ✅ **Selective Shutdown:** Safety watchdog can disable laser while keeping monitoring active
+- ✅ **Traceability:** Clear dependency graph for requirements mapping
+- ✅ **FDA 510(k):** Simpler Design History File (single controller management pattern)
+
+**Maintainability:**
+- ✅ Single source of truth for controller instantiation
+- ✅ Explicit dependencies (visible in constructor signature)
+- ✅ Easier refactoring (change MainWindow, not 5 widgets)
+
+#### Prevention
+- **Always use constructor injection** for dependencies
+- **Follow Hollywood Principle** (inversion of control)
+- **Extract signal connections** to separate method (`_connect_controller_signals()`)
+- **Centralize instantiation** in orchestrating class (MainWindow)
+- **Document pattern** in ADRs for consistency
+
+#### Implementation Phases
+- **Phase 4A:** Widget constructor injection (5 widgets modified)
+- **Phase 4B:** MainWindow centralization (single instantiation point)
+- **Phase 4C:** Signal extraction (`_connect_controller_signals()` methods)
+- **Phase 4D:** Public connection API (`connect_device()`, `disconnect_device()`)
+
+#### References
+- **ADR-002:** `docs/architecture/ADR-002-dependency-injection-pattern.md`
+- **Refactoring Log:** `docs/REFACTORING_LOG.md` - Phase 4 details
+- **Commits:** 63c06f0, 552b2c3, e77c6d0, 10a7382
+- Modified files: `main_window.py`, 5 widget files
+
+---
+
 ## Hardware Integration Issues
 
-### 5. Serial Port COM Port Changes
+### 6. Serial Port COM Port Changes
 
 **Date:** 2025-10-29
 **Severity:** 🟢 Low
