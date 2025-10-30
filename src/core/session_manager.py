@@ -254,7 +254,9 @@ class SessionManager(QObject):
                     session.abort_reason = abort_reason
                     db_session.commit()
 
-                    logger.warning(f"Session aborted: ID={session.session_id}, Reason={abort_reason}")
+                    logger.warning(
+                        f"Session aborted: ID={session.session_id}, Reason={abort_reason}"
+                    )
                     self.session_ended.emit(session.session_id)
                     self.session_status_changed.emit("No active session")
 

@@ -8,7 +8,7 @@ import logging
 from typing import TYPE_CHECKING, Optional
 
 from PyQt6.QtCore import Qt, pyqtSlot
-from src.ui.constants import WIDGET_WIDTH_STANDARD
+from ui.constants import WIDGET_WIDTH_STANDARD
 from PyQt6.QtWidgets import (
     QDoubleSpinBox,
     QGridLayout,
@@ -21,7 +21,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from src.hardware.laser_controller import LaserController
+from hardware.laser_controller import LaserController
 
 if TYPE_CHECKING:
     from hardware.gpio_controller import GPIOController
@@ -328,8 +328,13 @@ class LaserWidget(QWidget):
         self.connection_status_label.setStyleSheet(
             f"font-weight: bold; color: {'#4CAF50' if connected else '#f44336'};"
         )
-        logger.info(f"Connection status: {status_text}")
+        logger.info(f"Laser connection status: {status_text}")
         self._update_ui_state()
+
+        # Notify main window status bar (if available)
+        main_window = self.window()
+        if main_window and hasattr(main_window, "update_laser_status"):
+            main_window.update_laser_status(connected)
 
     @pyqtSlot(bool)
     def _on_output_changed(self, enabled: bool) -> None:

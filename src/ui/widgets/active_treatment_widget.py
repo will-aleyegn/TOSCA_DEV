@@ -22,9 +22,9 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from src.ui.widgets.interlocks_widget import InterlocksWidget
-from src.ui.widgets.smoothing_status_widget import SmoothingStatusWidget
-from src.ui.workers.protocol_worker import ProtocolWorker
+from ui.widgets.interlocks_widget import InterlocksWidget
+from ui.widgets.smoothing_status_widget import SmoothingStatusWidget
+from ui.workers.protocol_worker import ProtocolWorker
 
 logger = logging.getLogger(__name__)
 

@@ -1,6 +1,6 @@
 # TOSCA Laser Control System
 
-**Version:** 0.9.8-alpha (Production-Ready Camera + Protocol Builder)
+**Version:** 0.9.11-alpha (Architecture Analysis & Production Readiness Assessment)
 **Last Updated:** 2025-10-30
 
 A comprehensive laser control system integrating hardware control, machine vision, safety interlocks, and treatment protocol execution for precision laser applications.
@@ -235,7 +235,15 @@ firmware/
 
 ---
 
-## Installation
+## Quick Start
+
+### For AI Assistants / New Developers
+**START HERE:** Read `presubmit/ONBOARDING.md` for comprehensive project context and standards.
+- **Fast Start:** 2.5 minutes to full context
+- **Project Standards:** Coding patterns, safety requirements, medical device compliance
+- **AI Integration:** Zen MCP context helpers for advanced workflows
+
+### For End Users
 
 ### Prerequisites
 - Python 3.10 or higher
@@ -316,17 +324,35 @@ pytest --cov=src --cov-report=html
 
 ## Documentation
 
-For detailed technical information, see:
-- **`CLAUDE.md`** - Comprehensive AI assistant context and best practices (NEW!)
-- **`LESSONS_LEARNED.md`** - Critical bugs, solutions, and prevention strategies (NEW!)
-- **`PROJECT_STATUS.md`** - Current milestones, component status, technical debt
-- `docs/architecture/` - System design and architecture documentation
-- `docs/architecture/00_IMPLEMENTATION_STATUS.md` - Implementation tiers and readiness
-- `components/*/README.md` - Hardware API documentation
-- `tests/mocks/README.md` - Testing infrastructure guide
+### Core Documentation (Root Directory)
+- **`CLAUDE.md`** - AI assistant context and project overview (single source of truth)
+- **`PROJECT_STATUS.md`** - Current milestones, component status, roadmap
+- **`LESSONS_LEARNED.md`** - Critical bugs, solutions, prevention strategies
+- **`WORK_LOG.md`** - Chronological development log (last 14 days)
+- **`HISTORY.md`** - Compressed monthly archive (60+ days)
 
-### Quick Links
-- Safety System: `docs/architecture/03_safety_system.md`
-- Safety Shutdown Policy: `docs/architecture/SAFETY_SHUTDOWN_POLICY.md`
-- Thread Safety: `docs/architecture/10_concurrency_model.md`
-- Camera Integration: `components/camera_module/README.md`
+### Architecture Documentation (`docs/architecture/`)
+- **`01_system_overview.md`** - Complete architecture and technology stack
+- **`02_database_schema.md`** - SQLite schema and entity relationships
+- **`03_safety_system.md`** - Safety philosophy and interlock architecture
+- **`SAFETY_SHUTDOWN_POLICY.md`** - Selective shutdown rationale (medical device design)
+- **`CAMERA_PERFORMANCE_FIXES.md`** - Camera optimization strategies
+- **`EXPOSURE_SAFETY_LIMITER.md`** - Exposure time safety implementation
+- **`ADR-001-protocol-consolidation.md`** - Architecture Decision Records
+- **`ADR-002-dependency-injection-pattern.md`** - Dependency injection adoption
+
+### Onboarding & Standards (`presubmit/`)
+- **`ONBOARDING.md`** - **START HERE** - Comprehensive project context (2.5 min read)
+- **`QUICKSTART_GUIDE.md`** - 4 workflow scenarios with zen MCP integration
+- **`ZEN_CONTEXT_GUIDE.md`** - Tool-by-tool guide for advanced AI workflows
+- **`zen_context_helper.py`** - Automated context loading for zen MCP tools
+
+### Hardware Documentation (`components/`)
+- `camera_module/README.md` - Allied Vision camera API and examples
+- `actuator_module/README.md` - Xeryon actuator API and examples
+- `laser_control/README.md` - Arroyo laser/TEC API documentation
+- `gpio_safety/README.md` - Arduino GPIO examples and firmware
+
+### Testing Documentation
+- **`tests/mocks/README.md`** - Mock infrastructure usage guide
+- **`docs/architecture/09_test_architecture.md`** - Testing strategy and patterns

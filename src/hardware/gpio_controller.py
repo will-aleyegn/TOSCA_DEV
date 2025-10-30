@@ -169,7 +169,7 @@ class GPIOController(QObject):
 
                 # Log event
                 if self.event_logger:
-                    from ..core.event_logger import EventType
+                    from core.event_logger import EventType
 
                     self.event_logger.log_hardware_event(
                         event_type=EventType.HARDWARE_GPIO_CONNECT,
@@ -218,7 +218,7 @@ class GPIOController(QObject):
 
                 # Log error event
                 if self.event_logger:
-                    from ..core.event_logger import EventSeverity, EventType
+                    from core.event_logger import EventSeverity, EventType
 
                     self.event_logger.log_event(
                         event_type=EventType.HARDWARE_ERROR,
@@ -250,7 +250,7 @@ class GPIOController(QObject):
 
             # Log event
             if self.event_logger:
-                from ..core.event_logger import EventType
+                from core.event_logger import EventType
 
                 self.event_logger.log_hardware_event(
                     event_type=EventType.HARDWARE_GPIO_DISCONNECT,
@@ -412,7 +412,7 @@ class GPIOController(QObject):
 
                     # Log event
                     if self.event_logger:
-                        from ..core.event_logger import EventType
+                        from core.event_logger import EventType
 
                         self.event_logger.log_event(
                             event_type=EventType.SAFETY_GPIO_OK,
@@ -453,7 +453,7 @@ class GPIOController(QObject):
 
                     # Log event
                     if self.event_logger:
-                        from ..core.event_logger import EventType
+                        from core.event_logger import EventType
 
                         self.event_logger.log_event(
                             event_type=EventType.SAFETY_GPIO_FAIL,
@@ -645,7 +645,7 @@ class GPIOController(QObject):
                     logger.info("Aiming laser enabled")
 
                     if self.event_logger:
-                        from ..core.event_logger import EventType
+                        from core.event_logger import EventType
 
                         self.event_logger.log_event(
                             event_type=EventType.TREATMENT_LASER_ON,
@@ -683,7 +683,7 @@ class GPIOController(QObject):
                     logger.info("Aiming laser disabled")
 
                     if self.event_logger:
-                        from ..core.event_logger import EventType
+                        from core.event_logger import EventType
 
                         self.event_logger.log_event(
                             event_type=EventType.TREATMENT_LASER_OFF,

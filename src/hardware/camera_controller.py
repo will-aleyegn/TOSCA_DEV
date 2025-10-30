@@ -19,6 +19,7 @@ from typing import Any, Optional
 import cv2
 import numpy as np
 from PyQt6.QtCore import QObject, QThread, pyqtSignal
+from PyQt6.QtGui import QImage, QPixmap
 
 try:
     import vmbpy
@@ -37,16 +38,21 @@ PROJECT_ROOT = Path(__file__).parent.parent.parent
 class CameraStreamThread(QThread):
     """Thread for continuous camera streaming."""
 
-    frame_ready = pyqtSignal(np.ndarray)  # Emits numpy array frames
+    frame_ready = pyqtSignal(np.ndarray)  # Emits numpy array frames (for capture/recording)
+    pixmap_ready = pyqtSignal(QPixmap)  # Emits QPixmap frames (for GUI display - FAST!)
     error_occurred = pyqtSignal(str)
     fps_update = pyqtSignal(float)
 
-    def __init__(self, camera: "vmbpy.Camera") -> None:
+    def __init__(self, camera: "vmbpy.Camera", controller: "CameraController", display_scale: float = 1.0) -> None:
         super().__init__()
         self.camera = camera
+        self.controller = controller  # Reference to parent controller for accessing lock and attributes
         self.running = False
         self.frame_count = 0
         self.start_time: Optional[float] = None
+
+        # Display scale for GUI frames (downsampling before transfer)
+        self.display_scale = display_scale  # 1.0 = full, 0.5 = half, 0.25 = quarter
 
         # Frame throttling for GUI updates
         self.gui_frame_count = 0
@@ -130,8 +136,59 @@ class CameraStreamThread(QThread):
                         logger.error(f"Pixel format conversion failed: {conv_e}, using raw data")
                         frame_rgb = np.ascontiguousarray(frame_data)
 
-                    # Emit frame to GUI (no copy needed - Qt signals handle data safely)
-                    self.frame_ready.emit(frame_rgb)
+                    # Store latest frame for image capture (FULL resolution before downsampling)
+                    with self.controller._lock:
+                        self.controller.latest_frame = frame_rgb.copy()
+
+                    # Write to video recorder if recording (FULL resolution)
+                    # Use lock to prevent race condition with stop_recording()
+                    with self.controller._lock:
+                        if self.controller.is_recording and self.controller.video_recorder:
+                            # Convert to BGR for OpenCV video writer
+                            frame_bgr = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)
+                            self.controller.video_recorder.write_frame(frame_bgr)
+
+                    # Apply display scale downsampling BEFORE emitting to GUI
+                    # This reduces signal/slot transfer overhead by 4-16×
+                    if self.display_scale < 1.0:
+                        orig_height, orig_width = frame_rgb.shape[:2]
+                        new_width = int(orig_width * self.display_scale)
+                        new_height = int(orig_height * self.display_scale)
+                        frame_rgb = cv2.resize(
+                            frame_rgb, (new_width, new_height), interpolation=cv2.INTER_AREA
+                        )
+                        # Debug log first downsampled frame
+                        if self.gui_frame_count == 0:
+                            logger.info(
+                                f"Display downsampling enabled: {orig_width}×{orig_height} → "
+                                f"{new_width}×{new_height} (scale={self.display_scale}×)"
+                            )
+
+                    # PERFORMANCE OPTIMIZATION: Convert to QPixmap in camera thread
+                    # This eliminates GUI thread blocking from QImage→QPixmap conversion
+                    # QPixmap is implicitly shared (lightweight pointer), not full data copy
+                    height, width = frame_rgb.shape[:2]
+                    bytes_per_line = 3 * width
+                    q_image = QImage(
+                        frame_rgb.data,
+                        width,
+                        height,
+                        bytes_per_line,
+                        QImage.Format.Format_RGB888,
+                    )
+                    pixmap = QPixmap.fromImage(q_image)
+
+                    # Debug: Log first few pixmap emissions
+                    if self.gui_frame_count <= 5:
+                        logger.info(f"Emitting QPixmap to GUI: #{self.gui_frame_count}, size: {pixmap.width()}x{pixmap.height()}")
+
+                    # Emit QPixmap to GUI (FAST - lightweight pointer sharing)
+                    self.pixmap_ready.emit(pixmap)
+
+                    # NOTE: frame_ready signal is NOT emitted during live view to avoid
+                    # transferring 300KB numpy arrays across threads at 30 FPS (9 MB/s).
+                    # It will only be emitted when recording is active (future feature).
+
                     self.last_gui_frame_time = current_time
                     self.gui_frame_count += 1
 
@@ -246,7 +303,8 @@ class CameraController(QObject):
     """
 
     # Signals
-    frame_ready = pyqtSignal(np.ndarray)
+    frame_ready = pyqtSignal(np.ndarray)  # Raw numpy frames (for capture/recording)
+    pixmap_ready = pyqtSignal(QPixmap)  # Pre-converted QPixmap (for GUI display - FAST!)
     fps_update = pyqtSignal(float)
     connection_changed = pyqtSignal(bool)  # True=connected, False=disconnected
     error_occurred = pyqtSignal(str)
@@ -275,6 +333,19 @@ class CameraController(QObject):
 
         # Store latest frame for image capture
         self.latest_frame: Optional[np.ndarray] = None
+
+        # Display scale for GUI frames (1.0 = full, 0.5 = half, 0.25 = quarter)
+        # Lower scale = faster frame rates due to reduced transfer overhead
+        self.display_scale = 0.25  # Default to quarter resolution for 30 FPS performance
+
+        # Auto mode polling (reads hardware values when auto exposure/gain enabled)
+        from PyQt6.QtCore import QTimer
+
+        self._auto_polling_timer = QTimer()
+        self._auto_polling_timer.setInterval(100)  # Poll every 100ms
+        self._auto_polling_timer.timeout.connect(self._poll_auto_values)
+        self._auto_exposure_enabled = False
+        self._auto_gain_enabled = False
 
         logger.info("Camera controller initialized (thread-safe)")
 
@@ -342,7 +413,7 @@ class CameraController(QObject):
 
                 # Log event
                 if self.event_logger:
-                    from ..core.event_logger import EventType
+                    from core.event_logger import EventType
 
                     self.event_logger.log_hardware_event(
                         event_type=EventType.HARDWARE_CAMERA_CONNECT,
@@ -383,7 +454,7 @@ class CameraController(QObject):
 
                 # Log error event
                 if self.event_logger:
-                    from ..core.event_logger import EventSeverity, EventType
+                    from core.event_logger import EventSeverity, EventType
 
                     self.event_logger.log_event(
                         event_type=EventType.HARDWARE_ERROR,
@@ -423,7 +494,7 @@ class CameraController(QObject):
 
             # Log event
             if self.event_logger:
-                from ..core.event_logger import EventType
+                from core.event_logger import EventType
 
                 self.event_logger.log_hardware_event(
                     event_type=EventType.HARDWARE_CAMERA_DISCONNECT,
@@ -492,14 +563,17 @@ class CameraController(QObject):
                         f"Using software throttling instead"
                     )
 
-                self.stream_thread = CameraStreamThread(self.camera)
-                self.stream_thread.frame_ready.connect(self._on_frame_received)
+                # Create stream thread with display scale for pre-transfer downsampling
+                self.stream_thread = CameraStreamThread(self.camera, self, self.display_scale)
+                # NOTE: frame_ready signal NOT connected - all frame handling done in thread's frame_callback
+                self.stream_thread.pixmap_ready.connect(self.pixmap_ready.emit)  # Forward QPixmap to GUI
                 self.stream_thread.fps_update.connect(self.fps_update.emit)
                 self.stream_thread.error_occurred.connect(self.error_occurred.emit)
                 self.stream_thread.start()
 
                 self.is_streaming = True
-                logger.info("Camera streaming started at 30 FPS")
+                scale_info = f" (display scale: {self.display_scale}×)" if self.display_scale < 1.0 else ""
+                logger.info(f"Camera streaming started at 30 FPS{scale_info}")
                 return True
 
             except Exception as e:
@@ -518,30 +592,6 @@ class CameraController(QObject):
 
             self.is_streaming = False
             logger.info("Camera streaming stopped")
-
-    def _on_frame_received(self, frame: np.ndarray) -> None:
-        """
-        Handle received frame.
-
-        Args:
-            frame: Numpy array frame
-        """
-        with self._lock:
-            # Store latest frame for image capture
-            self.latest_frame = frame.copy()
-
-            # Emit to GUI
-            self.frame_ready.emit(frame)
-
-            # Write to video if recording
-            if self.is_recording and self.video_recorder:
-                # Convert to BGR if needed (VmbPy gives RGB)
-                if len(frame.shape) == 3 and frame.shape[2] == 3:
-                    frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-                else:
-                    frame_bgr = frame
-
-                self.video_recorder.write_frame(frame_bgr)
 
     def capture_image(
         self, base_filename: str, output_dir: Optional[Path] = None
@@ -590,7 +640,7 @@ class CameraController(QObject):
 
                 # Log event
                 if self.event_logger:
-                    from ..core.event_logger import EventType
+                    from core.event_logger import EventType
 
                     self.event_logger.log_event(
                         event_type=EventType.HARDWARE_CAMERA_CAPTURE,
@@ -643,7 +693,7 @@ class CameraController(QObject):
 
                 # Log event
                 if self.event_logger:
-                    from ..core.event_logger import EventType
+                    from core.event_logger import EventType
 
                     self.event_logger.log_event(
                         event_type=EventType.HARDWARE_CAMERA_RECORDING_START,
@@ -660,7 +710,7 @@ class CameraController(QObject):
 
                 # Log error event
                 if self.event_logger:
-                    from ..core.event_logger import EventSeverity, EventType
+                    from core.event_logger import EventSeverity, EventType
 
                     self.event_logger.log_event(
                         event_type=EventType.HARDWARE_ERROR,
@@ -687,7 +737,7 @@ class CameraController(QObject):
 
             # Log event
             if self.event_logger:
-                from ..core.event_logger import EventType
+                from core.event_logger import EventType
 
                 self.event_logger.log_event(
                     event_type=EventType.HARDWARE_CAMERA_RECORDING_STOP,
@@ -857,6 +907,9 @@ class CameraController(QObject):
         """
         Enable or disable auto exposure.
 
+        When enabled, starts polling to emit hardware value updates to UI.
+        Also sets auto exposure maximum limit to prevent frame drops.
+
         Args:
             enabled: True to enable auto exposure, False to disable
 
@@ -869,7 +922,61 @@ class CameraController(QObject):
         try:
             mode = "Continuous" if enabled else "Off"
             self.camera.ExposureAuto.set(mode)
+            self._auto_exposure_enabled = enabled
             logger.debug(f"Auto exposure set to {mode}")
+
+            # Set auto exposure upper limit to prevent extreme values (frame drops)
+            if enabled:
+                # Limit to 30ms (30,000 µs) - safe for 30 FPS streaming
+                max_exposure_us = 30000.0
+                limit_set = False
+
+                # Try multiple feature names (varies by camera model and firmware)
+                limit_feature_names = [
+                    'ExposureAutoUpperLimit',  # Common on newer cameras
+                    'ExposureAutoMax',         # Alternative name
+                    'ExposureAutoLimitMax',    # Another variant
+                    'ExposureTimeUpperLimit',  # Yet another variant
+                ]
+
+                for feature_name in limit_feature_names:
+                    try:
+                        if hasattr(self.camera, feature_name):
+                            feature = getattr(self.camera, feature_name)
+                            # Get valid range to ensure we're not exceeding limits
+                            try:
+                                feat_min, feat_max = feature.get_range()
+                                clamped_value = min(max_exposure_us, feat_max)
+                                feature.set(clamped_value)
+                                logger.info(
+                                    f"Auto exposure max limited via {feature_name}: "
+                                    f"{clamped_value} µs ({clamped_value/1000:.1f}ms)"
+                                )
+                                limit_set = True
+                                break  # Success, stop trying
+                            except Exception as range_e:
+                                # Feature exists but get_range() failed, try setting anyway
+                                logger.debug(f"{feature_name}.get_range() failed: {range_e}")
+                                feature.set(max_exposure_us)
+                                logger.info(
+                                    f"Auto exposure max limited via {feature_name}: "
+                                    f"{max_exposure_us} µs (30ms) - no range check"
+                                )
+                                limit_set = True
+                                break
+                    except Exception as e:
+                        logger.debug(f"{feature_name} not available or failed: {e}")
+                        continue
+
+                if not limit_set:
+                    logger.warning(
+                        "Could not set auto exposure limit - camera may set extreme values causing frame drops. "
+                        f"Tried features: {', '.join(limit_feature_names)}. "
+                        "If camera sets high exposures (>30ms), disable auto exposure manually."
+                    )
+
+            # Start/stop polling timer based on auto mode states
+            self._update_auto_polling()
             return True
         except Exception as e:
             logger.error(f"Failed to set auto exposure: {e}")
@@ -878,6 +985,9 @@ class CameraController(QObject):
     def set_auto_gain(self, enabled: bool) -> bool:
         """
         Enable or disable auto gain.
+
+        When enabled, starts polling to emit hardware value updates to UI.
+        Also sets auto gain maximum limit to prevent excessive noise.
 
         Args:
             enabled: True to enable auto gain, False to disable
@@ -891,7 +1001,60 @@ class CameraController(QObject):
         try:
             mode = "Continuous" if enabled else "Off"
             self.camera.GainAuto.set(mode)
+            self._auto_gain_enabled = enabled
             logger.debug(f"Auto gain set to {mode}")
+
+            # Set auto gain upper limit to prevent excessive gain (noise)
+            if enabled:
+                # Limit to 24 dB - reasonable maximum to avoid excessive noise
+                max_gain_db = 24.0
+                limit_set = False
+
+                # Try multiple feature names (varies by camera model and firmware)
+                limit_feature_names = [
+                    'GainAutoUpperLimit',  # Common on newer cameras
+                    'GainAutoMax',         # Alternative name
+                    'GainAutoLimitMax',    # Another variant
+                    'GainUpperLimit',      # Yet another variant
+                ]
+
+                for feature_name in limit_feature_names:
+                    try:
+                        if hasattr(self.camera, feature_name):
+                            feature = getattr(self.camera, feature_name)
+                            # Get valid range to ensure we're not exceeding limits
+                            try:
+                                feat_min, feat_max = feature.get_range()
+                                clamped_value = min(max_gain_db, feat_max)
+                                feature.set(clamped_value)
+                                logger.info(
+                                    f"Auto gain max limited via {feature_name}: {clamped_value} dB"
+                                )
+                                limit_set = True
+                                break  # Success, stop trying
+                            except Exception as range_e:
+                                # Feature exists but get_range() failed, try setting anyway
+                                logger.debug(f"{feature_name}.get_range() failed: {range_e}")
+                                feature.set(max_gain_db)
+                                logger.info(
+                                    f"Auto gain max limited via {feature_name}: "
+                                    f"{max_gain_db} dB - no range check"
+                                )
+                                limit_set = True
+                                break
+                    except Exception as e:
+                        logger.debug(f"{feature_name} not available or failed: {e}")
+                        continue
+
+                if not limit_set:
+                    logger.warning(
+                        "Could not set auto gain limit - camera may use excessive gain causing noise. "
+                        f"Tried features: {', '.join(limit_feature_names)}. "
+                        "If image becomes noisy, disable auto gain manually."
+                    )
+
+            # Start/stop polling timer based on auto mode states
+            self._update_auto_polling()
             return True
         except Exception as e:
             logger.error(f"Failed to set auto gain: {e}")
@@ -918,6 +1081,72 @@ class CameraController(QObject):
         except Exception as e:
             logger.error(f"Failed to set auto white balance: {e}")
             return False
+
+    def set_display_scale(self, scale: float) -> bool:
+        """
+        Set display downsampling scale for GUI frames (performance optimization).
+
+        Lower scales reduce signal/slot transfer overhead, enabling higher frame rates.
+        This does NOT affect capture/recording quality (always full resolution).
+
+        Args:
+            scale: Scale factor (1.0 = full res, 0.5 = half, 0.25 = quarter)
+
+        Returns:
+            True if successful
+        """
+        if scale <= 0.0 or scale > 1.0:
+            logger.error(f"Invalid display scale: {scale}. Must be in range (0.0, 1.0]")
+            return False
+
+        with self._lock:
+            self.display_scale = scale
+
+            # Update stream thread if currently streaming
+            if self.is_streaming and self.stream_thread:
+                self.stream_thread.display_scale = scale
+                logger.info(f"Display scale updated to {scale}× (live streaming)")
+            else:
+                logger.info(f"Display scale set to {scale}× (will apply on next stream)")
+
+            return True
+
+    def _update_auto_polling(self) -> None:
+        """Start or stop auto value polling based on auto mode states."""
+        should_poll = self._auto_exposure_enabled or self._auto_gain_enabled
+
+        if should_poll and not self._auto_polling_timer.isActive():
+            self._auto_polling_timer.start()
+            logger.debug("Auto value polling started (100ms interval)")
+        elif not should_poll and self._auto_polling_timer.isActive():
+            self._auto_polling_timer.stop()
+            logger.debug("Auto value polling stopped")
+
+    def _poll_auto_values(self) -> None:
+        """
+        Poll camera hardware for actual exposure/gain values during auto mode.
+
+        Called by timer every 100ms when auto exposure or auto gain is enabled.
+        Emits signals to update UI with hardware-determined values.
+        """
+        if not self.camera or not self.is_streaming:
+            return
+
+        with self._lock:
+            try:
+                # Poll exposure if auto exposure enabled
+                if self._auto_exposure_enabled:
+                    actual_exposure = self.camera.ExposureTime.get()
+                    self.exposure_changed.emit(actual_exposure)
+
+                # Poll gain if auto gain enabled
+                if self._auto_gain_enabled:
+                    actual_gain = self.camera.Gain.get()
+                    self.gain_changed.emit(actual_gain)
+
+            except Exception as e:
+                # Don't spam errors - auto polling fails gracefully
+                logger.debug(f"Auto value polling error (non-critical): {e}")
 
     def get_acquisition_frame_rate_info(self) -> dict:
         """

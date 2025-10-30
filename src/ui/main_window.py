@@ -22,17 +22,17 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from src.core.event_logger import EventLogger, EventSeverity, EventType
-from src.core.protocol_engine import ProtocolEngine
-from src.core.safety import SafetyManager
-from src.core.safety_watchdog import SafetyWatchdog
-from src.core.session_manager import SessionManager
-from src.database.db_manager import DatabaseManager
-from src.ui.widgets.active_treatment_widget import ActiveTreatmentWidget
-from src.ui.widgets.camera_widget import CameraWidget
-from src.ui.widgets.safety_widget import SafetyWidget
-from src.ui.widgets.subject_widget import SubjectWidget
-from src.ui.widgets.treatment_setup_widget import TreatmentSetupWidget
+from core.event_logger import EventLogger, EventSeverity, EventType
+from core.protocol_engine import ProtocolEngine
+from core.safety import SafetyManager
+from core.safety_watchdog import SafetyWatchdog
+from core.session_manager import SessionManager
+from database.db_manager import DatabaseManager
+from ui.widgets.active_treatment_widget import ActiveTreatmentWidget
+from ui.widgets.camera_widget import CameraWidget
+from ui.widgets.safety_widget import SafetyWidget
+from ui.widgets.subject_widget import SubjectWidget
+from ui.widgets.treatment_setup_widget import TreatmentSetupWidget
 
 logger = logging.getLogger(__name__)
 
@@ -72,11 +72,11 @@ class MainWindow(QMainWindow):
         # This follows the Hollywood Principle: "Don't call us, we'll call you"
         # Benefits: Clear lifecycle management, easier testing, consistent architecture
 
-        from src.hardware.actuator_controller import ActuatorController
-        from src.hardware.camera_controller import CameraController
-        from src.hardware.gpio_controller import GPIOController
-        from src.hardware.laser_controller import LaserController
-        from src.hardware.tec_controller import TECController
+        from hardware.actuator_controller import ActuatorController
+        from hardware.camera_controller import CameraController
+        from hardware.gpio_controller import GPIOController
+        from hardware.laser_controller import LaserController
+        from hardware.tec_controller import TECController
 
         self.actuator_controller = ActuatorController()
         self.laser_controller = LaserController()
@@ -493,7 +493,12 @@ class MainWindow(QMainWindow):
         # Connect safety manager to master indicator
         if hasattr(self, "safety_manager") and self.safety_manager:
             self.safety_manager.safety_state_changed.connect(self._update_master_safety_indicator)
-            logger.info("Master safety indicator connected to SafetyManager")
+            # Emit initial state immediately to update status bar on startup
+            self._update_master_safety_indicator(self.safety_manager.state)
+            logger.info(
+                f"Master safety indicator connected to SafetyManager "
+                f"(initial state: {self.safety_manager.state.value})"
+            )
 
     def _on_dev_mode_changed_menubar(self, checked: bool) -> None:
         """Handle dev mode menu action toggle."""

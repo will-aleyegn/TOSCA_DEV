@@ -26,7 +26,7 @@ from database.models import Subject
 logger = logging.getLogger(__name__)
 
 # Subject code format validation pattern (P-YYYY-NNNN)
-SUBJECT_CODE_PATTERN = re.compile(r'^P-\d{4}-\d{4}$')
+SUBJECT_CODE_PATTERN = re.compile(r"^P-\d{4}-\d{4}$")
 
 
 class SubjectWidget(QWidget):
@@ -159,7 +159,7 @@ class SubjectWidget(QWidget):
             QMessageBox.warning(
                 self,
                 "Invalid Format",
-                "Subject ID must be in format 'P-YYYY-NNNN'\n\nExample: P-2025-0001"
+                "Subject ID must be in format 'P-YYYY-NNNN'\n\nExample: P-2025-0001",
             )
             return
 
@@ -191,7 +191,7 @@ class SubjectWidget(QWidget):
             QMessageBox.critical(
                 self,
                 "Database Error",
-                f"Failed to search for subject.\n\nPlease check database connection."
+                f"Failed to search for subject.\n\nPlease check database connection.",
             )
             self.current_subject = None
             self.start_session_button.setEnabled(False)
@@ -213,7 +213,7 @@ class SubjectWidget(QWidget):
             QMessageBox.warning(
                 self,
                 "Invalid Format",
-                "Subject ID must be in format 'P-YYYY-NNNN'\n\nExample: P-2025-0001"
+                "Subject ID must be in format 'P-YYYY-NNNN'\n\nExample: P-2025-0001",
             )
             return
 
@@ -224,7 +224,7 @@ class SubjectWidget(QWidget):
                 self,
                 "Technician Required",
                 "Please enter Technician ID before creating subjects.\n\n"
-                "This ensures proper audit trail for regulatory compliance."
+                "This ensures proper audit trail for regulatory compliance.",
             )
             return
 
@@ -236,7 +236,7 @@ class SubjectWidget(QWidget):
                     self,
                     "Invalid Technician",
                     f"Technician '{tech_username}' not found.\n\n"
-                    f"Please enter a valid technician ID."
+                    f"Please enter a valid technician ID.",
                 )
                 return
 
@@ -249,7 +249,7 @@ class SubjectWidget(QWidget):
             # Create new subject with actual technician ID (fixes audit trail)
             subject = self.db_manager.create_subject(
                 subject_code=subject_code,
-                tech_id=tech.tech_id  # Use actual technician, not hardcoded admin
+                tech_id=tech.tech_id,  # Use actual technician, not hardcoded admin
             )
             self.current_subject = subject
             self.subject_info_display.setText(
@@ -266,7 +266,7 @@ class SubjectWidget(QWidget):
             QMessageBox.critical(
                 self,
                 "Database Error",
-                f"Failed to create subject.\n\nPlease check database connection."
+                f"Failed to create subject.\n\nPlease check database connection.",
             )
             self.current_subject = None
             self.start_session_button.setEnabled(False)
@@ -295,7 +295,7 @@ class SubjectWidget(QWidget):
                     self,
                     "Technician Not Found",
                     f"Technician '{tech_username}' not found.\n\n"
-                    f"Please enter a valid technician ID to start the session."
+                    f"Please enter a valid technician ID to start the session.",
                 )
                 return
 
@@ -313,7 +313,7 @@ class SubjectWidget(QWidget):
                     self,
                     "Session Creation Failed",
                     "Failed to create treatment session.\n\n"
-                    "Please check database connection and try again."
+                    "Please check database connection and try again.",
                 )
                 return
 
@@ -346,7 +346,7 @@ class SubjectWidget(QWidget):
             QMessageBox.critical(
                 self,
                 "Session Error",
-                f"Failed to start session.\n\nPlease check database connection."
+                f"Failed to start session.\n\nPlease check database connection.",
             )
 
     @pyqtSlot()
@@ -394,14 +394,12 @@ class SubjectWidget(QWidget):
                 QMessageBox.warning(
                     self,
                     "Session End Failed",
-                    "Failed to end session properly.\n\nPlease check logs."
+                    "Failed to end session properly.\n\nPlease check logs.",
                 )
         except Exception as e:
             logger.error(f"Error ending session: {e}", exc_info=True)
             QMessageBox.critical(
-                self,
-                "Session Error",
-                f"Failed to end session.\n\nPlease contact support."
+                self, "Session Error", f"Failed to end session.\n\nPlease contact support."
             )
 
     @pyqtSlot()

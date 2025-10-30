@@ -34,7 +34,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from src.core.protocol import (
+from core.protocol import (
     ActionType,
     LoopParams,
     MoveActuatorParams,

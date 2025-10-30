@@ -8,7 +8,7 @@ import logging
 from typing import Optional
 
 from PyQt6.QtCore import pyqtSlot
-from src.ui.constants import WIDGET_WIDTH_STANDARD
+from ui.constants import WIDGET_WIDTH_STANDARD
 from PyQt6.QtWidgets import (
     QDoubleSpinBox,
     QGridLayout,
@@ -20,7 +20,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from src.hardware.tec_controller import TECController
+from hardware.tec_controller import TECController
 
 logger = logging.getLogger(__name__)
 
