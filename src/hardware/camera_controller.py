@@ -691,11 +691,11 @@ class CameraController(QObject):
                 return False
 
             try:
-                # Use get_feature_by_name (per LESSONS_LEARNED.md)
-                self.camera.get_feature_by_name("ExposureTime").set(exposure_us)
+                # Use property pattern (cleaner VmbPy API)
+                self.camera.ExposureTime.set(exposure_us)
 
                 # Read back actual value and emit signal
-                actual_exposure = self.camera.get_feature_by_name("ExposureTime").get()
+                actual_exposure = self.camera.ExposureTime.get()
                 logger.debug(f"Exposure set to {actual_exposure} us (requested: {exposure_us})")
                 self.exposure_changed.emit(actual_exposure)
                 return True
@@ -718,11 +718,11 @@ class CameraController(QObject):
                 return False
 
             try:
-                # Use get_feature_by_name (per LESSONS_LEARNED.md)
-                self.camera.get_feature_by_name("Gain").set(gain_db)
+                # Use property pattern (cleaner VmbPy API)
+                self.camera.Gain.set(gain_db)
 
                 # Read back actual value and emit signal
-                actual_gain = self.camera.get_feature_by_name("Gain").get()
+                actual_gain = self.camera.Gain.get()
                 logger.debug(f"Gain set to {actual_gain} dB (requested: {gain_db})")
                 self.gain_changed.emit(actual_gain)
                 return True
@@ -742,7 +742,7 @@ class CameraController(QObject):
                 return 0.0
 
             try:
-                return self.camera.get_feature_by_name("ExposureTime").get()
+                return self.camera.ExposureTime.get()
             except Exception as e:
                 logger.error(f"Failed to get exposure: {e}")
                 return 0.0
@@ -759,7 +759,7 @@ class CameraController(QObject):
                 return 0.0
 
             try:
-                return self.camera.get_feature_by_name("Gain").get()
+                return self.camera.Gain.get()
             except Exception as e:
                 logger.error(f"Failed to get gain: {e}")
                 return 0.0
@@ -770,9 +770,9 @@ class CameraController(QObject):
             return (0.0, 1000000.0)
 
         try:
-            # Use get_feature_by_name (per LESSONS_LEARNED.md)
-            exp_feature = self.camera.get_feature_by_name("ExposureTime")
-            return (exp_feature.get_range()[0], exp_feature.get_range()[1])
+            # Use property pattern (cleaner VmbPy API)
+            min_val, max_val = self.camera.ExposureTime.get_range()
+            return (min_val, max_val)
         except Exception:
             return (0.0, 1000000.0)
 
@@ -782,9 +782,9 @@ class CameraController(QObject):
             return (0.0, 24.0)
 
         try:
-            # Use get_feature_by_name (per LESSONS_LEARNED.md)
-            gain_feature = self.camera.get_feature_by_name("Gain")
-            return (gain_feature.get_range()[0], gain_feature.get_range()[1])
+            # Use property pattern (cleaner VmbPy API)
+            min_val, max_val = self.camera.Gain.get_range()
+            return (min_val, max_val)
         except Exception:
             return (0.0, 24.0)
 
@@ -809,9 +809,9 @@ class CameraController(QObject):
             return False
 
         try:
-            # Set horizontal and vertical binning
-            self.camera.get_feature_by_name("BinningHorizontal").set(binning_factor)
-            self.camera.get_feature_by_name("BinningVertical").set(binning_factor)
+            # Set horizontal and vertical binning (property pattern)
+            self.camera.BinningHorizontal.set(binning_factor)
+            self.camera.BinningVertical.set(binning_factor)
             logger.info(f"Camera binning set to {binning_factor}×{binning_factor}")
             return True
         except Exception as e:
@@ -830,7 +830,7 @@ class CameraController(QObject):
 
         try:
             # Read horizontal binning (vertical should match)
-            binning = int(self.camera.get_feature_by_name("BinningHorizontal").get())
+            binning = int(self.camera.BinningHorizontal.get())
             return binning
         except Exception:
             return 1
@@ -850,7 +850,7 @@ class CameraController(QObject):
 
         try:
             mode = "Continuous" if enabled else "Off"
-            self.camera.get_feature_by_name("ExposureAuto").set(mode)
+            self.camera.ExposureAuto.set(mode)
             logger.debug(f"Auto exposure set to {mode}")
             return True
         except Exception as e:
@@ -872,7 +872,7 @@ class CameraController(QObject):
 
         try:
             mode = "Continuous" if enabled else "Off"
-            self.camera.get_feature_by_name("GainAuto").set(mode)
+            self.camera.GainAuto.set(mode)
             logger.debug(f"Auto gain set to {mode}")
             return True
         except Exception as e:
@@ -894,7 +894,7 @@ class CameraController(QObject):
 
         try:
             mode = "Continuous" if enabled else "Off"
-            self.camera.get_feature_by_name("BalanceWhiteAuto").set(mode)
+            self.camera.BalanceWhiteAuto.set(mode)
             logger.debug(f"Auto white balance set to {mode}")
             return True
         except Exception as e:
@@ -912,9 +912,9 @@ class CameraController(QObject):
             return {"min_fps": 0, "max_fps": 0, "current_fps": 0}
 
         try:
-            fps_feature = self.camera.get_feature_by_name("AcquisitionFrameRate")
-            min_fps, max_fps = fps_feature.get_range()
-            current_fps = fps_feature.get()
+            # Use property pattern
+            min_fps, max_fps = self.camera.AcquisitionFrameRate.get_range()
+            current_fps = self.camera.AcquisitionFrameRate.get()
             return {
                 "min_fps": min_fps,
                 "max_fps": max_fps,
@@ -938,12 +938,11 @@ class CameraController(QObject):
             return False
 
         try:
-            # Enable frame rate control
-            self.camera.get_feature_by_name("AcquisitionFrameRateEnable").set(True)
+            # Enable frame rate control (property pattern)
+            self.camera.AcquisitionFrameRateEnable.set(True)
 
             # Get the valid range for this camera
-            fps_feature = self.camera.get_feature_by_name("AcquisitionFrameRate")
-            min_fps, max_fps = fps_feature.get_range()
+            min_fps, max_fps = self.camera.AcquisitionFrameRate.get_range()
 
             # Clamp to valid range
             clamped_fps = max(min_fps, min(fps, max_fps))
@@ -955,7 +954,7 @@ class CameraController(QObject):
                 )
 
             # Set frame rate
-            fps_feature.set(clamped_fps)
+            self.camera.AcquisitionFrameRate.set(clamped_fps)
             logger.info(f"Camera acquisition frame rate set to {clamped_fps:.2f} FPS")
             return True
         except Exception as e:
