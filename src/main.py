@@ -63,7 +63,7 @@ def main() -> int:
         from ui.main_window import MainWindow
 
         window = MainWindow()
-        window.show()
+        window.showMaximized()  # Start in maximized mode (full screen with title bar)
 
         logger.info("Application ready")
         return_code: int = app.exec()
