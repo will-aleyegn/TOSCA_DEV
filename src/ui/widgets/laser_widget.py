@@ -45,7 +45,6 @@ class LaserWidget(QWidget):
         self.is_output_enabled = False
         self.is_aiming_laser_enabled = False
         self.current_ma = 0.0
-        self.temperature_c = 0.0
 
         # Initialize UI
         self._init_ui()
@@ -68,10 +67,6 @@ class LaserWidget(QWidget):
         # Power control
         power_group = self._create_power_control_group()
         layout.addWidget(power_group)
-
-        # Temperature control
-        temp_group = self._create_temperature_group()
-        layout.addWidget(temp_group)
 
         # Aiming laser control
         aiming_group = self._create_aiming_laser_group()
@@ -122,11 +117,6 @@ class LaserWidget(QWidget):
         self.current_label.setStyleSheet("font-weight: bold;")
         layout.addWidget(QLabel("Current:"), 1, 0)
         layout.addWidget(self.current_label, 1, 1)
-
-        self.temperature_label = QLabel("-- °C")
-        self.temperature_label.setStyleSheet("font-weight: bold;")
-        layout.addWidget(QLabel("Temperature:"), 1, 2)
-        layout.addWidget(self.temperature_label, 1, 3)
 
         group.setLayout(layout)
         return group
@@ -185,29 +175,6 @@ class LaserWidget(QWidget):
         group.setLayout(layout)
         return group
 
-    def _create_temperature_group(self) -> QGroupBox:
-        """Create TEC temperature control group."""
-        group = QGroupBox("TEC Temperature")
-        layout = QHBoxLayout()
-
-        layout.addWidget(QLabel("Setpoint (°C):"))
-        self.temp_spinbox = QDoubleSpinBox()
-        self.temp_spinbox.setRange(15, 35)
-        self.temp_spinbox.setValue(25.0)
-        self.temp_spinbox.setDecimals(1)
-        self.temp_spinbox.setEnabled(False)
-        layout.addWidget(self.temp_spinbox)
-
-        self.set_temp_btn = QPushButton("Set Temperature")
-        self.set_temp_btn.clicked.connect(self._on_set_temperature)
-        self.set_temp_btn.setEnabled(False)
-        layout.addWidget(self.set_temp_btn)
-
-        layout.addStretch()
-
-        group.setLayout(layout)
-        return group
-
     def _create_aiming_laser_group(self) -> QGroupBox:
         """Create aiming laser control group."""
         group = QGroupBox("Aiming Laser")
@@ -242,8 +209,6 @@ class LaserWidget(QWidget):
         controls_enabled = self.is_connected
         self.current_spinbox.setEnabled(controls_enabled)
         self.current_slider.setEnabled(controls_enabled)
-        self.temp_spinbox.setEnabled(controls_enabled)
-        self.set_temp_btn.setEnabled(controls_enabled)
 
         # Output buttons
         self.enable_btn.setEnabled(controls_enabled and not self.is_output_enabled)
@@ -267,11 +232,10 @@ class LaserWidget(QWidget):
             self.controller.connection_changed.connect(self._on_connection_changed)
             self.controller.output_changed.connect(self._on_output_changed)
             self.controller.current_changed.connect(self._on_current_changed_signal)
-            self.controller.temperature_changed.connect(self._on_temperature_changed)
             self.controller.error_occurred.connect(self._on_error)
 
-        # Connect to COM4 by default (adjust as needed)
-        success = self.controller.connect("COM4")
+        # Connect to COM10 (laser driver port)
+        success = self.controller.connect("COM10")
 
         if not success:
             logger.error("Failed to connect to laser driver")
@@ -283,14 +247,6 @@ class LaserWidget(QWidget):
         if self.controller:
             logger.info("Disconnecting from laser driver...")
             self.controller.disconnect()
-
-    @pyqtSlot()
-    def _on_set_temperature(self) -> None:
-        """Handle set temperature button click."""
-        if self.controller:
-            temp = self.temp_spinbox.value()
-            logger.info(f"Setting TEC temperature to {temp:.1f}°C")
-            self.controller.set_temperature(temp)
 
     @pyqtSlot(float)
     def _on_current_changed(self, value: float) -> None:
@@ -345,12 +301,6 @@ class LaserWidget(QWidget):
         """Handle current update from controller."""
         self.current_ma = current_ma
         self.current_label.setText(f"{current_ma:.1f} mA")
-
-    @pyqtSlot(float)
-    def _on_temperature_changed(self, temperature_c: float) -> None:
-        """Handle temperature update from controller."""
-        self.temperature_c = temperature_c
-        self.temperature_label.setText(f"{temperature_c:.1f} °C")
 
     @pyqtSlot(str)
     def _on_error(self, error_msg: str) -> None:

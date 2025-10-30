@@ -232,9 +232,7 @@ class TECController(HardwareControllerBase):
             if response:
                 self.min_temperature_c = float(response)
 
-            logger.info(
-                f"Limits: Temp={self.min_temperature_c:.1f}-{self.max_temperature_c:.1f}°C"
-            )
+            logger.info(f"Limits: Temp={self.min_temperature_c:.1f}-{self.max_temperature_c:.1f}°C")
 
         except Exception as e:
             logger.warning(f"Failed to read limits: {e}")
@@ -270,9 +268,7 @@ class TECController(HardwareControllerBase):
                     if self.event_logger:
                         from ..core.event_logger import EventType
 
-                        event_type = (
-                            EventType.TEC_ENABLED if enabled else EventType.TEC_DISABLED
-                        )
+                        event_type = EventType.TEC_ENABLED if enabled else EventType.TEC_DISABLED
                         self.event_logger.log_event(
                             event_type=event_type,
                             description=f"TEC output {status}",
