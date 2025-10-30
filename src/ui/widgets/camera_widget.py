@@ -47,11 +47,11 @@ class CameraWidget(QWidget):
     # Other widgets can connect to this to display the same camera feed
     pixmap_ready = pyqtSignal(QPixmap)
 
-    def __init__(self) -> None:
+    def __init__(self, camera_controller: Optional[Any] = None) -> None:
         super().__init__()
 
-        # Camera controller will be injected later
-        self.camera_controller = None
+        # Reference to CameraController (created and managed by MainWindow)
+        self.camera_controller = camera_controller
 
         # State
         self.is_connected = False
@@ -62,6 +62,25 @@ class CameraWidget(QWidget):
         self.custom_image_path: Optional[Path] = None
 
         self._init_ui()
+
+        # Connect to controller signals if controller provided
+        if self.camera_controller:
+            self._connect_controller_signals()
+
+    def _connect_controller_signals(self) -> None:
+        """Connect to controller signals (called when controller is injected)."""
+        if not self.camera_controller:
+            return
+
+        self.camera_controller.frame_ready.connect(self._on_frame_received)
+        self.camera_controller.fps_update.connect(self._on_fps_update)
+        self.camera_controller.connection_changed.connect(self._on_connection_changed)
+        self.camera_controller.error_occurred.connect(self._on_error)
+        self.camera_controller.recording_status_changed.connect(self._on_recording_status_changed)
+        # Connect camera setting signals for hardware feedback loop
+        self.camera_controller.exposure_changed.connect(self._on_exposure_hardware_changed)
+        self.camera_controller.gain_changed.connect(self._on_gain_hardware_changed)
+        logger.debug("CameraWidget signals connected to CameraController")
 
     def _init_ui(self) -> None:
         """Initialize UI components."""
@@ -438,24 +457,18 @@ class CameraWidget(QWidget):
 
     def set_camera_controller(self, controller: Any) -> None:
         """
-        Inject camera controller dependency.
+        DEPRECATED: Use constructor injection instead.
+
+        Inject camera controller dependency (legacy setter method).
+        Kept for backwards compatibility, but prefer passing controller to __init__.
 
         Args:
             controller: CameraController instance
         """
+        logger.warning("set_camera_controller() is deprecated. Use constructor injection instead.")
         self.camera_controller = controller
-
-        # Connect signals
-        controller.frame_ready.connect(self._on_frame_received)
-        controller.fps_update.connect(self._on_fps_update)
-        controller.connection_changed.connect(self._on_connection_changed)
-        controller.error_occurred.connect(self._on_error)
-        controller.recording_status_changed.connect(self._on_recording_status_changed)
-        # Connect camera setting signals for hardware feedback loop
-        controller.exposure_changed.connect(self._on_exposure_hardware_changed)
-        controller.gain_changed.connect(self._on_gain_hardware_changed)
-
-        logger.info("Camera controller connected to widget")
+        self._connect_controller_signals()
+        logger.info("Camera controller connected to widget (via deprecated setter)")
 
     def set_dev_mode(self, dev_mode: bool) -> None:
         """

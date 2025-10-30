@@ -65,6 +65,27 @@ class MainWindow(QMainWindow):
         self.session_manager = SessionManager(self.db_manager)
         self.event_logger = EventLogger(self.db_manager)
 
+        # ===================================================================
+        # HARDWARE CONTROLLERS - Centralized Instantiation (Dependency Injection)
+        # ===================================================================
+        # All hardware controllers are instantiated here and injected into widgets
+        # This follows the Hollywood Principle: "Don't call us, we'll call you"
+        # Benefits: Clear lifecycle management, easier testing, consistent architecture
+
+        from src.hardware.actuator_controller import ActuatorController
+        from src.hardware.camera_controller import CameraController
+        from src.hardware.gpio_controller import GPIOController
+        from src.hardware.laser_controller import LaserController
+        from src.hardware.tec_controller import TECController
+
+        self.actuator_controller = ActuatorController()
+        self.laser_controller = LaserController()
+        self.tec_controller = TECController()
+        self.gpio_controller = GPIOController()
+        self.camera_controller = CameraController(event_logger=self.event_logger)
+
+        logger.info("All hardware controllers instantiated in MainWindow")
+
         # SAFETY-CRITICAL: Initialize watchdog early (before GPIO connection)
         # GPIO controller will be attached later in _connect_safety_system()
         self.safety_watchdog = SafetyWatchdog(
@@ -153,19 +174,21 @@ class MainWindow(QMainWindow):
         # Laser Driver Control Widget (COM10 - laser diode current control)
         from ui.widgets.laser_widget import LaserWidget
 
-        self.laser_widget = LaserWidget()
+        self.laser_widget = LaserWidget(controller=self.laser_controller)
         hardware_layout.addWidget(self.laser_widget)
 
         # TEC Control Widget (COM9 - temperature control)
         from ui.widgets.tec_widget import TECWidget
 
-        self.tec_widget = TECWidget()
+        self.tec_widget = TECWidget(controller=self.tec_controller)
         hardware_layout.addWidget(self.tec_widget)
 
         # === SECTION 4: GPIO DIAGNOSTICS ===
         # GPIO widget contains smoothing device, photodiode, and safety interlocks
         # Widget has its own internal headers and organization
-        self.safety_widget = SafetyWidget(db_manager=self.db_manager)
+        self.safety_widget = SafetyWidget(
+            db_manager=self.db_manager, gpio_controller=self.gpio_controller
+        )
         hardware_layout.addWidget(self.safety_widget)
 
         # === SECTION 5: CONFIGURATION DISPLAY ===
@@ -245,7 +268,7 @@ class MainWindow(QMainWindow):
         right_content.setLayout(right_layout)
 
         # Camera Widget with VISIBLE streaming controls
-        self.camera_live_view = CameraWidget()
+        self.camera_live_view = CameraWidget(camera_controller=self.camera_controller)
         # NOTE: NOT hiding connection controls - users need streaming during treatment
         # Connection button connects to hardware, Start/Stop streaming controls feed
         right_layout.addWidget(self.camera_live_view)
@@ -255,16 +278,8 @@ class MainWindow(QMainWindow):
         right_scroll.setMinimumWidth(640)  # Camera minimum size
         treatment_main_layout.addWidget(right_scroll, 3)  # 60% width (stretch=3)
 
-        # Initialize camera controller (if available)
-        try:
-            from hardware.camera_controller import CameraController
-
-            self.camera_controller = CameraController()
-            self.camera_live_view.set_camera_controller(self.camera_controller)
-            logger.info("Camera controller initialized")
-        except ImportError as e:
-            logger.warning(f"Camera controller not available: {e}")
-            self.camera_controller = None
+        # NOTE: CameraController already instantiated in __init__
+        # and injected into camera_live_view widget
 
         # Wire camera connection widget to main camera widget for status updates
         self.camera_hardware_panel.camera_live_view = self.camera_live_view
@@ -307,13 +322,8 @@ class MainWindow(QMainWindow):
 
         self.tabs.addTab(protocol_builder_tab, "Protocol Builder")
 
-        # Create ActuatorController directly (no longer via ActuatorWidget)
-        from src.hardware.actuator_controller import ActuatorController
-
-        self.actuator_controller = ActuatorController()
-        logger.info("ActuatorController instantiated in MainWindow")
-
         # Add Actuator Connection widget to Hardware tab
+        # (ActuatorController already instantiated in __init__ with other hardware controllers)
         from ui.widgets.actuator_connection_widget import ActuatorConnectionWidget
 
         self.actuator_connection_widget = ActuatorConnectionWidget(
@@ -717,20 +727,14 @@ class MainWindow(QMainWindow):
 
     def _init_protocol_engine(self) -> None:
         """Initialize protocol engine and wire to hardware controllers."""
-        # Get controller references from widgets
-        # Note: Controllers may be None if widgets haven't connected to hardware yet
-        laser_controller = None
+        # All hardware controllers are managed directly by MainWindow (Dependency Injection pattern)
+        # Controllers are instantiated in __init__ and injected into widgets
+        # Protocol engine receives controller references directly from MainWindow
 
-        if hasattr(self, "laser_widget"):
-            laser_controller = getattr(self.laser_widget, "controller", None)
-
-        # Actuator controller is now managed directly by MainWindow
-        actuator_controller = getattr(self, "actuator_controller", None)
-
-        # Initialize protocol engine with available controllers
+        # Initialize protocol engine with MainWindow-managed controllers
         self.protocol_engine = ProtocolEngine(
-            laser_controller=laser_controller,
-            actuator_controller=actuator_controller,
+            laser_controller=self.laser_controller,
+            actuator_controller=self.actuator_controller,
             safety_manager=self.safety_manager,
         )
 
@@ -743,8 +747,9 @@ class MainWindow(QMainWindow):
             self.active_treatment_widget.set_safety_manager(self.safety_manager)
 
         logger.info(
-            f"Protocol engine initialized (laser: {laser_controller is not None}, "
-            f"actuator: {actuator_controller is not None}, "
+            f"Protocol engine initialized with MainWindow controllers "
+            f"(laser: {self.laser_controller is not None}, "
+            f"actuator: {self.actuator_controller is not None}, "
             f"safety: {self.safety_manager is not None})"
         )
 

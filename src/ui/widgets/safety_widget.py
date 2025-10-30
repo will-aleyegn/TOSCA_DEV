@@ -36,9 +36,12 @@ class SafetyWidget(QWidget):
     This tab is for engineering/technical staff only.
     """
 
-    def __init__(self, db_manager: Optional[Any] = None) -> None:
+    def __init__(
+        self, db_manager: Optional[Any] = None, gpio_controller: Optional[Any] = None
+    ) -> None:
         super().__init__()
-        self.gpio_widget: GPIOWidget = GPIOWidget()
+        # Create GPIOWidget with injected controller
+        self.gpio_widget: GPIOWidget = GPIOWidget(controller=gpio_controller)
         self.safety_manager: Optional[SafetyManager] = None
         self.db_manager = db_manager
         self._init_ui()

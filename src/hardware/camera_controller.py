@@ -82,17 +82,56 @@ class CameraStreamThread(QThread):
                 min_frame_interval = 1.0 / self.gui_fps_target
 
                 if time_since_last_gui_frame >= min_frame_interval:
-                    # Only process frame data when we're actually going to send it
-                    frame_data = np.ascontiguousarray(frame.as_numpy_ndarray())
+                    # Convert frame to numpy array
+                    frame_data = frame.as_numpy_ndarray()
 
-                    # Debug: Log first few GUI frames
-                    if self.gui_frame_count < 5:
-                        logger.info(
-                            f"Emitting frame to GUI: #{self.gui_frame_count + 1}, shape: {frame_data.shape}"
-                        )
+                    # Convert to RGB8 format for consistent GUI display
+                    # Handle various pixel formats from camera
+                    try:
+                        pixel_format = frame.get_pixel_format()
+
+                        # Convert based on pixel format
+                        if pixel_format == vmbpy.PixelFormat.Mono8:
+                            # Grayscale -> RGB (duplicate to 3 channels)
+                            frame_rgb = cv2.cvtColor(frame_data, cv2.COLOR_GRAY2RGB)
+                        elif pixel_format == vmbpy.PixelFormat.Bgr8:
+                            # BGR -> RGB (OpenCV uses BGR, Qt needs RGB)
+                            frame_rgb = cv2.cvtColor(frame_data, cv2.COLOR_BGR2RGB)
+                        elif pixel_format == vmbpy.PixelFormat.Rgb8:
+                            # Already RGB, just ensure contiguous
+                            frame_rgb = np.ascontiguousarray(frame_data)
+                        elif pixel_format in (
+                            vmbpy.PixelFormat.BayerRG8,
+                            vmbpy.PixelFormat.BayerGR8,
+                            vmbpy.PixelFormat.BayerGB8,
+                            vmbpy.PixelFormat.BayerBG8,
+                        ):
+                            # Bayer pattern -> RGB (debayering)
+                            frame_rgb = cv2.cvtColor(frame_data, cv2.COLOR_BayerRG2RGB)
+                        elif pixel_format == vmbpy.PixelFormat.YUV422Packed:
+                            # YUV -> RGB
+                            frame_rgb = cv2.cvtColor(frame_data, cv2.COLOR_YUV2RGB_UYVY)
+                        else:
+                            # Unsupported format - log warning and use as-is
+                            logger.warning(
+                                f"Unsupported pixel format {pixel_format}, using raw data"
+                            )
+                            frame_rgb = np.ascontiguousarray(frame_data)
+
+                        # Debug: Log first few GUI frames with format info
+                        if self.gui_frame_count < 5:
+                            logger.info(
+                                f"Emitting frame to GUI: #{self.gui_frame_count + 1}, "
+                                f"format: {pixel_format}, shape: {frame_rgb.shape}"
+                            )
+
+                    except Exception as conv_e:
+                        # Conversion failed - log error and use raw data as fallback
+                        logger.error(f"Pixel format conversion failed: {conv_e}, using raw data")
+                        frame_rgb = np.ascontiguousarray(frame_data)
 
                     # Emit frame to GUI (no copy needed - Qt signals handle data safely)
-                    self.frame_ready.emit(frame_data)
+                    self.frame_ready.emit(frame_rgb)
                     self.last_gui_frame_time = current_time
                     self.gui_frame_count += 1
 
@@ -250,23 +289,22 @@ class CameraController(QObject):
         """
         with self._lock:
             try:
-                self.vmb.__enter__()
+                # Use VmbSystem context ONLY for camera discovery (proper scope)
+                # Context automatically closes after this block
+                with self.vmb:
+                    cameras = self.vmb.get_all_cameras()
+                    if not cameras:
+                        self.error_occurred.emit("No cameras detected")
+                        return False
 
-                cameras = self.vmb.get_all_cameras()
-                if not cameras:
-                    self.error_occurred.emit("No cameras detected")
-                    # Clean up VmbSystem context on early return
-                    try:
-                        self.vmb.__exit__(None, None, None)
-                    except Exception as cleanup_e:
-                        logger.warning(f"Error during VmbPy cleanup: {cleanup_e}")
-                    return False
+                    if camera_id:
+                        camera = self.vmb.get_camera_by_id(camera_id)
+                    else:
+                        camera = cameras[0]
 
-                if camera_id:
-                    self.camera = self.vmb.get_camera_by_id(camera_id)
-                else:
-                    self.camera = cameras[0]
-
+                # VmbSystem context automatically closed here ✓
+                # Now open camera-specific context (stays open during streaming)
+                self.camera = camera
                 self.camera.__enter__()
                 self.is_connected = True
 
@@ -349,6 +387,7 @@ class CameraController(QObject):
         with self._lock:
             self.stop_streaming()
 
+            # Close camera context (camera-specific cleanup)
             if self.camera:
                 try:
                     self.camera.__exit__(None, None, None)
@@ -356,10 +395,9 @@ class CameraController(QObject):
                     logger.warning(f"Ignoring error during camera cleanup: {e}")
                 self.camera = None
 
-            try:
-                self.vmb.__exit__(None, None, None)
-            except Exception as e:
-                logger.warning(f"Ignoring error during VmbPy cleanup: {e}")
+            # NOTE: VmbSystem context is NOT manually closed here
+            # It was properly scoped with `with self.vmb:` in connect()
+            # and automatically closed after camera discovery
 
             self.is_connected = False
             self.connection_changed.emit(False)

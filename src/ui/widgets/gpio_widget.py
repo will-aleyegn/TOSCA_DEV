@@ -41,11 +41,11 @@ class GPIOWidget(QWidget):
     # Emitted AFTER controller is created and connected
     gpio_connection_changed = pyqtSignal(bool)
 
-    def __init__(self) -> None:
+    def __init__(self, controller: Optional[GPIOController] = None) -> None:
         super().__init__()
 
-        # Create controller
-        self.controller: Optional[GPIOController] = None
+        # Reference to GPIOController (created and managed by MainWindow)
+        self.controller = controller
 
         # State tracking
         self.is_connected = False
@@ -57,6 +57,25 @@ class GPIOWidget(QWidget):
 
         # Initialize UI
         self._init_ui()
+
+        # Connect to controller signals if controller provided
+        if self.controller:
+            self._connect_controller_signals()
+
+    def _connect_controller_signals(self) -> None:
+        """Connect to controller signals (called when controller is injected)."""
+        if not self.controller:
+            return
+
+        self.controller.connection_changed.connect(self._on_connection_changed)
+        self.controller.smoothing_motor_changed.connect(self._on_motor_changed)
+        self.controller.smoothing_vibration_changed.connect(self._on_vibration_changed)
+        self.controller.vibration_level_changed.connect(self._on_vibration_level_changed)
+        self.controller.photodiode_voltage_changed.connect(self._on_voltage_changed)
+        self.controller.photodiode_power_changed.connect(self._on_power_changed)
+        self.controller.safety_interlock_changed.connect(self._on_safety_changed)
+        self.controller.error_occurred.connect(self._on_error)
+        logger.debug("GPIOWidget signals connected to GPIOController")
 
     def _init_ui(self) -> None:
         """Initialize the user interface."""
@@ -394,25 +413,10 @@ class GPIOWidget(QWidget):
         # Save this port as preference for next time
         self._save_preference("gpio_com_port", selected_port)
 
-        # Create controller if needed
         if not self.controller:
-            try:
-                self.controller = GPIOController()
-
-                # Connect signals
-                self.controller.connection_changed.connect(self._on_connection_changed)
-                self.controller.smoothing_motor_changed.connect(self._on_motor_changed)
-                self.controller.smoothing_vibration_changed.connect(self._on_vibration_changed)
-                self.controller.vibration_level_changed.connect(self._on_vibration_level_changed)
-                self.controller.photodiode_voltage_changed.connect(self._on_voltage_changed)
-                self.controller.photodiode_power_changed.connect(self._on_power_changed)
-                self.controller.safety_interlock_changed.connect(self._on_safety_changed)
-                self.controller.error_occurred.connect(self._on_error)
-
-            except ImportError as e:
-                logger.error(f"Failed to create GPIO controller: {e}")
-                self.connection_status_label.setText("Libraries not installed")
-                return
+            logger.error("GPIOWidget: No controller available (should be injected by MainWindow)")
+            self.connection_status_label.setText("Error: No controller")
+            return
 
         # Connect to GPIO using selected COM port
         logger.info(f"Attempting to connect to Arduino on {selected_port}")

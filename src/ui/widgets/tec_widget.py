@@ -29,11 +29,11 @@ class TECWidget(QWidget):
     TEC control widget with connection and temperature controls.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, controller: Optional[TECController] = None) -> None:
         super().__init__()
 
-        # Create controller
-        self.controller: Optional[TECController] = None
+        # Reference to TECController (created and managed by MainWindow)
+        self.controller = controller
 
         # State tracking
         self.is_connected = False
@@ -43,6 +43,25 @@ class TECWidget(QWidget):
 
         # Initialize UI
         self._init_ui()
+
+        # Connect to controller signals if controller provided
+        if self.controller:
+            self._connect_controller_signals()
+
+    def _connect_controller_signals(self) -> None:
+        """Connect to controller signals (called when controller is injected)."""
+        if not self.controller:
+            return
+
+        self.controller.connection_changed.connect(self._on_connection_changed)
+        self.controller.output_changed.connect(self._on_output_changed)
+        self.controller.temperature_changed.connect(self._on_temperature_changed)
+        self.controller.temperature_setpoint_changed.connect(self._on_setpoint_changed)
+        self.controller.current_changed.connect(self._on_current_changed)
+        self.controller.voltage_changed.connect(self._on_voltage_changed)
+        self.controller.error_occurred.connect(self._on_error)
+        self.controller.limit_warning.connect(self._on_limit_warning)
+        logger.debug("TECWidget signals connected to TECController")
 
     def _init_ui(self) -> None:
         """Initialize the user interface."""
@@ -199,21 +218,12 @@ class TECWidget(QWidget):
     @pyqtSlot()
     def _on_connect_clicked(self) -> None:
         """Handle connect button click."""
-        logger.info("Connecting to TEC controller...")
-
-        # Create controller if needed
         if not self.controller:
-            self.controller = TECController()
+            logger.error("TECWidget: No controller available (should be injected by MainWindow)")
+            self.connection_status_label.setText("Error: No controller")
+            return
 
-            # Connect signals
-            self.controller.connection_changed.connect(self._on_connection_changed)
-            self.controller.output_changed.connect(self._on_output_changed)
-            self.controller.temperature_changed.connect(self._on_temperature_changed)
-            self.controller.temperature_setpoint_changed.connect(self._on_setpoint_changed)
-            self.controller.current_changed.connect(self._on_current_changed)
-            self.controller.voltage_changed.connect(self._on_voltage_changed)
-            self.controller.error_occurred.connect(self._on_error)
-            self.controller.limit_warning.connect(self._on_limit_warning)
+        logger.info("Connecting to TEC controller...")
 
         # Connect to COM9 (TEC controller port)
         success = self.controller.connect("COM9")

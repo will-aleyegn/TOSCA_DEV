@@ -33,11 +33,11 @@ class LaserWidget(QWidget):
     Laser control widget with connection and power controls.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, controller: Optional[LaserController] = None) -> None:
         super().__init__()
 
-        # Create controller
-        self.controller: Optional[LaserController] = None
+        # Reference to LaserController (created and managed by MainWindow)
+        self.controller = controller
         self.gpio_controller: Optional["GPIOController"] = None
 
         # State tracking
@@ -48,6 +48,21 @@ class LaserWidget(QWidget):
 
         # Initialize UI
         self._init_ui()
+
+        # Connect to controller signals if controller provided
+        if self.controller:
+            self._connect_controller_signals()
+
+    def _connect_controller_signals(self) -> None:
+        """Connect to controller signals (called when controller is injected)."""
+        if not self.controller:
+            return
+
+        self.controller.connection_changed.connect(self._on_connection_changed)
+        self.controller.output_changed.connect(self._on_output_changed)
+        self.controller.current_changed.connect(self._on_current_changed_signal)
+        self.controller.error_occurred.connect(self._on_error)
+        logger.debug("LaserWidget signals connected to LaserController")
 
     def _init_ui(self) -> None:
         """Initialize the user interface."""
@@ -224,17 +239,12 @@ class LaserWidget(QWidget):
     @pyqtSlot()
     def _on_connect_clicked(self) -> None:
         """Handle connect button click."""
-        logger.info("Connecting to laser driver...")
-
-        # Create controller if needed
         if not self.controller:
-            self.controller = LaserController()
+            logger.error("LaserWidget: No controller available (should be injected by MainWindow)")
+            self.connection_status_label.setText("Error: No controller")
+            return
 
-            # Connect signals
-            self.controller.connection_changed.connect(self._on_connection_changed)
-            self.controller.output_changed.connect(self._on_output_changed)
-            self.controller.current_changed.connect(self._on_current_changed_signal)
-            self.controller.error_occurred.connect(self._on_error)
+        logger.info("Connecting to laser driver...")
 
         # Connect to COM10 (laser driver port)
         success = self.controller.connect("COM10")
