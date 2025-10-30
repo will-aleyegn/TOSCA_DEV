@@ -842,7 +842,7 @@ class MainWindow(QMainWindow):
             gpio_widget = self.safety_widget.gpio_widget
             if not gpio_widget.is_connected:
                 logger.info("Connecting GPIO...")
-                gpio_widget._on_connect_clicked()
+                gpio_widget.connect_device()  # Use public API
 
         # Connect Camera
         if hasattr(self.camera_live_view, "connect_camera"):
@@ -853,8 +853,7 @@ class MainWindow(QMainWindow):
         if hasattr(self, "laser_widget"):
             if hasattr(self.laser_widget, "is_connected") and not self.laser_widget.is_connected:
                 logger.info("Connecting Laser...")
-                if hasattr(self.laser_widget, "_on_connect_clicked"):
-                    self.laser_widget._on_connect_clicked()
+                self.laser_widget.connect_device()  # Use public API
 
         # Connect Actuator (Hardware tab)
         if hasattr(self, "actuator_connection_widget"):
@@ -880,7 +879,7 @@ class MainWindow(QMainWindow):
             gpio_widget = self.safety_widget.gpio_widget
             if gpio_widget.is_connected:
                 logger.info("Disconnecting GPIO...")
-                gpio_widget._on_disconnect_clicked()
+                gpio_widget.disconnect_device()  # Use public API
 
         # Disconnect Camera
         if hasattr(self.camera_live_view, "disconnect_camera"):
@@ -891,8 +890,7 @@ class MainWindow(QMainWindow):
         if hasattr(self, "laser_widget"):
             if hasattr(self.laser_widget, "is_connected") and self.laser_widget.is_connected:
                 logger.info("Disconnecting Laser...")
-                if hasattr(self.laser_widget, "_on_disconnect_clicked"):
-                    self.laser_widget._on_disconnect_clicked()
+                self.laser_widget.disconnect_device()  # Use public API
 
         # Disconnect Actuator
         if hasattr(self, "actuator_connection_widget"):
