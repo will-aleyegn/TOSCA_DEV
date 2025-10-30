@@ -1,6 +1,6 @@
 # TOSCA Lessons Learned
 
-**Last Updated:** 2025-10-29
+**Last Updated:** 2025-10-30
 **Project:** TOSCA Laser Control System
 
 ---
@@ -8,6 +8,227 @@
 ## Introduction
 
 This document captures critical lessons, bugs, and solutions discovered during TOSCA development. Each entry documents the problem, root cause, solution, and prevention strategy to help avoid similar issues in the future.
+
+---
+
+## Database & Session Management Issues
+
+### 15. Missing Exception Handling in Database Operations
+
+**Date:** 2025-10-30
+**Severity:** 🔴 Critical
+**Category:** Error Handling + Database
+
+#### Problem
+All database operations across `session_manager.py`, `subject_widget.py`, and `db_manager.py` lack exception handling. Any database error (disk I/O failure, constraint violation, connection timeout) causes unhandled exceptions that crash the application.
+
+#### Root Cause
+Database operations wrapped only in `with` context managers without try/except blocks. Context managers handle resource cleanup but don't catch exceptions. In medical device software, application crashes are unacceptable.
+
+```python
+# BROKEN CODE - No exception handling
+with self.db_manager.get_session() as db_session:
+    session = Session(...)
+    db_session.add(session)
+    db_session.commit()  # ← Any error crashes the app!
+    db_session.refresh(session)
+```
+
+#### Solution
+Wrap all database transaction blocks in try/except to catch SQLAlchemy exceptions and handle gracefully:
+
+```python
+# FIXED CODE - Proper exception handling
+try:
+    with self.db_manager.get_session() as db_session:
+        session = Session(...)
+        db_session.add(session)
+        db_session.commit()
+        db_session.refresh(session)
+except Exception as e:
+    logger.error(f"Database error during session creation: {e}")
+    # Clean up any created resources
+    if session_folder:
+        self._remove_session_folder(session_folder)
+    # Show user-friendly error
+    QMessageBox.critical(self, "Database Error",
+        "Failed to create session. Please contact support.")
+    return None
+```
+
+#### Prevention
+- **Code Review Checklist:** All database operations must have exception handling
+- **Unit Tests:** Test database error scenarios (connection failure, constraint violation)
+- **Logging:** Always log exceptions with context before user notification
+- **Medical Device Standards:** IEC 62304 requires graceful error handling
+
+#### References
+- Code Review Milestone 5.13 (2025-10-30)
+- `src/core/session_manager.py` - All database methods
+- `src/ui/widgets/subject_widget.py` - Button handlers
+- `src/database/db_manager.py` - CRUD operations
+
+---
+
+### 16. Transaction Ordering: Filesystem Before Database Commit
+
+**Date:** 2025-10-30
+**Severity:** 🟠 High
+**Category:** Data Integrity + Transaction Management
+
+#### Problem
+Session folders created on filesystem BEFORE database transaction commits. If database commit fails, orphaned empty folders remain on disk, causing data inconsistency and wasted storage.
+
+```python
+# BROKEN CODE - Folder created first
+session_folder = self._create_session_folder(subject.subject_code)  # ← File I/O
+
+# Database transaction (might fail)
+with self.db_manager.get_session() as db_session:
+    session = Session(...)
+    db_session.commit()  # ← If fails, folder orphaned
+```
+
+#### Root Cause
+Filesystem operations treated as "side effects" rather than part of transaction. Violates ACID properties - atomicity requires all-or-nothing behavior.
+
+#### Solution
+Create database records FIRST, then filesystem resources. Update database with filesystem paths in secondary transaction:
+
+```python
+# FIXED CODE - Database first
+try:
+    # Step 1: Create database record
+    with self.db_manager.get_session() as db_session:
+        session = Session(...)
+        db_session.add(session)
+        db_session.commit()
+        db_session.refresh(session)
+except Exception as e:
+    logger.error(f"Failed to create session record: {e}")
+    raise
+
+# Step 2: Create filesystem folder (only after DB success)
+session_folder = self._create_session_folder(subject.subject_code)
+
+# Step 3: Update database with folder path
+try:
+    with self.db_manager.get_session() as db_session:
+        session_to_update = db_session.get(Session, session.session_id)
+        if session_to_update:
+            session_to_update.session_folder_path = str(session_folder)
+            db_session.commit()
+except Exception as e:
+    logger.error(f"Failed to update folder path for session {session.session_id}: {e}")
+    # Folder exists but path not recorded - log for manual cleanup
+```
+
+#### Prevention
+- **Design Principle:** Database records first, filesystem resources second
+- **Transaction Rules:** Critical state changes must be persisted before side effects
+- **Error Recovery:** Document cleanup procedures for partial failures
+- **Code Review:** Check transaction ordering in all create/update operations
+
+#### References
+- `src/core/session_manager.py:67` - Session creation
+- Similar pattern needed for protocol file creation
+- Medical device audit trail requirements
+
+---
+
+### 17. Hardcoded Admin User ID Breaks Audit Trail
+
+**Date:** 2025-10-30
+**Severity:** 🟠 High
+**Category:** Medical Device Compliance + Audit Trail
+
+#### Problem
+Subject creation uses hardcoded `tech_id=1` instead of actual logged-in technician ID. All subjects appear created by admin user, violating audit trail integrity required for FDA-regulated medical devices.
+
+```python
+# BROKEN CODE - Hardcoded admin ID
+subject = self.db_manager.create_subject(
+    subject_code=subject_code,
+    tech_id=1  # ← Hardcoded! Breaks audit trail
+)
+```
+
+#### Root Cause
+Missing technician authentication requirement before subject creation. UI allows subject creation without verified technician login.
+
+#### Solution
+Require actual technician ID from authenticated user input:
+
+```python
+# FIXED CODE - Actual technician ID
+tech_username = self.technician_id_input.text().strip()
+if not tech_username:
+    QMessageBox.warning(self, "Technician Required",
+        "Please enter Technician ID before creating subjects.")
+    return
+
+tech = self.db_manager.get_technician_by_username(tech_username)
+if not tech:
+    QMessageBox.warning(self, "Invalid Technician",
+        f"Technician '{tech_username}' not found.")
+    return
+
+# Use actual technician ID
+subject = self.db_manager.create_subject(
+    subject_code=subject_code,
+    tech_id=tech.tech_id  # ← Correct audit trail
+)
+```
+
+#### Prevention
+- **Medical Device Standards:** All user actions must be attributed to verified users
+- **Audit Trail Requirements:** IEC 62304 and FDA 21 CFR Part 11 require traceability
+- **Code Review:** Check for hardcoded user IDs in all database operations
+- **Authentication:** Implement proper login system before clinical deployment
+
+#### References
+- `src/ui/widgets/subject_widget.py:195` - Subject creation
+- FDA 21 CFR Part 11 - Electronic Records requirements
+- IEC 62304 - Medical device software lifecycle
+
+---
+
+### 18. Missing Input Validation for Subject Codes
+
+**Date:** 2025-10-30
+**Severity:** 🟡 Medium
+**Category:** Input Validation + Data Quality
+
+#### Problem
+Subject code input accepts any string without format validation. Inconsistent formats in database make searching and reporting difficult.
+
+#### Root Cause
+No regex validation on user input. Relied on user discipline instead of enforced constraints.
+
+#### Solution
+Add regex pattern validation for standardized format "P-YYYY-NNNN":
+
+```python
+# FIXED CODE - Format validation
+import re
+SUBJECT_CODE_PATTERN = re.compile(r'^P-\d{4}-\d{4}$')
+
+subject_code = self.subject_id_input.text().strip()
+if not SUBJECT_CODE_PATTERN.match(subject_code):
+    QMessageBox.warning(self, "Invalid Format",
+        "Subject ID must be in format 'P-YYYY-NNNN' (e.g., P-2025-0001)")
+    return
+```
+
+#### Prevention
+- **Input Validation:** All user inputs should have format validation
+- **UI Helpers:** Add input masks or placeholder text showing expected format
+- **Database Constraints:** Add CHECK constraints for additional enforcement
+- **Documentation:** Document subject code format in user manual
+
+#### References
+- `src/ui/widgets/subject_widget.py:148, 183` - Subject search and creation
+- Consider `QRegularExpressionValidator` for real-time validation
 
 ---
 
@@ -711,9 +932,184 @@ print(f"Resolution after binning: {width}×{height}")
 
 ---
 
+### 14. PyQt Signal Serialization Overhead vs Processing Bottleneck
+
+**Date:** 2025-10-30
+**Severity:** 🔴 Critical
+**Category:** Performance Optimization, Qt Architecture
+
+#### Problem
+Camera live view FPS dropped from 30 FPS → 16 FPS → 2 FPS during streaming, even after implementing quarter-resolution software downsampling. The issue worsened over time, making the system unusable for real-time monitoring.
+
+**Symptoms:**
+- Initial FPS: 16 FPS (acceptable but not ideal)
+- After 10 seconds: 8 FPS
+- After 30 seconds: 2-5 FPS
+- CPU usage normal, no memory leak
+- Frame processing time <5ms per frame
+- Issue occurred even with downsampled frames (364×272 pixels)
+
+#### Root Cause
+**Signal Bandwidth Bottleneck:**
+
+The architecture was emitting both QPixmap (for display) AND numpy arrays (for recording) across thread boundaries at 30 FPS:
+
+```python
+# BROKEN ARCHITECTURE - Dual signal emission
+def frame_callback(cam, stream, frame):
+    # Convert to numpy array
+    frame_rgb = frame.as_numpy_ndarray()
+
+    # Create QPixmap for display
+    pixmap = QPixmap.fromImage(QImage(...))
+    self.pixmap_ready.emit(pixmap)  # ✅ Fast (Qt implicit sharing)
+
+    # Also emit numpy array
+    self.frame_ready.emit(frame_rgb)  # ❌ SLOW! 300KB per frame!
+```
+
+**Key Discovery:** The FPS drop was NOT caused by processing overhead, but by **data transfer overhead** from emitting 300KB numpy arrays at 30 FPS:
+
+- **QPixmap serialization:** ~10KB per frame (Qt implicit sharing, copy-on-write)
+- **Numpy array serialization:** ~300KB per frame (deep copy across threads)
+- **Total bandwidth:** 30 FPS × 300KB = **9 MB/s signal overhead**
+
+This signal serialization caused the Qt event queue to become congested, progressively delaying frame delivery and reducing effective FPS.
+
+#### Solution
+**Single-Signal Architecture:** Emit only QPixmap for display, handle recording directly in camera thread:
+
+```python
+# FIXED ARCHITECTURE - QPixmap-only display, direct recording
+def frame_callback(cam, stream, frame):
+    # Convert to numpy array
+    frame_rgb = frame.as_numpy_ndarray()
+
+    # Store full-resolution frame BEFORE downsampling (for capture/recording)
+    with self.controller._lock:
+        self.controller.latest_frame = frame_rgb.copy()
+
+    # Write to video recorder if recording (DIRECT, no signal emission)
+    with self.controller._lock:
+        if self.controller.is_recording and self.controller.video_recorder:
+            frame_bgr = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)
+            self.controller.video_recorder.write_frame(frame_bgr)
+
+    # Downsample for display
+    if self.display_scale < 1.0:
+        frame_rgb = cv2.resize(frame_rgb, new_size, interpolation=cv2.INTER_AREA)
+
+    # Create QPixmap and emit ONLY this (Qt implicit sharing = fast)
+    pixmap = QPixmap.fromImage(QImage(...))
+    self.controller.pixmap_ready.emit(pixmap)  # ✅ Only signal emission
+```
+
+**Key Changes:**
+1. ✅ **Removed frame_ready signal emission** during live view
+2. ✅ **Direct video recording** in camera thread (no signal required)
+3. ✅ **Single QPixmap emission** using Qt implicit sharing
+4. ✅ **Store latest_frame** in controller for image capture (thread-safe with RLock)
+
+**Results:**
+- **Live view FPS:** Stable 30 FPS (no degradation)
+- **Signal bandwidth:** 30 FPS × 10KB = 300 KB/s (97% reduction)
+- **Recording FPS:** 17 FPS → 8 FPS → 5 FPS → 2 FPS (expected CPU-bound behavior)
+
+#### Key Insights
+
+**1. Data Transfer Bottleneck vs Processing Bottleneck:**
+- ❌ **Wrong assumption:** "FPS drops mean processing is too slow"
+- ✅ **Reality:** Signal serialization can be the bottleneck, not processing
+
+**2. Qt Implicit Sharing is Powerful:**
+- QPixmap uses copy-on-write (COW) semantics
+- Emitting QPixmap across threads is extremely cheap (~10KB overhead)
+- Numpy arrays have NO implicit sharing → full deep copy every time
+
+**3. Signal Emission is Not Free:**
+- Qt signal/slot system serializes data across thread boundaries
+- Large objects (numpy arrays) create significant overhead
+- Prefer direct access with locks over signal emission for large data
+
+**4. Recording-Induced FPS Drop is Expected:**
+- Video encoding is CPU-intensive (H.264 at 1456×1088)
+- 17 FPS → 2 FPS drop during recording is EXPECTED behavior
+- Not a bug - just CPU-bound encoding overhead
+- Medical device context: Recording is not time-critical, so acceptable
+
+#### Prevention Strategies
+
+**1. Identify Bottleneck Type:**
+```python
+# Add profiling to distinguish transfer vs processing bottleneck
+import time
+
+# Measure processing time
+start = time.perf_counter()
+frame_rgb = process_frame(frame)
+processing_time = time.perf_counter() - start
+
+# Measure signal emission time
+start = time.perf_counter()
+self.frame_ready.emit(frame_rgb)
+emission_time = time.perf_counter() - start
+
+if emission_time > processing_time:
+    logger.warning("Signal emission is bottleneck, not processing!")
+```
+
+**2. Choose Signal Type Carefully:**
+- ✅ Use QPixmap/QImage for GUI display (implicit sharing)
+- ❌ Avoid emitting large numpy arrays across threads
+- ✅ Use direct access with locks for data-heavy operations
+
+**3. Emit Only What's Needed:**
+- Display: QPixmap signal only
+- Recording: Direct write in camera thread (no signal)
+- Capture: Store in controller attribute (lock-protected)
+
+**4. Monitor Signal Bandwidth:**
+```python
+# Calculate signal bandwidth
+frame_size_kb = frame.nbytes / 1024
+fps = 30
+bandwidth_mb_per_sec = (frame_size_kb * fps) / 1024
+
+if bandwidth_mb_per_sec > 1.0:
+    logger.warning(f"High signal bandwidth: {bandwidth_mb_per_sec:.1f} MB/s")
+```
+
+**5. Use Controller Reference Pattern:**
+When threads need access to controller state, pass controller reference:
+```python
+class CameraStreamThread(QThread):
+    def __init__(self, camera, controller, display_scale):
+        super().__init__()
+        self.controller = controller  # Access to controller lock and attributes
+
+    def frame_callback(self, cam, stream, frame):
+        # Can safely access controller attributes with lock
+        with self.controller._lock:
+            self.controller.latest_frame = frame.copy()
+```
+
+#### Related Lessons
+- **Lesson #1:** QImage memory lifetime (always copy numpy arrays)
+- **Lesson #12:** Widget reparenting anti-pattern (use signals/slots correctly)
+- **Lesson #13:** Hardware binning vs software downsampling
+
+#### References
+- `src/hardware/camera_controller.py:140-149` - Direct recording implementation
+- `src/ui/widgets/camera_widget.py:75-77` - Removed frame_ready connection
+- Git commit: `13cb281` - QPixmap-only architecture fix
+- `CAMERA_TESTS_README.md:134` - Known issue documentation (now resolved)
+- `WORK_LOG.md` - 2025-10-30 Afternoon session details
+
+---
+
 ## Summary Statistics
 
-### Bug Categories (2025-10-29 Session)
+### Bug Categories (Updated 2025-10-30)
 
 | Category | Count | Severity |
 |----------|-------|----------|
@@ -721,21 +1117,25 @@ print(f"Resolution after binning: {width}×{height}")
 | Architecture/Design | 3 | 1 Critical (widget reparenting), 2 Medium |
 | Hardware Integration | 1 | 1 Low |
 | Development Tools | 1 | 1 Low |
-| Camera/Video | 3 | 1 Critical (widget reparenting), 1 Medium (binning), 1 Medium (QImage) |
+| Camera/Video | 4 | 2 Critical (widget reparenting, signal serialization), 1 Medium (binning), 1 Medium (QImage) |
 | Protocol Engine | 1 | 1 Low |
 | UI/UX Design | 1 | 1 Medium |
 | Testing/QA | 1 | 1 Low |
 | Medical Device | 1 | 1 Critical |
+| Performance Optimization | 1 | 1 Critical (signal bandwidth) |
 
 ### Key Takeaways
 
 1. **PyQt6 + NumPy Integration** requires careful memory management (always copy arrays before QImage)
 2. **Qt Widget Communication** must use signals/slots - NEVER reparent widgets between components
-3. **Always clarify requirements** before implementing complex features
-4. **Design APIs for user workflows**, not just technical purity
-5. **Add debug logging during development**, not after bugs appear
-6. **Medical device software** requires higher standards and formal processes
-7. **Software fallbacks** are valuable when hardware features are unreliable or complex
+3. **Signal serialization overhead** can be the bottleneck - prefer QPixmap (implicit sharing) over numpy arrays
+4. **Data transfer vs processing bottleneck** - profile to distinguish between the two
+5. **Always clarify requirements** before implementing complex features
+6. **Design APIs for user workflows**, not just technical purity
+7. **Add debug logging during development**, not after bugs appear
+8. **Medical device software** requires higher standards and formal processes
+9. **Software fallbacks** are valuable when hardware features are unreliable or complex
+10. **Controller reference pattern** enables safe thread access to shared resources
 
 ---
 

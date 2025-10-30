@@ -11,8 +11,8 @@ from typing import Optional
 
 from PyQt6.QtCore import QObject, pyqtSignal
 
-from src.database.db_manager import DatabaseManager
-from src.database.models import Session, Subject
+from database.db_manager import DatabaseManager
+from database.models import Session, Subject
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +49,7 @@ class SessionManager(QObject):
         treatment_site: Optional[str] = None,
         treatment_notes: Optional[str] = None,
         protocol_id: Optional[int] = None,
-    ) -> Session:
+    ) -> Optional[Session]:
         """
         Create a new treatment session.
 
@@ -61,38 +61,63 @@ class SessionManager(QObject):
             protocol_id: Optional protocol ID
 
         Returns:
-            Created Session instance
+            Created Session instance or None if creation fails
         """
-        # Create session folder
-        session_folder = self._create_session_folder(subject.subject_code)
+        session_folder = None
 
-        # Create database record
-        with self.db_manager.get_session() as db_session:
-            session = Session(
-                subject_id=subject.subject_id,
-                tech_id=tech_id,
-                protocol_id=protocol_id,
-                start_time=datetime.now(),
-                status="in_progress",
-                treatment_site=treatment_site,
-                treatment_notes=treatment_notes,
-                session_folder_path=str(session_folder),
-            )
-            db_session.add(session)
-            db_session.commit()
-            db_session.refresh(session)
+        try:
+            # Create database record FIRST (fixes transaction ordering)
+            with self.db_manager.get_session() as db_session:
+                session = Session(
+                    subject_id=subject.subject_id,
+                    tech_id=tech_id,
+                    protocol_id=protocol_id,
+                    start_time=datetime.now(),
+                    status="in_progress",
+                    treatment_site=treatment_site,
+                    treatment_notes=treatment_notes,
+                    session_folder_path=None,  # Will be updated after folder creation
+                )
+                db_session.add(session)
+                db_session.commit()
+                db_session.refresh(session)
+        except Exception as e:
+            logger.error(f"Database error during session creation: {e}", exc_info=True)
+            return None
 
-            # Store current session
-            self.current_session = session
-            self.current_session_folder = session_folder
+        # Create filesystem folder (only after successful database commit)
+        try:
+            session_folder = self._create_session_folder(subject.subject_code)
+        except Exception as e:
+            logger.error(f"Failed to create session folder: {e}", exc_info=True)
+            # Database record exists but no folder - log for cleanup
+            logger.warning(f"Session {session.session_id} created without folder path")
+            # Continue with session creation (folder path will be None)
 
-            logger.info(f"Session created: ID={session.session_id}, Subject={subject.subject_code}")
-            self.session_started.emit(session.session_id)
-            self.session_status_changed.emit(
-                f"Session active: {subject.subject_code} (ID: {session.session_id})"
-            )
+        # Update database with folder path (if folder was created)
+        if session_folder:
+            try:
+                with self.db_manager.get_session() as db_session:
+                    session_to_update = db_session.get(Session, session.session_id)
+                    if session_to_update:
+                        session_to_update.session_folder_path = str(session_folder)
+                        db_session.commit()
+                        session.session_folder_path = str(session_folder)  # Update local copy
+            except Exception as e:
+                logger.error(f"Failed to update session folder path: {e}", exc_info=True)
+                # Folder exists but path not recorded - log for manual cleanup
 
-            return session
+        # Store current session
+        self.current_session = session
+        self.current_session_folder = session_folder
+
+        logger.info(f"Session created: ID={session.session_id}, Subject={subject.subject_code}")
+        self.session_started.emit(session.session_id)
+        self.session_status_changed.emit(
+            f"Session active: {subject.subject_code} (ID: {session.session_id})"
+        )
+
+        return session
 
     def _create_session_folder(self, subject_code: str) -> Path:
         """
@@ -151,7 +176,7 @@ class SessionManager(QObject):
         avg_power: Optional[float] = None,
         max_power: Optional[float] = None,
         total_energy: Optional[float] = None,
-    ) -> None:
+    ) -> bool:
         """
         Complete the current session.
 
@@ -161,94 +186,142 @@ class SessionManager(QObject):
             avg_power: Average power (watts)
             max_power: Maximum power (watts)
             total_energy: Total energy delivered (joules)
+
+        Returns:
+            True if session completed successfully, False otherwise
         """
         if not self.current_session:
             logger.warning("No active session to complete")
-            return
+            return False
 
         end_time = datetime.now()
         duration = int((end_time - self.current_session.start_time).total_seconds())
 
-        with self.db_manager.get_session() as db_session:
-            # Get fresh session from database
-            session = db_session.get(Session, self.current_session.session_id)
-            if session:
-                session.end_time = end_time
-                session.duration_seconds = duration
-                session.status = "completed"
-                session.post_treatment_notes = post_treatment_notes
-                session.total_laser_on_time_seconds = total_laser_on_time
-                session.avg_power_watts = avg_power
-                session.max_power_watts = max_power
-                session.total_energy_joules = total_energy
-                db_session.commit()
+        try:
+            with self.db_manager.get_session() as db_session:
+                # Get fresh session from database
+                session = db_session.get(Session, self.current_session.session_id)
+                if session:
+                    session.end_time = end_time
+                    session.duration_seconds = duration
+                    session.status = "completed"
+                    session.post_treatment_notes = post_treatment_notes
+                    session.total_laser_on_time_seconds = total_laser_on_time
+                    session.avg_power_watts = avg_power
+                    session.max_power_watts = max_power
+                    session.total_energy_joules = total_energy
+                    db_session.commit()
 
-                logger.info(f"Session completed: ID={session.session_id}, Duration={duration}s")
-                self.session_ended.emit(session.session_id)
-                self.session_status_changed.emit("No active session")
+                    logger.info(f"Session completed: ID={session.session_id}, Duration={duration}s")
+                    self.session_ended.emit(session.session_id)
+                    self.session_status_changed.emit("No active session")
 
-        # Clear current session
-        self.current_session = None
-        self.current_session_folder = None
+                    # Clear current session only after successful commit
+                    self.current_session = None
+                    self.current_session_folder = None
+                    return True
+                else:
+                    logger.error(f"Session {self.current_session.session_id} not found in database")
+                    return False
+        except Exception as e:
+            logger.error(f"Database error during session completion: {e}", exc_info=True)
+            return False
 
-    def abort_session(self, abort_reason: str) -> None:
+    def abort_session(self, abort_reason: str) -> bool:
         """
         Abort the current session.
 
         Args:
             abort_reason: Reason for aborting
+
+        Returns:
+            True if session aborted successfully, False otherwise
         """
         if not self.current_session:
             logger.warning("No active session to abort")
-            return
+            return False
 
         end_time = datetime.now()
         duration = int((end_time - self.current_session.start_time).total_seconds())
 
-        with self.db_manager.get_session() as db_session:
-            session = db_session.get(Session, self.current_session.session_id)
-            if session:
-                session.end_time = end_time
-                session.duration_seconds = duration
-                session.status = "aborted"
-                session.abort_reason = abort_reason
-                db_session.commit()
+        try:
+            with self.db_manager.get_session() as db_session:
+                session = db_session.get(Session, self.current_session.session_id)
+                if session:
+                    session.end_time = end_time
+                    session.duration_seconds = duration
+                    session.status = "aborted"
+                    session.abort_reason = abort_reason
+                    db_session.commit()
 
-                logger.warning(f"Session aborted: ID={session.session_id}, Reason={abort_reason}")
-                self.session_ended.emit(session.session_id)
-                self.session_status_changed.emit("No active session")
+                    logger.warning(f"Session aborted: ID={session.session_id}, Reason={abort_reason}")
+                    self.session_ended.emit(session.session_id)
+                    self.session_status_changed.emit("No active session")
 
-        # Clear current session
-        self.current_session = None
-        self.current_session_folder = None
+                    # Clear current session only after successful commit
+                    self.current_session = None
+                    self.current_session_folder = None
+                    return True
+                else:
+                    logger.error(f"Session {self.current_session.session_id} not found in database")
+                    return False
+        except Exception as e:
+            logger.error(f"Database error during session abort: {e}", exc_info=True)
+            return False
 
-    def pause_session(self) -> None:
-        """Pause the current session."""
+    def pause_session(self) -> bool:
+        """
+        Pause the current session.
+
+        Returns:
+            True if session paused successfully, False otherwise
+        """
         if not self.current_session:
             logger.warning("No active session to pause")
-            return
+            return False
 
-        with self.db_manager.get_session() as db_session:
-            session = db_session.get(Session, self.current_session.session_id)
-            if session:
-                session.status = "paused"
-                db_session.commit()
-                logger.info(f"Session paused: ID={session.session_id}")
-                self.session_status_changed.emit(f"Session paused: ID={session.session_id}")
+        try:
+            with self.db_manager.get_session() as db_session:
+                session = db_session.get(Session, self.current_session.session_id)
+                if session:
+                    session.status = "paused"
+                    db_session.commit()
+                    logger.info(f"Session paused: ID={session.session_id}")
+                    self.session_status_changed.emit(f"Session paused: ID={session.session_id}")
+                    return True
+                else:
+                    logger.error(f"Session {self.current_session.session_id} not found in database")
+                    return False
+        except Exception as e:
+            logger.error(f"Database error during session pause: {e}", exc_info=True)
+            return False
 
-    def resume_session(self) -> None:
-        """Resume the paused session."""
+    def resume_session(self) -> bool:
+        """
+        Resume the paused session.
+
+        Returns:
+            True if session resumed successfully, False otherwise
+        """
         if not self.current_session:
             logger.warning("No session to resume")
-            return
+            return False
 
-        with self.db_manager.get_session() as db_session:
-            session = db_session.get(Session, self.current_session.session_id)
-            if session:
-                session.status = "in_progress"
-                db_session.commit()
-                logger.info(f"Session resumed: ID={session.session_id}")
-                self.session_status_changed.emit(f"Session resumed: ID={session.session_id}")
+        try:
+            with self.db_manager.get_session() as db_session:
+                session = db_session.get(Session, self.current_session.session_id)
+                if session:
+                    session.status = "in_progress"
+                    db_session.commit()
+                    logger.info(f"Session resumed: ID={session.session_id}")
+                    self.session_status_changed.emit(f"Session resumed: ID={session.session_id}")
+                    return True
+                else:
+                    logger.error(f"Session {self.current_session.session_id} not found in database")
+                    return False
+        except Exception as e:
+            logger.error(f"Database error during session resume: {e}", exc_info=True)
+            return False
 
     def end_session(self) -> None:
         """
@@ -262,23 +335,34 @@ class SessionManager(QObject):
 
         self.complete_session()
 
-    def update_session_video_path(self, video_path: str) -> None:
+    def update_session_video_path(self, video_path: str) -> bool:
         """
         Update the video path for the current session.
 
         Args:
             video_path: Path to recorded video
+
+        Returns:
+            True if video path updated successfully, False otherwise
         """
         if not self.current_session:
             logger.warning("No active session to update video path")
-            return
+            return False
 
-        with self.db_manager.get_session() as db_session:
-            session = db_session.get(Session, self.current_session.session_id)
-            if session:
-                session.video_path = video_path
-                db_session.commit()
-                logger.info(f"Session video path updated: {video_path}")
+        try:
+            with self.db_manager.get_session() as db_session:
+                session = db_session.get(Session, self.current_session.session_id)
+                if session:
+                    session.video_path = video_path
+                    db_session.commit()
+                    logger.info(f"Session video path updated: {video_path}")
+                    return True
+                else:
+                    logger.error(f"Session {self.current_session.session_id} not found in database")
+                    return False
+        except Exception as e:
+            logger.error(f"Database error updating video path: {e}", exc_info=True)
+            return False
 
     def get_session_info_text(self) -> str:
         """

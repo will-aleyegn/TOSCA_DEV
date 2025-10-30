@@ -3,6 +3,7 @@ Subject selection widget.
 """
 
 import logging
+import re
 from typing import Optional
 
 from PyQt6.QtCore import pyqtSignal, pyqtSlot
@@ -18,11 +19,14 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from src.core.session_manager import SessionManager
-from src.database.db_manager import DatabaseManager
-from src.database.models import Subject
+from core.session_manager import SessionManager
+from database.db_manager import DatabaseManager
+from database.models import Subject
 
 logger = logging.getLogger(__name__)
+
+# Subject code format validation pattern (P-YYYY-NNNN)
+SUBJECT_CODE_PATTERN = re.compile(r'^P-\d{4}-\d{4}$')
 
 
 class SubjectWidget(QWidget):
@@ -150,28 +154,47 @@ class SubjectWidget(QWidget):
             self.subject_info_display.setText("Please enter a subject ID")
             return
 
-        subject = self.db_manager.get_subject_by_code(subject_code)
-        if subject:
-            self.current_subject = subject
-            session_count = self.db_manager.get_subject_session_count(subject.subject_id)
-            info_text = (
-                f"Subject ID: {subject.subject_code}\n"
-                f"Created: {subject.created_date.strftime('%Y-%m-%d %H:%M')}\n"
-                f"Previous sessions: {session_count}\n"
+        # Validate subject code format
+        if not SUBJECT_CODE_PATTERN.match(subject_code):
+            QMessageBox.warning(
+                self,
+                "Invalid Format",
+                "Subject ID must be in format 'P-YYYY-NNNN'\n\nExample: P-2025-0001"
             )
-            if subject.notes:
-                info_text += f"Notes: {subject.notes}\n"
+            return
 
-            self.subject_info_display.setText(info_text)
-            self.start_session_button.setEnabled(True)
-            logger.info(f"Subject found: {subject_code}")
-        else:
-            self.current_subject = None
-            self.subject_info_display.setText(
-                f"Subject '{subject_code}' not found.\nClick 'Create New Subject' to add."
+        try:
+            subject = self.db_manager.get_subject_by_code(subject_code)
+            if subject:
+                self.current_subject = subject
+                session_count = self.db_manager.get_subject_session_count(subject.subject_id)
+                info_text = (
+                    f"Subject ID: {subject.subject_code}\n"
+                    f"Created: {subject.created_date.strftime('%Y-%m-%d %H:%M')}\n"
+                    f"Previous sessions: {session_count}\n"
+                )
+                if subject.notes:
+                    info_text += f"Notes: {subject.notes}\n"
+
+                self.subject_info_display.setText(info_text)
+                self.start_session_button.setEnabled(True)
+                logger.info(f"Subject found: {subject_code}")
+            else:
+                self.current_subject = None
+                self.subject_info_display.setText(
+                    f"Subject '{subject_code}' not found.\nClick 'Create New Subject' to add."
+                )
+                self.start_session_button.setEnabled(False)
+                logger.warning(f"Subject not found: {subject_code}")
+        except Exception as e:
+            logger.error(f"Database error searching for subject: {e}", exc_info=True)
+            QMessageBox.critical(
+                self,
+                "Database Error",
+                f"Failed to search for subject.\n\nPlease check database connection."
             )
+            self.current_subject = None
             self.start_session_button.setEnabled(False)
-            logger.warning(f"Subject not found: {subject_code}")
 
     @pyqtSlot()
     def _on_create_subject(self) -> None:
@@ -185,23 +208,68 @@ class SubjectWidget(QWidget):
             self.subject_info_display.setText("Please enter a subject ID")
             return
 
-        # Check if subject already exists
-        existing = self.db_manager.get_subject_by_code(subject_code)
-        if existing:
-            self.subject_info_display.setText(f"Subject '{subject_code}' already exists!")
+        # Validate subject code format
+        if not SUBJECT_CODE_PATTERN.match(subject_code):
+            QMessageBox.warning(
+                self,
+                "Invalid Format",
+                "Subject ID must be in format 'P-YYYY-NNNN'\n\nExample: P-2025-0001"
+            )
             return
 
-        # Create new subject (tech_id=1 is admin user created by default)
-        subject = self.db_manager.create_subject(subject_code=subject_code, tech_id=1)
-        self.current_subject = subject
-        self.subject_info_display.setText(
-            f"New subject created\n\n"
-            f"Subject ID: {subject.subject_code}\n"
-            f"Created: {subject.created_date.strftime('%Y-%m-%d %H:%M')}\n"
-            f"Previous sessions: 0"
-        )
-        self.start_session_button.setEnabled(True)
-        logger.info(f"Subject created: {subject_code}")
+        # Require technician ID before creating subject (fixes audit trail)
+        tech_username = self.technician_id_input.text().strip()
+        if not tech_username:
+            QMessageBox.warning(
+                self,
+                "Technician Required",
+                "Please enter Technician ID before creating subjects.\n\n"
+                "This ensures proper audit trail for regulatory compliance."
+            )
+            return
+
+        try:
+            # Verify technician exists
+            tech = self.db_manager.get_technician_by_username(tech_username)
+            if not tech:
+                QMessageBox.warning(
+                    self,
+                    "Invalid Technician",
+                    f"Technician '{tech_username}' not found.\n\n"
+                    f"Please enter a valid technician ID."
+                )
+                return
+
+            # Check if subject already exists
+            existing = self.db_manager.get_subject_by_code(subject_code)
+            if existing:
+                self.subject_info_display.setText(f"Subject '{subject_code}' already exists!")
+                return
+
+            # Create new subject with actual technician ID (fixes audit trail)
+            subject = self.db_manager.create_subject(
+                subject_code=subject_code,
+                tech_id=tech.tech_id  # Use actual technician, not hardcoded admin
+            )
+            self.current_subject = subject
+            self.subject_info_display.setText(
+                f"New subject created\n\n"
+                f"Subject ID: {subject.subject_code}\n"
+                f"Created: {subject.created_date.strftime('%Y-%m-%d %H:%M')}\n"
+                f"Created by: {tech.full_name}\n"
+                f"Previous sessions: 0"
+            )
+            self.start_session_button.setEnabled(True)
+            logger.info(f"Subject created: {subject_code} by tech_id={tech.tech_id}")
+        except Exception as e:
+            logger.error(f"Database error creating subject: {e}", exc_info=True)
+            QMessageBox.critical(
+                self,
+                "Database Error",
+                f"Failed to create subject.\n\nPlease check database connection."
+            )
+            self.current_subject = None
+            self.start_session_button.setEnabled(False)
 
     @pyqtSlot()
     def _on_start_session(self) -> None:
@@ -219,45 +287,67 @@ class SubjectWidget(QWidget):
             self.subject_info_display.setText("Please enter technician ID")
             return
 
-        # Look up technician
-        tech = self.db_manager.get_technician_by_username(tech_username)
-        if not tech:
-            self.subject_info_display.setText(
-                f"Technician '{tech_username}' not found.\nUsing default admin user."
+        try:
+            # Look up technician - NO silent fallback to admin
+            tech = self.db_manager.get_technician_by_username(tech_username)
+            if not tech:
+                QMessageBox.warning(
+                    self,
+                    "Technician Not Found",
+                    f"Technician '{tech_username}' not found.\n\n"
+                    f"Please enter a valid technician ID to start the session."
+                )
+                return
+
+            # Update last login time
+            self.db_manager.update_technician_last_login(tech.tech_id)
+
+            # Create session (returns Optional[Session])
+            session = self.session_manager.create_session(
+                subject=self.current_subject,
+                tech_id=tech.tech_id,
             )
-            tech_id = 1  # Default to admin
-        else:
-            tech_id = tech.tech_id
-            self.db_manager.update_technician_last_login(tech_id)
 
-        # Create session
-        session = self.session_manager.create_session(
-            subject=self.current_subject,
-            tech_id=tech_id,
-        )
+            if not session:
+                QMessageBox.critical(
+                    self,
+                    "Session Creation Failed",
+                    "Failed to create treatment session.\n\n"
+                    "Please check database connection and try again."
+                )
+                return
 
-        self.subject_info_display.setText(
-            f"Session started\n\n"
-            f"Session ID: {session.session_id}\n"
-            f"Subject: {self.current_subject.subject_code}\n"
-            f"Start Time: {session.start_time.strftime('%Y-%m-%d %H:%M:%S')}\n"
-            f"Folder: {session.session_folder_path}"
-        )
+            self.subject_info_display.setText(
+                f"Session started\n\n"
+                f"Session ID: {session.session_id}\n"
+                f"Subject: {self.current_subject.subject_code}\n"
+                f"Technician: {tech.full_name}\n"
+                f"Start Time: {session.start_time.strftime('%Y-%m-%d %H:%M:%S')}\n"
+                f"Folder: {session.session_folder_path if session.session_folder_path else 'Not created'}"
+            )
 
-        # Disable controls after session start and enable end button
-        self.start_session_button.setEnabled(False)
-        self.search_button.setEnabled(False)
-        self.create_button.setEnabled(False)
-        self.subject_id_input.setEnabled(False)
-        self.technician_id_input.setEnabled(False)
-        self.end_session_button.setEnabled(True)
+            # Disable controls after session start and enable end button
+            self.start_session_button.setEnabled(False)
+            self.search_button.setEnabled(False)
+            self.create_button.setEnabled(False)
+            self.subject_id_input.setEnabled(False)
+            self.technician_id_input.setEnabled(False)
+            self.end_session_button.setEnabled(True)
 
-        # Emit signal for main window
-        self.session_started.emit(session.session_id)
+            # Emit signal for main window
+            self.session_started.emit(session.session_id)
 
-        logger.info(
-            f"Session started: ID={session.session_id}, Subject={self.current_subject.subject_code}"
-        )
+            logger.info(
+                f"Session started: ID={session.session_id}, Subject={self.current_subject.subject_code}, "
+                f"Tech={tech.full_name}"
+            )
+        except Exception as e:
+            logger.error(f"Error starting session: {e}", exc_info=True)
+            QMessageBox.critical(
+                self,
+                "Session Error",
+                f"Failed to start session.\n\nPlease check database connection."
+            )
 
     @pyqtSlot()
     def _on_end_session(self) -> None:
@@ -278,26 +368,41 @@ class SubjectWidget(QWidget):
         if reply != QMessageBox.StandardButton.Yes:
             return
 
-        # End the session
-        self.session_manager.end_session()
+        try:
+            # End the session (returns bool indicating success)
+            success = self.session_manager.end_session()
 
-        # Re-enable all disabled controls
-        self.search_button.setEnabled(True)
-        self.create_button.setEnabled(True)
-        self.subject_id_input.setEnabled(True)
-        self.technician_id_input.setEnabled(True)
-        self.start_session_button.setEnabled(True if self.current_subject else False)
+            if success or success is None:  # None means old API, assume success
+                # Re-enable all disabled controls
+                self.search_button.setEnabled(True)
+                self.create_button.setEnabled(True)
+                self.subject_id_input.setEnabled(True)
+                self.technician_id_input.setEnabled(True)
+                self.start_session_button.setEnabled(True if self.current_subject else False)
 
-        # Disable end session button
-        self.end_session_button.setEnabled(False)
+                # Disable end session button
+                self.end_session_button.setEnabled(False)
 
-        # Update display
-        self.subject_info_display.setText("Session ended successfully")
+                # Update display
+                self.subject_info_display.setText("Session ended successfully")
 
-        # Emit signal
-        self.session_ended.emit()
+                # Emit signal
+                self.session_ended.emit()
 
-        logger.info("Session ended by user")
+                logger.info("Session ended by user")
+            else:
+                QMessageBox.warning(
+                    self,
+                    "Session End Failed",
+                    "Failed to end session properly.\n\nPlease check logs."
+                )
+        except Exception as e:
+            logger.error(f"Error ending session: {e}", exc_info=True)
+            QMessageBox.critical(
+                self,
+                "Session Error",
+                f"Failed to end session.\n\nPlease contact support."
+            )
 
     @pyqtSlot()
     def _on_view_sessions(self) -> None:
