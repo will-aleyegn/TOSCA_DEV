@@ -322,11 +322,13 @@ class CameraWidget(QWidget):
         scale_layout = QHBoxLayout()
         scale_layout.addWidget(QLabel("Display Scale:"))
         self.scale_combo = QComboBox()
-        self.scale_combo.addItems([
-            "Full (1×) - High detail, slower",
-            "Half (½×) - Balanced",
-            "Quarter (¼×) - Fast, smooth"
-        ])
+        self.scale_combo.addItems(
+            [
+                "Full (1×) - High detail, slower",
+                "Half (½×) - Balanced",
+                "Quarter (¼×) - Fast, smooth",
+            ]
+        )
         self.scale_combo.setCurrentIndex(2)  # Default to quarter resolution for speed
         self.scale_combo.setEnabled(True)
         self.scale_combo.setToolTip(
@@ -637,57 +639,57 @@ class CameraWidget(QWidget):
     def _on_exposure_hardware_changed(self, exposure_us: float) -> None:
         """
         Handle exposure changed signal from camera hardware (thread-safe feedback).
-        
+
         This is called when the camera confirms an exposure change.
         Updates ALL UI elements to reflect the actual hardware state.
-        
+
         Args:
             exposure_us: Actual exposure time from camera hardware
         """
         exposure_int = int(exposure_us)
-        
+
         # Block signals to prevent triggering set_exposure again
         self.exposure_slider.blockSignals(True)
         self.exposure_input.blockSignals(True)
-        
+
         # Update all exposure UI elements
         self.exposure_slider.setValue(exposure_int)
         self.exposure_value_label.setText(f"{exposure_int} us")
         self.exposure_input.setText(str(exposure_int))
         self.exposure_info.setText(f"Exposure: {exposure_int} µs")
-        
+
         # Re-enable signals
         self.exposure_slider.blockSignals(False)
         self.exposure_input.blockSignals(False)
-        
+
         logger.debug(f"UI updated with hardware exposure: {exposure_int} µs")
 
     def _on_gain_hardware_changed(self, gain_db: float) -> None:
         """
         Handle gain changed signal from camera hardware (thread-safe feedback).
-        
+
         This is called when the camera confirms a gain change.
         Updates ALL UI elements to reflect the actual hardware state.
-        
+
         Args:
             gain_db: Actual gain from camera hardware in dB
         """
         gain_int = int(gain_db * 10)  # Convert dB to slider value
-        
+
         # Block signals to prevent triggering set_gain again
         self.gain_slider.blockSignals(True)
         self.gain_input.blockSignals(True)
-        
+
         # Update all gain UI elements
         self.gain_slider.setValue(gain_int)
         self.gain_value_label.setText(f"{gain_db:.1f} dB")
         self.gain_input.setText(f"{gain_db:.1f}")
         self.gain_info.setText(f"Gain: {gain_db:.1f} dB")
-        
+
         # Re-enable signals
         self.gain_slider.blockSignals(False)
         self.gain_input.blockSignals(False)
-        
+
         logger.debug(f"UI updated with hardware gain: {gain_db:.1f} dB")
 
     def _on_scale_changed(self, index: int) -> None:
@@ -773,8 +775,9 @@ class CameraWidget(QWidget):
                 self.resolution_info.setText(resolution_text)
 
             # Apply software downsampling if scale < 1.0
-            if hasattr(self, 'display_scale') and self.display_scale < 1.0:
+            if hasattr(self, "display_scale") and self.display_scale < 1.0:
                 import cv2
+
                 new_width = int(orig_width * self.display_scale)
                 new_height = int(orig_height * self.display_scale)
                 frame = cv2.resize(frame, (new_width, new_height), interpolation=cv2.INTER_AREA)
