@@ -666,6 +666,53 @@ class CameraController(QObject):
         except Exception:
             return (0.0, 24.0)
 
+    def set_binning(self, binning_factor: int) -> bool:
+        """
+        Set camera binning to increase frame rate.
+
+        Binning combines adjacent pixels, trading resolution for speed.
+        Higher binning = lower resolution but faster frame rate.
+
+        Args:
+            binning_factor: Binning multiplier (1=full res, 2=2x2, 4=4x4, 8=8x8)
+
+        Returns:
+            True if successful
+        """
+        if not self.camera:
+            return False
+
+        if binning_factor not in [1, 2, 4, 8]:
+            logger.error(f"Invalid binning factor: {binning_factor}. Must be 1, 2, 4, or 8")
+            return False
+
+        try:
+            # Set horizontal and vertical binning
+            self.camera.get_feature_by_name("BinningHorizontal").set(binning_factor)
+            self.camera.get_feature_by_name("BinningVertical").set(binning_factor)
+            logger.info(f"Camera binning set to {binning_factor}×{binning_factor}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to set binning: {e}")
+            return False
+
+    def get_binning(self) -> int:
+        """
+        Get current binning factor.
+
+        Returns:
+            Current binning factor (1, 2, 4, or 8)
+        """
+        if not self.camera:
+            return 1
+
+        try:
+            # Read horizontal binning (vertical should match)
+            binning = int(self.camera.get_feature_by_name("BinningHorizontal").get())
+            return binning
+        except Exception:
+            return 1
+
     def set_auto_exposure(self, enabled: bool) -> bool:
         """
         Enable or disable auto exposure.
