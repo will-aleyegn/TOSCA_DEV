@@ -11,7 +11,7 @@ from typing import Optional
 
 import serial.tools.list_ports
 from PyQt6.QtCore import pyqtSignal, pyqtSlot
-from src.ui.constants import WIDGET_WIDTH_MEDIUM
+from ui.constants import WIDGET_WIDTH_MEDIUM
 from PyQt6.QtWidgets import (
     QComboBox,
     QDoubleSpinBox,
@@ -24,8 +24,8 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from src.config.config_loader import get_config
-from src.hardware.gpio_controller import GPIOController
+from config.config_loader import get_config
+from hardware.gpio_controller import GPIOController
 
 logger = logging.getLogger(__name__)
 

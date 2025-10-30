@@ -82,6 +82,9 @@ credentials.json
 *.tmp
 *.temp
 *.bak
+*.swp
+*.swo
+cleanup_*.sh
 
 # OS files
 Thumbs.db

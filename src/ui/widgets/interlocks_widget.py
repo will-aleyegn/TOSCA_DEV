@@ -13,7 +13,7 @@ from typing import Optional
 from PyQt6.QtCore import Qt, pyqtSlot
 from PyQt6.QtWidgets import QGroupBox, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
-from src.core.safety import SafetyManager, SafetyState
+from core.safety import SafetyManager, SafetyState
 
 
 class InterlocksWidget(QGroupBox):

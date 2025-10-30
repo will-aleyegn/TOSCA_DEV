@@ -163,7 +163,7 @@ class ActuatorController(QObject):
 
                 # Log event
                 if self.event_logger:
-                    from ..core.event_logger import EventType
+                    from core.event_logger import EventType
 
                     status = "homed" if self.is_homed else "not homed"
                     self.event_logger.log_hardware_event(
@@ -184,7 +184,7 @@ class ActuatorController(QObject):
 
                 # Log error event
                 if self.event_logger:
-                    from ..core.event_logger import EventSeverity, EventType
+                    from core.event_logger import EventSeverity, EventType
 
                     self.event_logger.log_event(
                         event_type=EventType.HARDWARE_ERROR,
@@ -216,7 +216,7 @@ class ActuatorController(QObject):
 
             # Log event
             if self.event_logger:
-                from ..core.event_logger import EventType
+                from core.event_logger import EventType
 
                 self.event_logger.log_hardware_event(
                     event_type=EventType.HARDWARE_ACTUATOR_DISCONNECT,
@@ -281,7 +281,7 @@ class ActuatorController(QObject):
 
                 # Log event
                 if self.event_logger:
-                    from ..core.event_logger import EventType
+                    from core.event_logger import EventType
 
                     self.event_logger.log_event(
                         event_type=EventType.HARDWARE_ACTUATOR_HOME_START,
@@ -333,7 +333,7 @@ class ActuatorController(QObject):
 
                     # Log event
                     if self.event_logger:
-                        from ..core.event_logger import EventType
+                        from core.event_logger import EventType
 
                         self.event_logger.log_event(
                             event_type=EventType.HARDWARE_ACTUATOR_HOME_COMPLETE,
@@ -415,7 +415,7 @@ class ActuatorController(QObject):
 
                     # Log event
                     if self.event_logger:
-                        from ..core.event_logger import EventType
+                        from core.event_logger import EventType
 
                         self.event_logger.log_event(
                             event_type=EventType.HARDWARE_ACTUATOR_MOVE,

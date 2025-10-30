@@ -17,8 +17,8 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from src.database.db_manager import DatabaseManager
-from src.database.models import Subject
+from database.db_manager import DatabaseManager
+from database.models import Subject
 
 logger = logging.getLogger(__name__)
 

@@ -98,7 +98,7 @@ class TECController(HardwareControllerBase):
 
                         # Log event
                         if self.event_logger:
-                            from ..core.event_logger import EventType
+                            from core.event_logger import EventType
 
                             self.event_logger.log_hardware_event(
                                 event_type=EventType.HARDWARE_TEC_CONNECT,
@@ -127,7 +127,7 @@ class TECController(HardwareControllerBase):
 
                 # Log error event
                 if self.event_logger:
-                    from ..core.event_logger import EventSeverity, EventType
+                    from core.event_logger import EventSeverity, EventType
 
                     self.event_logger.log_event(
                         event_type=EventType.HARDWARE_ERROR,
@@ -161,7 +161,7 @@ class TECController(HardwareControllerBase):
 
                 # Log event
                 if self.event_logger:
-                    from ..core.event_logger import EventType
+                    from core.event_logger import EventType
 
                     self.event_logger.log_hardware_event(
                         event_type=EventType.HARDWARE_TEC_DISCONNECT,
@@ -266,7 +266,7 @@ class TECController(HardwareControllerBase):
 
                     # Log event
                     if self.event_logger:
-                        from ..core.event_logger import EventType
+                        from core.event_logger import EventType
 
                         event_type = EventType.TEC_ENABLED if enabled else EventType.TEC_DISABLED
                         self.event_logger.log_event(
@@ -325,7 +325,7 @@ class TECController(HardwareControllerBase):
 
                         # Log event
                         if self.event_logger:
-                            from ..core.event_logger import EventType
+                            from core.event_logger import EventType
 
                             self.event_logger.log_event(
                                 event_type=EventType.TEC_TEMP_CHANGE,

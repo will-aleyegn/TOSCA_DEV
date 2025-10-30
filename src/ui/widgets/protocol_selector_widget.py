@@ -23,7 +23,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from src.core.protocol import Protocol
+from core.protocol import Protocol
 
 logger = logging.getLogger(__name__)
 

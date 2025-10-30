@@ -99,7 +99,7 @@ class LaserController(QObject):
 
                         # Log event
                         if self.event_logger:
-                            from ..core.event_logger import EventType
+                            from core.event_logger import EventType
 
                             self.event_logger.log_hardware_event(
                                 event_type=EventType.HARDWARE_LASER_CONNECT,
@@ -128,7 +128,7 @@ class LaserController(QObject):
 
                 # Log error event
                 if self.event_logger:
-                    from ..core.event_logger import EventSeverity, EventType
+                    from core.event_logger import EventSeverity, EventType
 
                     self.event_logger.log_event(
                         event_type=EventType.HARDWARE_ERROR,
@@ -162,7 +162,7 @@ class LaserController(QObject):
 
                 # Log event
                 if self.event_logger:
-                    from ..core.event_logger import EventType
+                    from core.event_logger import EventType
 
                     self.event_logger.log_hardware_event(
                         event_type=EventType.HARDWARE_LASER_DISCONNECT,
@@ -265,7 +265,7 @@ class LaserController(QObject):
 
                     # Log event
                     if self.event_logger:
-                        from ..core.event_logger import EventType
+                        from core.event_logger import EventType
 
                         event_type = (
                             EventType.TREATMENT_LASER_ON
@@ -323,7 +323,7 @@ class LaserController(QObject):
 
                         # Log event
                         if self.event_logger:
-                            from ..core.event_logger import EventType
+                            from core.event_logger import EventType
 
                             self.event_logger.log_event(
                                 event_type=EventType.TREATMENT_POWER_CHANGE,

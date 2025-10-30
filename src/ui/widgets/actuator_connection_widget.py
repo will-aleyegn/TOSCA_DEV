@@ -334,6 +334,12 @@ class ActuatorConnectionWidget(QWidget):
         self.is_connected = connected
         self._update_ui_state()
 
+        # Notify main window status bar (if available)
+        main_window = self.window()
+        if main_window and hasattr(main_window, "update_actuator_status"):
+            main_window.update_actuator_status(connected)
+            logger.info(f"Actuator status bar updated: {'connected' if connected else 'disconnected'}")
+
     @pyqtSlot(str)
     def _on_homing_progress(self, message: str) -> None:
         """Handle homing progress updates."""
