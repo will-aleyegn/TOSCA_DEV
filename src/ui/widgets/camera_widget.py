@@ -672,18 +672,22 @@ class CameraWidget(QWidget):
                 self.resolution_info.setText(resolution_text)
 
             # Convert to QImage
+            # IMPORTANT: Must copy frame data to ensure it persists after function returns
+            # QImage only holds a pointer to the data, not a copy
+            frame_copy = frame.copy()
+
             if len(frame.shape) == 2:
                 # Grayscale
                 bytes_per_line = width
                 q_image = QImage(
-                    frame.data, width, height, bytes_per_line, QImage.Format.Format_Grayscale8
+                    frame_copy.data, width, height, bytes_per_line, QImage.Format.Format_Grayscale8
                 )
             else:
                 # RGB
                 channels = frame.shape[2]
                 bytes_per_line = channels * width
                 q_image = QImage(
-                    frame.data, width, height, bytes_per_line, QImage.Format.Format_RGB888
+                    frame_copy.data, width, height, bytes_per_line, QImage.Format.Format_RGB888
                 )
 
             # Convert to pixmap and display
