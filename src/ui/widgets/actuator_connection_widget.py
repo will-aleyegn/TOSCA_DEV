@@ -33,22 +33,27 @@ class ActuatorConnectionWidget(QWidget):
     Compact actuator connection and homing widget for hardware setup.
 
     Provides connection, homing, and status display without sequence building.
-    Controller is shared with full ActuatorWidget in Protocol Builder tab.
+    Manages ActuatorController lifecycle and hardware communication.
     """
 
-    def __init__(self, actuator_widget=None) -> None:
+    def __init__(self, controller=None) -> None:
         super().__init__()
 
-        # Reference to ActuatorWidget (for shared controller access)
-        self.actuator_widget = actuator_widget
+        # Reference to ActuatorController (created and managed by MainWindow)
+        self.controller = controller
 
-        # State tracking
+        # State tracking (mirrors controller state for UI updates)
         self.is_connected = False
         self.is_homed = False
         self.current_position_um = 0.0
+        self.max_position_um = 90000.0  # Default 90mm range
 
         # Initialize UI
         self._init_ui()
+
+        # Connect to controller signals if controller provided
+        if self.controller:
+            self._connect_controller_signals()
 
     def _init_ui(self) -> None:
         """Initialize the user interface."""
@@ -239,40 +244,45 @@ class ActuatorConnectionWidget(QWidget):
         group.setLayout(layout)
         return group
 
-    def connect_signals(self) -> None:
-        """Connect to shared controller signals (called after controller is created)."""
-        if not self.actuator_widget or not self.actuator_widget.controller:
+    def _connect_controller_signals(self) -> None:
+        """Connect to controller signals."""
+        if not self.controller:
+            logger.warning("No controller available to connect signals")
             return
-
-        controller = self.actuator_widget.controller
 
         # Connect to controller signals (use try/except to avoid double-connection errors)
         try:
-            controller.connection_changed.connect(self._on_connection_changed)
-            controller.homing_progress.connect(self._on_homing_progress)
-            controller.status_changed.connect(self._on_status_changed)
-            controller.position_changed.connect(self._on_position_changed)
+            self.controller.connection_changed.connect(self._on_connection_changed)
+            self.controller.homing_progress.connect(self._on_homing_progress)
+            self.controller.status_changed.connect(self._on_status_changed)
+            self.controller.position_changed.connect(self._on_position_changed)
+            self.controller.limits_changed.connect(self._on_limits_changed)
 
             # Update state from controller
-            self.is_connected = controller.is_connected
-            self.is_homed = controller.is_homed
+            self.is_connected = self.controller.is_connected
+            self.is_homed = self.controller.is_homed
 
             # Get initial position from controller (returns None if not available)
-            position = controller.get_position()
+            position = self.controller.get_position()
             if position is not None:
                 self.current_position_um = position
 
             self._update_ui_state()
 
-            logger.info("ActuatorConnectionWidget connected to shared controller signals")
+            logger.info("ActuatorConnectionWidget connected to controller signals")
         except RuntimeError as e:
             # Signals already connected
             logger.debug(f"Signals already connected: {e}")
 
     def _on_connect_clicked(self) -> None:
-        """Handle connect button click - delegates to ActuatorWidget."""
-        if not self.actuator_widget:
-            logger.error("No ActuatorWidget reference - cannot connect")
+        """Handle connect button click - connects to actuator hardware."""
+        if not self.controller:
+            logger.error("No ActuatorController available - cannot connect")
+            QMessageBox.warning(
+                self,
+                "Controller Error",
+                "Actuator controller not initialized. Please restart the application.",
+            )
             return
 
         # Get selected COM port (from userData to remove ✓ indicator)
@@ -284,26 +294,39 @@ class ActuatorConnectionWidget(QWidget):
         # Save this port as preference for next time
         self._save_preference("actuator_com_port", selected_port)
 
-        # Trigger connect in the main ActuatorWidget (creates controller if needed)
-        self.actuator_widget._on_connect_clicked(com_port=selected_port)
+        logger.info(f"Connecting to actuator on {selected_port}...")
 
-        # Connect our signals after controller is created
-        self.connect_signals()
+        # Connect without auto-homing (user must click Find Home button)
+        success = self.controller.connect(selected_port, auto_home=False)
+
+        if not success:
+            logger.error(f"Failed to connect to actuator on {selected_port}")
+            QMessageBox.critical(
+                self,
+                "Connection Failed",
+                f"Failed to connect to actuator on {selected_port}.\n\n"
+                f"Please check:\n"
+                f"- Device is powered on\n"
+                f"- Correct COM port selected\n"
+                f"- USB cable is connected",
+            )
 
     def _on_disconnect_clicked(self) -> None:
-        """Handle disconnect button click - delegates to ActuatorWidget."""
-        if not self.actuator_widget:
+        """Handle disconnect button click - disconnects from actuator hardware."""
+        if not self.controller:
             return
 
-        self.actuator_widget._on_disconnect_clicked()
+        logger.info("Disconnecting from actuator...")
+        self.controller.disconnect()
 
     def _on_home_clicked(self) -> None:
-        """Handle home button click - delegates to ActuatorWidget."""
-        if not self.actuator_widget:
+        """Handle home button click - initiates homing sequence."""
+        if not self.controller:
+            logger.error("No controller available for homing")
             return
 
         logger.info("Starting homing sequence from Hardware tab...")
-        self.actuator_widget._on_home_clicked()
+        self.controller.find_index()
 
     @pyqtSlot(bool)
     def _on_connection_changed(self, connected: bool) -> None:
@@ -370,7 +393,7 @@ class ActuatorConnectionWidget(QWidget):
 
     def _on_query_settings_clicked(self) -> None:
         """Handle query settings button click - queries and displays device settings."""
-        if not self.actuator_widget or not self.actuator_widget.controller:
+        if not self.controller:
             QMessageBox.warning(
                 self,
                 "Not Connected",
@@ -379,7 +402,7 @@ class ActuatorConnectionWidget(QWidget):
             return
 
         logger.info("Querying device settings...")
-        settings = self.actuator_widget.controller.query_device_settings()
+        settings = self.controller.query_device_settings()
 
         # Check for errors
         if "error" in settings:
@@ -481,7 +504,14 @@ class ActuatorConnectionWidget(QWidget):
         else:
             lines.append(f"  {key} ({label}) = Not available")
 
+    @pyqtSlot(float, float)
+    def _on_limits_changed(self, low_limit_um: float, high_limit_um: float) -> None:
+        """Handle actuator limits change."""
+        logger.info(f"Actuator limits updated: {low_limit_um:.0f} to {high_limit_um:.0f} µm")
+        self.max_position_um = high_limit_um
+
     def cleanup(self) -> None:
-        """Cleanup resources (controller is shared, don't disconnect)."""
-        # Don't disconnect - controller is shared with ActuatorWidget
-        pass
+        """Cleanup resources - disconnect controller if connected."""
+        if self.controller and self.is_connected:
+            logger.info("ActuatorConnectionWidget cleanup: disconnecting controller")
+            self.controller.disconnect()
