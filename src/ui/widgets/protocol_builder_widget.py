@@ -24,6 +24,7 @@ from PyQt6.QtWidgets import (
     QGroupBox,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
     QListWidget,
     QListWidgetItem,
     QMessageBox,
@@ -105,8 +106,7 @@ class ProtocolBuilderWidget(QWidget):
         # Protocol name
         name_layout = QHBoxLayout()
         name_layout.addWidget(QLabel("Name:"))
-        self.protocol_name_input = QComboBox()
-        self.protocol_name_input.setEditable(True)
+        self.protocol_name_input = QLineEdit()
         self.protocol_name_input.setPlaceholderText("Enter protocol name...")
         name_layout.addWidget(self.protocol_name_input)
         layout.addLayout(name_layout)
@@ -114,15 +114,13 @@ class ProtocolBuilderWidget(QWidget):
         # Version and Author
         info_layout = QHBoxLayout()
         info_layout.addWidget(QLabel("Version:"))
-        self.version_input = QComboBox()
-        self.version_input.setEditable(True)
-        self.version_input.addItem("1.0.0")
-        self.version_input.setCurrentText("1.0.0")
+        self.version_input = QLineEdit()
+        self.version_input.setText("1.0.0")
+        self.version_input.setPlaceholderText("e.g. 1.0.0")
         info_layout.addWidget(self.version_input)
 
         info_layout.addWidget(QLabel("Author:"))
-        self.author_input = QComboBox()
-        self.author_input.setEditable(True)
+        self.author_input = QLineEdit()
         self.author_input.setPlaceholderText("Your name...")
         info_layout.addWidget(self.author_input)
         layout.addLayout(info_layout)
@@ -343,6 +341,17 @@ class ProtocolBuilderWidget(QWidget):
 
         layout.addLayout(btn_layout)
 
+        # Test/Play button (separate row)
+        play_layout = QHBoxLayout()
+        self.play_btn = QPushButton("▶ Test/Play Protocol")
+        self.play_btn.setMinimumHeight(45)
+        self.play_btn.setStyleSheet(
+            "font-size: 14px; font-weight: bold; background-color: #4CAF50; color: white;"
+        )
+        self.play_btn.clicked.connect(self._on_play_protocol)
+        play_layout.addWidget(self.play_btn)
+        layout.addLayout(play_layout)
+
         # Status label
         self.status_label = QLabel("Ready to build protocol")
         self.status_label.setStyleSheet("color: #888; font-size: 11px; padding: 5px;")
@@ -545,13 +554,13 @@ class ProtocolBuilderWidget(QWidget):
             return
 
         # Build protocol object
-        protocol_name = self.protocol_name_input.currentText()
+        protocol_name = self.protocol_name_input.text()
         if not protocol_name:
             QMessageBox.warning(self, "Missing Name", "Please enter a protocol name.")
             return
 
-        version = self.version_input.currentText()
-        author = self.author_input.currentText()
+        version = self.version_input.text()
+        author = self.author_input.text()
 
         protocol = Protocol(
             protocol_name=protocol_name,
@@ -620,9 +629,9 @@ class ProtocolBuilderWidget(QWidget):
             protocol = Protocol.from_dict(protocol_dict)
 
             # Update UI with loaded protocol
-            self.protocol_name_input.setCurrentText(protocol.protocol_name)
-            self.version_input.setCurrentText(protocol.version)
-            self.author_input.setCurrentText(protocol.author)
+            self.protocol_name_input.setText(protocol.protocol_name)
+            self.version_input.setText(protocol.version)
+            self.author_input.setText(protocol.author)
 
             self.actions = protocol.actions
             self.safety_limits = protocol.safety_limits
@@ -647,13 +656,13 @@ class ProtocolBuilderWidget(QWidget):
             QMessageBox.information(self, "No Actions", "Protocol has no actions to validate.")
             return
 
-        protocol_name = self.protocol_name_input.currentText() or "Unnamed Protocol"
+        protocol_name = self.protocol_name_input.text() or "Unnamed Protocol"
 
         protocol = Protocol(
             protocol_name=protocol_name,
-            version=self.version_input.currentText(),
+            version=self.version_input.text(),
             actions=self.actions,
-            author=self.author_input.currentText(),
+            author=self.author_input.text(),
             safety_limits=self.safety_limits,
         )
 
@@ -678,6 +687,74 @@ class ProtocolBuilderWidget(QWidget):
             self.status_label.setText("❌ Validation failed")
             self.status_label.setStyleSheet("color: #f44336; font-size: 11px; padding: 5px;")
 
+    @pyqtSlot()
+    def _on_play_protocol(self) -> None:
+        """Handle play/test protocol button click."""
+        if not self.actions:
+            QMessageBox.information(self, "No Actions", "Protocol has no actions to execute.")
+            return
+
+        protocol_name = self.protocol_name_input.text() or "Unnamed Protocol"
+
+        protocol = Protocol(
+            protocol_name=protocol_name,
+            version=self.version_input.text(),
+            actions=self.actions,
+            author=self.author_input.text(),
+            safety_limits=self.safety_limits,
+        )
+
+        # Validate before playing
+        is_valid, errors = protocol.validate()
+        if not is_valid:
+            error_msg = "Protocol validation failed:\n\n" + "\n".join(errors)
+            QMessageBox.critical(self, "Cannot Execute", error_msg)
+            return
+
+        # Show confirmation dialog with protocol summary
+        duration = protocol.calculate_total_duration()
+        duration_str = f"{duration:.1f}s" if duration >= 0 else "infinite (contains loop)"
+
+        # Build action summary
+        action_summary = []
+        for i, action in enumerate(protocol.actions[:5], 1):  # Show first 5
+            action_summary.append(f"{i}. {action.action_type.value}")
+        if len(protocol.actions) > 5:
+            action_summary.append(f"... and {len(protocol.actions) - 5} more actions")
+
+        summary = (
+            f"Protocol: {protocol.protocol_name}\n\n"
+            f"Actions: {len(protocol.actions)}\n"
+            f"Estimated Duration: {duration_str}\n\n"
+            f"Action Sequence:\n" + "\n".join(action_summary) + "\n\n"
+            f"Note: This will execute the protocol using connected hardware.\n"
+            f"Make sure all hardware is properly connected and configured.\n\n"
+            f"Do you want to proceed?"
+        )
+
+        reply = QMessageBox.question(
+            self,
+            "Execute Protocol?",
+            summary,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+
+        if reply == QMessageBox.StandardButton.Yes:
+            # Emit signal for execution (main window will handle actual execution)
+            self.protocol_created.emit(protocol)
+            self.status_label.setText("✓ Protocol sent for execution")
+            self.status_label.setStyleSheet("color: #4CAF50; font-size: 11px; padding: 5px;")
+            logger.info(f"Protocol '{protocol.protocol_name}' sent for execution")
+
+            # Show info that user should check Treatment Workflow tab
+            QMessageBox.information(
+                self,
+                "Protocol Queued",
+                "Protocol has been sent for execution.\n\n"
+                "Switch to the 'Treatment Workflow' tab to monitor execution.",
+            )
+
     def get_protocol(self) -> Optional[Protocol]:
         """
         Get the current protocol being built.
@@ -688,12 +765,12 @@ class ProtocolBuilderWidget(QWidget):
         if not self.actions:
             return None
 
-        protocol_name = self.protocol_name_input.currentText() or "Unnamed Protocol"
+        protocol_name = self.protocol_name_input.text() or "Unnamed Protocol"
 
         return Protocol(
             protocol_name=protocol_name,
-            version=self.version_input.currentText(),
+            version=self.version_input.text(),
             actions=self.actions,
-            author=self.author_input.currentText(),
+            author=self.author_input.text(),
             safety_limits=self.safety_limits,
         )

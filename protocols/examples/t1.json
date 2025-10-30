@@ -1,0 +1,25 @@
+{
+  "protocol_name": "t1",
+  "version": "1.0.0",
+  "description": "",
+  "created_date": "2025-10-29T21:46:49.228227",
+  "author": "",
+  "safety_limits": {
+    "max_power_watts": 10.0,
+    "max_duration_seconds": 300.0,
+    "min_actuator_position_um": 0.0,
+    "max_actuator_position_um": 3000.0
+  },
+  "actions": [
+    {
+      "action_id": 2,
+      "action_type": "MoveActuator",
+      "parameters": {
+        "target_position_um": 1000.0,
+        "speed_um_per_sec": 190.0,
+        "laser_power_watts": 0.2
+      },
+      "notes": ""
+    }
+  ]
+}
