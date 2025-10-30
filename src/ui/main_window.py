@@ -286,26 +286,32 @@ class MainWindow(QMainWindow):
         # Motor widget removed from treatment setup - now only in GPIO diagnostics
 
         # TAB 3: PROTOCOL BUILDER
-        # ActuatorWidget sequence builder for creating/editing treatment protocols
+        # ProtocolBuilderWidget for creating/editing treatment protocols with laser ramping
         protocol_builder_tab = QWidget()
         builder_layout = QVBoxLayout()
         protocol_builder_tab.setLayout(builder_layout)
 
         # Header
-        builder_header = QLabel("📝 Protocol Builder - Create & Edit Treatment Sequences")
+        builder_header = QLabel("📝 Protocol Builder - Create Treatment Protocols")
         builder_header.setStyleSheet(
             "font-size: 14px; font-weight: bold; padding: 8px; "
             "background-color: #424242; color: #81C784; border-radius: 3px;"
         )
         builder_layout.addWidget(builder_header)
 
-        # ActuatorWidget (full sequence builder - 836 lines)
+        # ProtocolBuilderWidget (visual protocol editor with laser ramping)
+        from ui.widgets.protocol_builder_widget import ProtocolBuilderWidget
+
+        self.protocol_builder_widget = ProtocolBuilderWidget()
+        builder_layout.addWidget(self.protocol_builder_widget)
+
+        self.tabs.addTab(protocol_builder_tab, "Protocol Builder")
+
+        # Create ActuatorWidget for Hardware tab connection widget
+        # (ActuatorWidget kept for hardware diagnostics and connection management)
         from ui.widgets.actuator_widget import ActuatorWidget
 
         self.actuator_widget = ActuatorWidget()
-        builder_layout.addWidget(self.actuator_widget)
-
-        self.tabs.addTab(protocol_builder_tab, "Protocol Builder")
 
         # NOW add Actuator Connection widget to Hardware tab (after ActuatorWidget exists)
         # This widget shares the controller with ActuatorWidget
