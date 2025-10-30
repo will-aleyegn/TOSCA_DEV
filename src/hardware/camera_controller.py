@@ -271,6 +271,7 @@ class CameraController(QObject):
         self.is_streaming = False
         self.is_recording = False
         self.event_logger = event_logger
+        self._vmb_context_active = False  # Track VmbSystem context state
 
         # Store latest frame for image capture
         self.latest_frame: Optional[np.ndarray] = None
@@ -289,21 +290,28 @@ class CameraController(QObject):
         """
         with self._lock:
             try:
-                # Use VmbSystem context ONLY for camera discovery (proper scope)
-                # Context automatically closes after this block
-                with self.vmb:
-                    cameras = self.vmb.get_all_cameras()
-                    if not cameras:
-                        self.error_occurred.emit("No cameras detected")
-                        return False
+                # Enter VmbSystem context (stays active until disconnect)
+                if not self._vmb_context_active:
+                    self.vmb.__enter__()
+                    self._vmb_context_active = True
+                    logger.debug("VmbSystem context entered")
 
-                    if camera_id:
-                        camera = self.vmb.get_camera_by_id(camera_id)
-                    else:
-                        camera = cameras[0]
+                # Discover cameras
+                cameras = self.vmb.get_all_cameras()
+                if not cameras:
+                    self.error_occurred.emit("No cameras detected")
+                    # Exit VmbSystem context since we're not connecting
+                    if self._vmb_context_active:
+                        self.vmb.__exit__(None, None, None)
+                        self._vmb_context_active = False
+                    return False
 
-                # VmbSystem context automatically closed here ✓
-                # Now open camera-specific context (stays open during streaming)
+                if camera_id:
+                    camera = self.vmb.get_camera_by_id(camera_id)
+                else:
+                    camera = cameras[0]
+
+                # Open camera-specific context (stays open during streaming)
                 self.camera = camera
                 self.camera.__enter__()
                 self.is_connected = True
@@ -364,10 +372,14 @@ class CameraController(QObject):
                         logger.warning(f"Error during camera cleanup: {cleanup_e}")
                     self.camera = None
 
-                try:
-                    self.vmb.__exit__(None, None, None)
-                except Exception as cleanup_e:
-                    logger.warning(f"Error during VmbPy cleanup: {cleanup_e}")
+                # Exit VmbSystem context if it was entered
+                if self._vmb_context_active:
+                    try:
+                        self.vmb.__exit__(None, None, None)
+                        self._vmb_context_active = False
+                    except Exception as cleanup_e:
+                        logger.warning(f"Error during VmbPy cleanup: {cleanup_e}")
+                        self._vmb_context_active = False
 
                 # Log error event
                 if self.event_logger:
@@ -395,9 +407,15 @@ class CameraController(QObject):
                     logger.warning(f"Ignoring error during camera cleanup: {e}")
                 self.camera = None
 
-            # NOTE: VmbSystem context is NOT manually closed here
-            # It was properly scoped with `with self.vmb:` in connect()
-            # and automatically closed after camera discovery
+            # Exit VmbSystem context (opened during connect)
+            if self._vmb_context_active:
+                try:
+                    self.vmb.__exit__(None, None, None)
+                    self._vmb_context_active = False
+                    logger.debug("VmbSystem context exited")
+                except Exception as e:
+                    logger.warning(f"Error exiting VmbSystem context: {e}")
+                    self._vmb_context_active = False
 
             self.is_connected = False
             self.connection_changed.emit(False)
