@@ -252,27 +252,31 @@ class ActiveTreatmentWidget(QWidget):
         """
         self.camera_live_view = camera_live_view
 
-        if camera_live_view and hasattr(camera_live_view, "camera_display"):
-            # Replace placeholder with actual camera feed display
-            # Remove the placeholder label
-            camera_section_layout = self.camera_display.parent().layout()
-            if camera_section_layout:
-                camera_section_layout.removeWidget(self.camera_display)
-                self.camera_display.deleteLater()
-
-                # Add the actual camera display from camera live view
-                # Note: We're sharing the QLabel between widgets - this works because
-                # QLabel can only have one parent, but we're using it in monitoring mode
-                self.camera_display = camera_live_view.camera_display
-                camera_section_layout.insertWidget(0, self.camera_display)
-
-                # Reset both width and height for dashboard (more compact than alignment view)
-                # Width set to 0 allows layout manager to determine optimal size
-                self.camera_display.setMinimumSize(0, 250)
-
-                logger.info("Camera feed integrated into active treatment dashboard")
+        if camera_live_view and hasattr(camera_live_view, "pixmap_ready"):
+            # Connect to the camera widget's pixmap_ready signal
+            # This is the CORRECT way to share camera feed between widgets
+            # Never reparent widgets from other components - use signals instead!
+            camera_live_view.pixmap_ready.connect(self._on_camera_frame_ready)
+            logger.info("Camera feed connected to active treatment dashboard via signal")
         else:
-            logger.warning("Camera widget has no display attribute - using placeholder")
+            logger.warning("Camera widget has no pixmap_ready signal - using placeholder")
+
+    def _on_camera_frame_ready(self, pixmap: Any) -> None:
+        """
+        Update camera display with new frame from CameraWidget.
+
+        Args:
+            pixmap: QPixmap to display
+        """
+        # Scale to fit our display size while maintaining aspect ratio
+        from PyQt6.QtCore import Qt
+
+        scaled_pixmap = pixmap.scaled(
+            self.camera_display.size(),
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.FastTransformation,
+        )
+        self.camera_display.setPixmap(scaled_pixmap)
 
     def set_protocol_engine(self, protocol_engine: Any) -> None:
         """

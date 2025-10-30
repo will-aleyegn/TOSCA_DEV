@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 import numpy as np
-from PyQt6.QtCore import Qt, pyqtSlot
+from PyQt6.QtCore import Qt, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QImage, QPixmap
 from PyQt6.QtWidgets import (
     QCheckBox,
@@ -41,6 +41,10 @@ class CameraWidget(QWidget):
     - Still image capture with custom filename
     - Manual video recording
     """
+
+    # Signal emitted when a new frame is ready for display
+    # Other widgets can connect to this to display the same camera feed
+    pixmap_ready = pyqtSignal(QPixmap)
 
     def __init__(self) -> None:
         super().__init__()
@@ -667,7 +671,8 @@ class CameraWidget(QWidget):
             self._frame_receive_count += 1
             if self._frame_receive_count <= 5:
                 logger.info(
-                    f"CameraWidget received frame #{self._frame_receive_count}, shape: {frame.shape}"
+                    f"CameraWidget received frame #{self._frame_receive_count}, "
+                    f"shape: {frame.shape}"
                 )
 
             # Update resolution info (only when changed)
@@ -710,6 +715,10 @@ class CameraWidget(QWidget):
                 Qt.TransformationMode.FastTransformation,
             )
             self.camera_display.setPixmap(scaled_pixmap)
+
+            # Emit pixmap for other widgets (e.g., ActiveTreatmentWidget)
+            # This allows multiple displays of the same camera feed without widget reparenting
+            self.pixmap_ready.emit(pixmap)
 
         except Exception as e:
             logger.error(f"Error displaying frame: {e}")
