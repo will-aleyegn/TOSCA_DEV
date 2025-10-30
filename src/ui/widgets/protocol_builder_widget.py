@@ -218,6 +218,16 @@ class ProtocolBuilderWidget(QWidget):
         self.move_speed_input.setValue(100.0)
         self.move_speed_input.setDecimals(1)
         move_layout.addWidget(self.move_speed_input)
+
+        move_layout.addWidget(QLabel("Laser Power (W):"))
+        self.move_laser_power_input = QDoubleSpinBox()
+        self.move_laser_power_input.setRange(0, 100)
+        self.move_laser_power_input.setValue(0.0)
+        self.move_laser_power_input.setDecimals(2)
+        self.move_laser_power_input.setSingleStep(0.1)
+        self.move_laser_power_input.setToolTip("Laser power during movement (0 = off)")
+        move_layout.addWidget(self.move_laser_power_input)
+
         move_layout.addStretch()
         self.move_actuator_widget.setLayout(move_layout)
         layout.addWidget(self.move_actuator_widget)
@@ -393,9 +403,11 @@ class ProtocolBuilderWidget(QWidget):
                 )
 
             elif action_type_idx == 2:  # Move Actuator
+                laser_power = self.move_laser_power_input.value()
                 params = MoveActuatorParams(
                     target_position_um=self.move_position_input.value(),
                     speed_um_per_sec=self.move_speed_input.value(),
+                    laser_power_watts=laser_power if laser_power > 0 else None,
                 )
                 action = ProtocolAction(
                     action_id=self.next_action_id,
@@ -457,9 +469,12 @@ class ProtocolBuilderWidget(QWidget):
                     f"{action.parameters.duration_seconds:.1f}s, {ramp_type})"
                 )
             elif isinstance(action.parameters, MoveActuatorParams):
+                power_str = ""
+                if action.parameters.laser_power_watts is not None:
+                    power_str = f" with {action.parameters.laser_power_watts:.2f}W"
                 display_str += (
                     f" (to {action.parameters.target_position_um:.1f}µm "
-                    f"@ {action.parameters.speed_um_per_sec:.1f}µm/s)"
+                    f"@ {action.parameters.speed_um_per_sec:.1f}µm/s{power_str})"
                 )
             elif isinstance(action.parameters, WaitParams):
                 display_str += f" ({action.parameters.duration_seconds:.1f}s)"
