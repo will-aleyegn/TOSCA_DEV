@@ -373,7 +373,6 @@ class LaserController(QObject):
             self.error_occurred.emit(f"Power control failed: {e}")
             return False
 
-
     def read_current(self) -> Optional[float]:
         """
         Read actual laser current.
@@ -389,7 +388,6 @@ class LaserController(QObject):
         except Exception as e:
             logger.error(f"Failed to read current: {e}")
             return None
-
 
     def read_power(self) -> Optional[float]:
         """
