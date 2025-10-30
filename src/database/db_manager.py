@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Optional
 
 from sqlalchemy import create_engine, select, text
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import Session, joinedload, sessionmaker
 
 from database.models import Base, SafetyLog
 from database.models import Session as SessionModel
@@ -193,8 +193,6 @@ class DatabaseManager:
             Number of sessions
         """
         with self.get_session() as session:
-            from database.models import Session as SessionModel
-
             count: int = session.query(SessionModel).filter_by(subject_id=subject_id).count()
             return count
 
@@ -212,8 +210,6 @@ class DatabaseManager:
             List of Session instances with related data
         """
         with self.get_session() as session:
-            from sqlalchemy.orm import joinedload
-
             query = session.query(SessionModel).options(
                 joinedload(SessionModel.subject), joinedload(SessionModel.technician)
             )

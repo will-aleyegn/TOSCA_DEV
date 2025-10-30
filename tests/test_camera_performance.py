@@ -150,11 +150,14 @@ class TestCameraPerformance:
         # Should have tried multiple names and succeeded with 4th one
         mock_camera.ExposureTimeUpperLimit.set.assert_called_once()
 
-    @pytest.mark.parametrize("display_scale,expected_width,expected_height", [
-        (1.0, 1456, 1088),   # Full resolution
-        (0.5, 728, 544),     # Half resolution
-        (0.25, 364, 272),    # Quarter resolution
-    ])
+    @pytest.mark.parametrize(
+        "display_scale,expected_width,expected_height",
+        [
+            (1.0, 1456, 1088),  # Full resolution
+            (0.5, 728, 544),  # Half resolution
+            (0.25, 364, 272),  # Quarter resolution
+        ],
+    )
     def test_display_scale_dimensions(self, display_scale, expected_width, expected_height):
         """Test that different display scales produce correct dimensions."""
         import cv2
@@ -167,7 +170,9 @@ class TestCameraPerformance:
             orig_height, orig_width = full_frame.shape[:2]
             new_width = int(orig_width * display_scale)
             new_height = int(orig_height * display_scale)
-            downsampled = cv2.resize(full_frame, (new_width, new_height), interpolation=cv2.INTER_AREA)
+            downsampled = cv2.resize(
+                full_frame, (new_width, new_height), interpolation=cv2.INTER_AREA
+            )
         else:
             downsampled = full_frame
 
@@ -235,7 +240,7 @@ class TestCameraIntegration:
     def test_camera_connect_configure_stream_workflow(self):
         """Test full workflow: connect → configure → stream → disconnect."""
         # This test requires real hardware, so we'll mock the VmbPy parts
-        with patch('hardware.camera_controller.vmbpy') as mock_vmbpy:
+        with patch("hardware.camera_controller.vmbpy") as mock_vmbpy:
             # Setup mocks
             mock_vmb = Mock()
             mock_camera = Mock()
