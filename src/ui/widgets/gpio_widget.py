@@ -11,6 +11,7 @@ from typing import Optional
 
 import serial.tools.list_ports
 from PyQt6.QtCore import pyqtSignal, pyqtSlot
+from src.ui.constants import WIDGET_WIDTH_MEDIUM
 from PyQt6.QtWidgets import (
     QComboBox,
     QDoubleSpinBox,
@@ -82,7 +83,7 @@ class GPIOWidget(QWidget):
         layout = QVBoxLayout(self)
 
         # Constrain maximum width to prevent excessive horizontal stretching
-        self.setMaximumWidth(700)
+        self.setMaximumWidth(WIDGET_WIDTH_MEDIUM)
 
         # Connection controls
         connection_group = self._create_connection_group()

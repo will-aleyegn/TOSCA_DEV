@@ -8,6 +8,7 @@ import logging
 from typing import TYPE_CHECKING, Optional
 
 from PyQt6.QtCore import Qt, pyqtSlot
+from src.ui.constants import WIDGET_WIDTH_STANDARD
 from PyQt6.QtWidgets import (
     QDoubleSpinBox,
     QGridLayout,
@@ -69,7 +70,7 @@ class LaserWidget(QWidget):
         layout = QVBoxLayout(self)
 
         # Constrain maximum width to prevent excessive horizontal stretching
-        self.setMaximumWidth(800)
+        self.setMaximumWidth(WIDGET_WIDTH_STANDARD)
 
         # Connection controls
         connection_group = self._create_connection_group()
