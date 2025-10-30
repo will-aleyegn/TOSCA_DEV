@@ -200,6 +200,28 @@ class TECWidget(QWidget):
         group.setLayout(layout)
         return group
 
+    def connect_device(self) -> bool:
+        """
+        Public method to programmatically connect to TEC controller.
+
+        Returns:
+            True if connection successful, False otherwise
+        """
+        if self.is_connected:
+            logger.warning("TEC already connected")
+            return True
+
+        self._on_connect_clicked()
+        return self.is_connected
+
+    def disconnect_device(self) -> None:
+        """Public method to programmatically disconnect from TEC controller."""
+        if not self.is_connected:
+            logger.debug("TEC already disconnected")
+            return
+
+        self._on_disconnect_clicked()
+
     def _update_ui_state(self) -> None:
         """Update UI element states based on connection status."""
         # Connection buttons

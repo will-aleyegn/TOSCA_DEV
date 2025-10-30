@@ -217,6 +217,218 @@ self.actuator_connection_widget = ActuatorConnectionWidget(
 
 ---
 
+## 2025-10-30: Phase 4 - Dependency Injection Pattern Extension ✅ COMPLETE
+
+### Context
+
+Following successful Phase 2 (ActuatorController DI pattern) and Phase 3 (dead code removal), comprehensive code review identified architectural inconsistency: ActuatorConnectionWidget used dependency injection, but LaserWidget, GPIOWidget, TECWidget, and CameraWidget self-instantiated controllers.
+
+### Problem Statement
+
+**Issue:** Architectural inconsistency across hardware widgets
+- ActuatorConnectionWidget: ✅ Constructor injection (Phase 2 success)
+- LaserWidget: ❌ Self-instantiates controller in `_on_connect_clicked()`
+- GPIOWidget: ❌ Self-instantiates controller in `_on_connect_clicked()`
+- TECWidget: ❌ Self-instantiates controller in `_on_connect_clicked()`
+- CameraWidget: ⚠️ Uses setter injection (`set_camera_controller()`)
+
+**Impact:**
+- Inconsistent patterns confuse developers
+- Untestable widgets (can't mock controllers)
+- Scattered controller lifecycle management
+- Violates Hollywood Principle: "Don't call us, we'll call you"
+
+### Refactoring Plan
+
+#### Phase 4A: Widget Constructor Refactoring ✅ COMPLETE
+**Status:** ✅ Complete (2025-10-30)
+
+**Actions:**
+1. ✅ Update LaserWidget to accept `LaserController` via constructor
+2. ✅ Update GPIOWidget to accept `GPIOController` via constructor
+3. ✅ Update TECWidget to accept `TECController` via constructor
+4. ✅ Update CameraWidget to accept `CameraController` via constructor
+5. ✅ Update SafetyWidget to pass `GPIOController` to internal GPIOWidget
+6. ✅ Extract signal connection logic to `_connect_controller_signals()` methods
+7. ✅ Remove controller self-instantiation from `_on_connect_clicked()` methods
+
+**Code Changes:**
+```python
+# BEFORE (LaserWidget):
+def __init__(self) -> None:
+    self.controller: Optional[LaserController] = None  # Created later
+
+def _on_connect_clicked(self) -> None:
+    if not self.controller:
+        self.controller = LaserController()  # ❌ Self-instantiation
+
+# AFTER (LaserWidget):
+def __init__(self, controller: Optional[LaserController] = None) -> None:
+    self.controller = controller  # ✅ Injected dependency
+    if self.controller:
+        self._connect_controller_signals()
+
+def _connect_controller_signals(self) -> None:
+    """Connect to controller signals (called when controller is injected)."""
+    self.controller.connection_changed.connect(self._on_connection_changed)
+    # ... other signals
+
+def _on_connect_clicked(self) -> None:
+    if not self.controller:
+        logger.error("No controller available")  # ✅ Fail fast
+        return
+    self.controller.connect("COM10")
+```
+
+#### Phase 4B: MainWindow Centralization ✅ COMPLETE
+**Status:** ✅ Complete (2025-10-30)
+
+**Actions:**
+1. ✅ Instantiate all hardware controllers in `MainWindow.__init__()`
+2. ✅ Pass controllers to widget constructors
+3. ✅ Update protocol engine to use MainWindow-managed controllers
+4. ✅ Remove redundant controller instantiation code
+
+**Code Changes:**
+```python
+# MainWindow.__init__() (lines 75-87):
+# All hardware controllers instantiated here
+self.actuator_controller = ActuatorController()
+self.laser_controller = LaserController()
+self.tec_controller = TECController()
+self.gpio_controller = GPIOController()
+self.camera_controller = CameraController(event_logger=self.event_logger)
+
+# Widget instantiation with DI:
+self.laser_widget = LaserWidget(controller=self.laser_controller)
+self.tec_widget = TECWidget(controller=self.tec_controller)
+self.gpio_widget = GPIOWidget(controller=self.gpio_controller)
+self.camera_live_view = CameraWidget(camera_controller=self.camera_controller)
+```
+
+#### Phase 4C: Camera Resource Management Fixes ✅ COMPLETE
+**Status:** ✅ Complete (2025-10-30)
+
+**Problem:** VmbSystem context held open for hours (discovery → disconnect)
+**Impact:** Resource leak, prevents other apps from accessing cameras
+
+**Solution:**
+- Use VmbSystem ONLY for camera discovery (scoped `with` statement)
+- Camera object manages its own lifecycle
+
+**Code Changes:**
+```python
+# BEFORE (CameraController.connect):
+def connect(self):
+    self.vmb.__enter__()  # ❌ Manual context entry
+    cameras = self.vmb.get_all_cameras()
+    # ... hours later in disconnect():
+    self.vmb.__exit__()  # ❌ Manual cleanup
+
+# AFTER (CameraController.connect):
+def connect(self):
+    with self.vmb:  # ✅ Scoped to discovery only
+        cameras = self.vmb.get_all_cameras()
+        camera = cameras[0]
+    # VmbSystem context auto-closed here ✓
+
+    self.camera = camera
+    self.camera.__enter__()  # Camera-specific context
+```
+
+#### Phase 4D: Pixel Format Conversion ✅ COMPLETE
+**Status:** ✅ Complete (2025-10-30)
+
+**Problem:** No pixel format conversion in frame callback
+**Impact:** GUI receives incompatible formats (Mono8, Bayer, YUV)
+
+**Solution:** Comprehensive format detection + OpenCV conversion to RGB8
+
+**Supported Formats:**
+- Mono8, Bgr8, Rgb8
+- Bayer patterns (RG8, GR8, GB8, BG8)
+- YUV422Packed
+
+**Code Changes:**
+```python
+# Frame callback with format conversion (lines 88-127):
+pixel_format = frame.get_pixel_format()
+if pixel_format == vmbpy.PixelFormat.Mono8:
+    frame_rgb = cv2.cvtColor(frame_data, cv2.COLOR_GRAY2RGB)
+elif pixel_format == vmbpy.PixelFormat.Bgr8:
+    frame_rgb = cv2.cvtColor(frame_data, cv2.COLOR_BGR2RGB)
+# ... + 4 more format conversions with error handling
+```
+
+### Benefits
+
+| Benefit | Metric |
+|---------|--------|
+| **Architectural Consistency** | All 5 hardware widgets use identical DI pattern |
+| **Testability** | Controllers mockable for unit tests |
+| **Lifecycle Clarity** | Single source of truth (MainWindow) |
+| **Resource Management** | No VmbSystem context leaks |
+| **Display Robustness** | Consistent RGB8 frames for GUI |
+| **Medical Device** | Simplified IEC 62304 validation |
+
+### Files Modified
+
+**Phase 4 Changes:**
+- `src/ui/main_window.py`: Centralized controller instantiation (~50 lines)
+- `src/ui/widgets/laser_widget.py`: DI pattern + public methods (~40 lines)
+- `src/ui/widgets/gpio_widget.py`: DI pattern + public methods (~45 lines)
+- `src/ui/widgets/tec_widget.py`: DI pattern + public methods (~35 lines)
+- `src/ui/widgets/camera_widget.py`: DI pattern, deprecated setter (~30 lines)
+- `src/ui/widgets/safety_widget.py`: Pass GPIO controller (~5 lines)
+- `src/hardware/camera_controller.py`: Context + pixel conversion (~70 lines)
+
+**Total Impact:** ~275 lines of architectural improvements
+
+### Actual Impact
+
+**Phase 4 Statistics:**
+- **Files Modified:** 7
+- **Lines Changed:** ~275
+- **Code Quality:** Architectural consistency achieved
+- **Testability:** 5 widgets now fully mockable
+- **Resource Management:** 2 critical bugs fixed
+
+**Grand Total (All Phases):**
+- **Phase 1:** -590 lines (sequence builder UI removal)
+- **Phase 2:** Controller management refactor
+- **Phase 3:** -824 lines (dead code removal)
+- **Phase 4:** +275 lines (DI pattern + fixes)
+- **Net Change:** -1,139 lines with better architecture
+
+### Testing Strategy
+
+**Phase 4 Testing:**
+- ✅ Syntax validation: All files pass
+- ⏳ Unit tests: Mock controllers and verify widget behavior
+- ⏳ Integration: Test hardware connections with real controllers
+- ⏳ GUI smoke test: Verify all tabs load and connect
+- ⏳ Camera test: Verify pixel format conversion with different formats
+
+### Timeline
+
+| Phase | Duration | Status |
+|-------|----------|--------|
+| **Phase 4A: Widget Refactoring** | 2 hours | ✅ Complete |
+| **Phase 4B: MainWindow Update** | 1 hour | ✅ Complete |
+| **Phase 4C: Camera Context Fix** | 30 minutes | ✅ Complete |
+| **Phase 4D: Pixel Conversion** | 30 minutes | ✅ Complete |
+| **Documentation** | 30 minutes | 🔄 In Progress |
+| **Total** | **4.5 hours** | - |
+
+### Related Documentation
+
+- **Design Decision:** See `docs/architecture/ADR-002-dependency-injection.md` (pending)
+- **Lessons Learned:** See `LESSONS_LEARNED.md` (pending update)
+- **Work Log:** See `WORK_LOG.md` (2025-10-30 entry)
+- **Previous Phases:** See ADR-001 (Protocol Consolidation)
+
+---
+
 ## Future Refactoring Opportunities
 
 ### 1. SerialConnectionWidget Extraction (Priority: High)
