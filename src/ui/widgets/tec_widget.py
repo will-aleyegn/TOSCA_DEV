@@ -261,8 +261,7 @@ class TECWidget(QWidget):
             # Update temperature spinbox range from device limits
             if self.controller:
                 self.temp_spinbox.setRange(
-                    self.controller.min_temperature_c,
-                    self.controller.max_temperature_c
+                    self.controller.min_temperature_c, self.controller.max_temperature_c
                 )
                 logger.info(
                     f"Temperature range updated: {self.controller.min_temperature_c:.1f}°C "
