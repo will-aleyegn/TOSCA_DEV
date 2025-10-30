@@ -48,6 +48,9 @@ class SafetyWidget(QWidget):
         main_layout = QVBoxLayout()
         self.setLayout(main_layout)
 
+        # Constrain maximum width to prevent excessive horizontal stretching
+        self.setMaximumWidth(800)
+
         # Diagnostic header
         header = QLabel("⚙ SYSTEM DIAGNOSTICS - Engineering Interface")
         header.setStyleSheet(

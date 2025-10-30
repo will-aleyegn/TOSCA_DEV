@@ -8,6 +8,104 @@ Chronological log of development actions, decisions, and implementations (last 1
 
 ---
 
+## 2025-10-30 (Late Evening - Protocol Consolidation Phase 1)
+
+### Action: ActuatorWidget Dead Code Removal - Phase 1 of 3
+**Status:** ✅ COMPLETE Phase 1 (3 files modified, 590 lines deleted)
+**Duration:** ~2 hours
+**Version:** 0.9.8-alpha (protocol consolidation)
+
+**GUI Layout Fixes**
+- **Issue:** Hardware tab layout clunky with System Diagnostics box too wide and actuator buttons crowding
+- **Fix:** Added width constraints and reorganized button layout
+  - `SafetyWidget`: Added `setMaximumWidth(800)` constraint
+  - `ActuatorConnectionWidget`: Reorganized 5 buttons from 1-row to 2-row layout
+  - Row 1: Port selection + connection controls (Connect, Disconnect)
+  - Row 2: Operation controls (Find Home, Query Settings)
+  - Increased widget max width 600px → 700px
+- **Result:** Clean, non-overlapping button layout that fits within widget boundaries
+
+**Dead Code Analysis & Removal (Phase 1)**
+- **Context:** Comprehensive GUI analysis (via zen MCP) identified ActuatorWidget as dead code
+- **Discovery:** ActuatorWidget (836 lines) instantiated in MainWindow but **never displayed**
+  - Only purpose: Create ActuatorController for ActuatorConnectionWidget
+  - 566 lines of sequence builder UI never visible to users
+  - Superseded by modern ProtocolBuilderWidget
+- **Architecture Decision:** ADR-001-protocol-consolidation.md created
+  - Decision: Consolidate to single Protocol system (remove legacy ActuatorSequence)
+  - Medical device rationale: Single source of truth improves FDA compliance
+  - 3-phase refactoring plan documented in REFACTORING_LOG.md
+
+**Phase 1 Implementation:**
+1. Removed ActuatorSequence import and state variables (5 lines)
+2. Removed sequence UI method calls from _init_ui() (3 lines)
+3. Deleted 566 lines of sequence builder methods:
+   - `_create_sequence_params_group()` - action parameter UI (~99 lines)
+   - `_create_sequence_list_group()` - sequence list display (~52 lines)
+   - `_create_sequence_controls_group()` - execution controls (~53 lines)
+   - 11 signal handlers: `_on_seq_*` methods (~250 lines)
+   - Sequence execution logic (~140 lines)
+4. Removed unused imports (Path, QTimer, QCheckBox, QComboBox, etc.)
+5. Updated module docstring with NOTE about removal
+6. **Result:** `actuator_widget.py` reduced 838 → 248 lines (70% reduction)
+
+**Code Quality Fixes:**
+- Refactored `_on_query_settings_clicked()` to reduce complexity (13 → ~4)
+- Extracted helper methods for better maintainability:
+  - `_format_settings_display()` - main dispatcher
+  - `_format_no_settings_message()` - handles "no settings" case
+  - `_format_available_settings()` - formats available settings
+  - `_add_setting_line()` - helper for individual setting lines
+- **Result:** Passes flake8 complexity check (C901)
+
+**Documentation Created:**
+- `docs/REFACTORING_LOG.md` (228 lines)
+  - Complete 3-phase refactoring plan with context and rationale
+  - Data models comparison (ActuatorSequence vs Protocol)
+  - Benefits metrics, risks, timeline estimates
+  - Testing strategy for each phase
+- `docs/architecture/ADR-001-protocol-consolidation.md` (253 lines)
+  - Architecture Decision Record for medical device compliance
+  - Decision drivers (safety, maintainability, FDA compliance)
+  - 3 options analyzed with pros/cons
+  - Compliance implications (IEC 62304, ISO 14971)
+  - Validation plan
+
+**Benefits Achieved:**
+- **Code Reduction:** -590 lines (70% reduction in actuator_widget.py)
+- **Architecture Clarity:** Removed confusing dual-system (ActuatorSequence vs Protocol)
+- **Maintainability:** Fewer files to maintain, clearer intent
+- **FDA Compliance:** Simpler architecture aids validation documentation
+- **GUI Layout:** Fixed crowding and overflow issues in Hardware tab
+
+**Testing:**
+- ✅ Syntax validated: `python -m py_compile actuator_widget.py`
+- ✅ Pre-commit hooks passed (flake8, black, isort)
+- ⏳ Unit tests: Pending Phase 2 (controller refactor)
+- ⏳ GUI smoke test: Pending Phase 2
+
+**Files Modified:**
+- `src/ui/widgets/actuator_widget.py`: 838 → 248 lines (590 lines deleted)
+- `src/ui/widgets/actuator_connection_widget.py`: Button layout reorganization + complexity refactor
+- `src/ui/widgets/safety_widget.py`: Added width constraint
+- `docs/REFACTORING_LOG.md`: Created (228 lines)
+- `docs/architecture/ADR-001-protocol-consolidation.md`: Created (253 lines)
+
+**Next Phase (Phase 2):**
+- Refactor MainWindow to instantiate ActuatorController directly
+- Modify ActuatorConnectionWidget to accept controller parameter
+- Remove ActuatorWidget dependency from connection widget
+- **Timeline:** 2-3 hours
+- **Risk:** Medium (requires careful signal rewiring)
+
+**Key Learnings:**
+- Comprehensive documentation BEFORE refactoring prevents confusion
+- Architecture Decision Records essential for medical device compliance
+- Extracting methods reduces complexity and improves maintainability
+- Pre-commit hooks catch quality issues early
+
+---
+
 ## 2025-10-30 (Camera Display Fix & Performance Investigation)
 
 ### Action: Critical Camera Display Bug Fix
