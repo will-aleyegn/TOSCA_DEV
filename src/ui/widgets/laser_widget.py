@@ -216,6 +216,28 @@ class LaserWidget(QWidget):
         group.setLayout(layout)
         return group
 
+    def connect_device(self) -> bool:
+        """
+        Public method to programmatically connect to laser driver.
+
+        Returns:
+            True if connection successful, False otherwise
+        """
+        if self.is_connected:
+            logger.warning("Laser already connected")
+            return True
+
+        self._on_connect_clicked()
+        return self.is_connected
+
+    def disconnect_device(self) -> None:
+        """Public method to programmatically disconnect from laser driver."""
+        if not self.is_connected:
+            logger.debug("Laser already disconnected")
+            return
+
+        self._on_disconnect_clicked()
+
     def _update_ui_state(self) -> None:
         """Update UI element states based on connection status."""
         # Connection buttons

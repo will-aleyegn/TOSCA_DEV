@@ -373,6 +373,28 @@ class GPIOWidget(QWidget):
         group.setLayout(layout)
         return group
 
+    def connect_device(self) -> bool:
+        """
+        Public method to programmatically connect to GPIO.
+
+        Returns:
+            True if connection successful, False otherwise
+        """
+        if self.is_connected:
+            logger.warning("GPIO already connected")
+            return True
+
+        self._on_connect_clicked()
+        return self.is_connected
+
+    def disconnect_device(self) -> None:
+        """Public method to programmatically disconnect from GPIO."""
+        if not self.is_connected:
+            logger.debug("GPIO already disconnected")
+            return
+
+        self._on_disconnect_clicked()
+
     def _update_ui_state(self) -> None:
         """Update UI element states based on connection status."""
         # Connection buttons

@@ -8,6 +8,118 @@ Chronological log of development actions, decisions, and implementations (last 1
 
 ---
 
+## 2025-10-30 (Late Night - Phase 4 DI Pattern + Camera Fixes COMPLETE)
+
+### Action: Complete Phase 4 Dependency Injection + Critical Camera Fixes ✅
+**Status:** ✅ COMPLETE - All HIGH priority code review items resolved
+**Duration:** ~3 hours
+**Commit:** 63c06f0 "feat: Complete Phase 4 DI pattern + camera fixes"
+
+**Phase 4: Dependency Injection Pattern Extension**
+
+Extended DI pattern from Phase 2 (ActuatorController) to all remaining hardware widgets, achieving architectural consistency across the entire UI layer.
+
+**Architectural Changes:**
+- **Centralized Controller Management:** All hardware controllers instantiated in `MainWindow.__init__` (lines 75-87)
+- **Constructor Injection:** Extended to 5 widgets (Laser, GPIO, TEC, Camera, Safety)
+- **Signal Extraction:** Created `_connect_controller_signals()` methods in all widgets
+- **Protocol Engine Update:** Now uses MainWindow-managed controllers directly
+
+**Modified Widgets:**
+1. **LaserWidget:** Accept `LaserController` via constructor parameter
+2. **GPIOWidget:** Accept `GPIOController` via constructor parameter
+3. **TECWidget:** Accept `TECController` via constructor parameter
+4. **CameraWidget:** Accept `CameraController` via constructor (deprecated setter method)
+5. **SafetyWidget:** Pass `GPIOController` to internal GPIOWidget
+
+**Benefits:**
+- **Testability:** All controllers mockable for unit tests
+- **Consistency:** All 5 widgets follow identical DI pattern
+- **Lifecycle Clarity:** Single source of truth for controller management
+- **Medical Device:** Simplified IEC 62304 validation documentation
+
+**Issue #2: VmbSystem Context Manager Lifecycle Fix**
+
+**Problem Identified:**
+- VmbSystem context held open from `connect()` to `disconnect()` (hours)
+- Resource leak preventing other applications from accessing cameras
+- Non-compliant with Allied Vision API best practices
+
+**Solution Implemented:**
+- Use VmbSystem ONLY for camera discovery (~100ms scope)
+- Proper `with self.vmb:` statement ensures automatic cleanup
+- Camera object manages its own lifecycle for streaming
+
+**Code Changes:**
+- `CameraController.connect()`: Scoped VmbSystem to discovery block (lines 253-268)
+- `CameraController.disconnect()`: Removed incorrect `vmb.__exit__()` call (lines 359-361)
+
+**Impact:**
+- No resource leaks
+- Other applications can access cameras while TOSCA runs
+- Follows Allied Vision SDK documentation
+
+**Issue #3: Pixel Format Conversion**
+
+**Problem Identified:**
+- No pixel format conversion in frame callback
+- GUI received incompatible formats (Mono8, Bayer, YUV, etc.)
+- Unpredictable display behavior
+
+**Solution Implemented:**
+- Comprehensive pixel format detection in frame callback
+- OpenCV-based conversion to RGB8 for all formats
+- Robust error handling with fallback to raw data
+
+**Supported Formats:**
+- Mono8 → RGB (grayscale duplication)
+- Bgr8 → RGB (OpenCV to Qt conversion)
+- Rgb8 → RGB (contiguous array)
+- BayerRG8/GR8/GB8/BG8 → RGB (debayering)
+- YUV422Packed → RGB
+
+**Code Changes:**
+- `CameraStreamThread.frame_callback`: Format detection + conversion (lines 88-127)
+- Try/except wrapper with detailed error logging
+- Debug logging for first 5 frames with format info
+
+**Impact:**
+- Consistent RGB8 frames for Qt display
+- Works with various Allied Vision camera models
+- Graceful degradation on unsupported formats
+
+**Additional Work: Public Connection Methods (MEDIUM Priority)**
+
+Added public API methods to hardware widgets:
+- `LaserWidget.connect_device()` / `disconnect_device()`
+- `GPIOWidget.connect_device()` / `disconnect_device()`
+- `TECWidget.connect_device()` / `disconnect_device()`
+
+**Benefits:**
+- Programmatic hardware control from MainWindow
+- Replace private method calls (`_on_connect_clicked`)
+- Better encapsulation and API design
+
+**Statistics:**
+- **Files Modified:** 10
+- **Lines Changed:** ~350
+- **HIGH Priority Tasks:** 17/17 completed ✅
+- **MEDIUM Priority Tasks:** 6/12 completed (public methods)
+- **Syntax Validation:** All files pass ✅
+
+**Code Review Resolution:**
+- ✅ Issue #1: Architectural inconsistency (DI pattern extended)
+- ✅ Issue #2: VmbSystem context lifecycle (fixed)
+- ✅ Issue #3: Pixel format conversion (implemented)
+
+**Next Steps:**
+- Update REFACTORING_LOG.md with Phase 4 details
+- Create ADR-002 for DI pattern architecture decision
+- Add LESSONS_LEARNED entries
+- Continue with MEDIUM/LOW priority improvements
+
+---
+
 ## 2025-10-30 (Night - Protocol Consolidation Phase 3 COMPLETE)
 
 ### Action: Complete Dead Code Removal - Phase 3 of 3 ✅ COMPLETE
