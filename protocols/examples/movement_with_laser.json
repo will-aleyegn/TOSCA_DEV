@@ -1,0 +1,43 @@
+{
+  "protocol_name": "Movement with Laser Control",
+  "version": "1.0.0",
+  "description": "Example protocol showing combined movement and laser control",
+  "created_date": "2025-10-29",
+  "author": "System",
+  "safety_limits": {
+    "max_power_watts": 10.0,
+    "max_duration_seconds": 300.0,
+    "min_actuator_position_um": 0.0,
+    "max_actuator_position_um": 3000.0
+  },
+  "actions": [
+    {
+      "action_id": 1,
+      "action_type": "MoveActuator",
+      "parameters": {
+        "target_position_um": 2000.0,
+        "speed_um_per_sec": 100.0,
+        "laser_power_watts": 0.5
+      },
+      "notes": "Move 2mm positive at 100µm/s with 0.5W laser"
+    },
+    {
+      "action_id": 2,
+      "action_type": "Wait",
+      "parameters": {
+        "duration_seconds": 2.0
+      },
+      "notes": "Dwell for 2 seconds (laser remains at 0.5W)"
+    },
+    {
+      "action_id": 3,
+      "action_type": "MoveActuator",
+      "parameters": {
+        "target_position_um": 0.0,
+        "speed_um_per_sec": 200.0,
+        "laser_power_watts": 0.0
+      },
+      "notes": "Home at 5mm/s with laser off"
+    }
+  ]
+}

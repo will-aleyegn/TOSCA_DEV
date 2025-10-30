@@ -176,7 +176,7 @@ class TreatmentSetupWidget(QWidget):
             protocol = Protocol.from_dict(protocol_data)
             self.loaded_protocol = protocol
 
-            self.protocol_name_label.setText(f"✓ {protocol.name}")
+            self.protocol_name_label.setText(f"✓ {protocol.protocol_name}")
             self.protocol_name_label.setStyleSheet(
                 "color: #4CAF50; font-size: 11px; font-weight: bold; padding: 5px;"
             )
@@ -184,7 +184,7 @@ class TreatmentSetupWidget(QWidget):
             action_count = len(protocol.actions)
             self.protocol_info_label.setText(f"{action_count} actions loaded")
 
-            logger.info(f"Protocol loaded: {protocol.name} ({action_count} actions)")
+            logger.info(f"Protocol loaded: {protocol.protocol_name} ({action_count} actions)")
 
         except FileNotFoundError:
             QMessageBox.critical(self, "Error", f"File not found: {file_path}")

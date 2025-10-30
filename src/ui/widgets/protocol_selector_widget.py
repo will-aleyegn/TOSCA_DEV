@@ -273,7 +273,7 @@ Actions: {len(actions)} total
             protocol = Protocol.from_dict(protocol_data)
             self.loaded_protocol = protocol
 
-            self.status_label.setText(f"✓ Loaded: {protocol.name}")
+            self.status_label.setText(f"✓ Loaded: {protocol.protocol_name}")
             self.status_label.setStyleSheet(
                 "color: #4CAF50; font-size: 11px; font-weight: bold; padding: 5px;"
             )
@@ -281,7 +281,9 @@ Actions: {len(actions)} total
             # Emit signal
             self.protocol_loaded.emit(protocol)
 
-            logger.info(f"Protocol loaded: {protocol.name} ({len(protocol.actions)} actions)")
+            logger.info(
+                f"Protocol loaded: {protocol.protocol_name} ({len(protocol.actions)} actions)"
+            )
 
         except FileNotFoundError:
             self.status_label.setText("❌ File not found")
