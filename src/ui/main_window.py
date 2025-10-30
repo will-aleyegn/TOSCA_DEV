@@ -138,7 +138,7 @@ class MainWindow(QMainWindow):
         )
         hardware_layout.addWidget(self.actuator_header)
 
-        # Actuator connection widget (will be created after ActuatorWidget in Protocol Builder tab)
+        # Actuator connection widget (will be created in Hardware tab with direct controller)
         # Placeholder stored for later widget insertion
         self.actuator_header_index = hardware_layout.count() - 1  # Remember position for insertion
 
@@ -307,22 +307,23 @@ class MainWindow(QMainWindow):
 
         self.tabs.addTab(protocol_builder_tab, "Protocol Builder")
 
-        # Create ActuatorWidget for Hardware tab connection widget
-        # (ActuatorWidget kept for hardware diagnostics and connection management)
-        from ui.widgets.actuator_widget import ActuatorWidget
+        # Create ActuatorController directly (no longer via ActuatorWidget)
+        from src.hardware.actuator_controller import ActuatorController
 
-        self.actuator_widget = ActuatorWidget()
+        self.actuator_controller = ActuatorController()
+        logger.info("ActuatorController instantiated in MainWindow")
 
-        # NOW add Actuator Connection widget to Hardware tab (after ActuatorWidget exists)
-        # This widget shares the controller with ActuatorWidget
+        # Add Actuator Connection widget to Hardware tab
         from ui.widgets.actuator_connection_widget import ActuatorConnectionWidget
 
-        self.actuator_connection_widget = ActuatorConnectionWidget(self.actuator_widget)
+        self.actuator_connection_widget = ActuatorConnectionWidget(
+            controller=self.actuator_controller
+        )
         # Insert right after actuator header in hardware layout
         hardware_layout.insertWidget(
             self.actuator_header_index + 1, self.actuator_connection_widget
         )
-        logger.info("Actuator connection widget added to Hardware tab (shared controller)")
+        logger.info("Actuator connection widget added to Hardware tab (direct controller)")
 
         # Initialize safety manager
         self.safety_manager = SafetyManager()
@@ -719,14 +720,12 @@ class MainWindow(QMainWindow):
         # Get controller references from widgets
         # Note: Controllers may be None if widgets haven't connected to hardware yet
         laser_controller = None
-        actuator_controller = None
 
         if hasattr(self, "laser_widget"):
             laser_controller = getattr(self.laser_widget, "controller", None)
 
-        # Actuator widget is now in Protocol Builder tab (Tab 3)
-        if hasattr(self, "actuator_widget"):
-            actuator_controller = getattr(self.actuator_widget, "controller", None)
+        # Actuator controller is now managed directly by MainWindow
+        actuator_controller = getattr(self, "actuator_controller", None)
 
         # Initialize protocol engine with available controllers
         self.protocol_engine = ProtocolEngine(
@@ -852,15 +851,15 @@ class MainWindow(QMainWindow):
                 if hasattr(self.laser_widget, "_on_connect_clicked"):
                     self.laser_widget._on_connect_clicked()
 
-        # Connect Actuator (Protocol Builder tab)
-        if hasattr(self, "actuator_widget"):
+        # Connect Actuator (Hardware tab)
+        if hasattr(self, "actuator_connection_widget"):
             if (
-                hasattr(self.actuator_widget, "is_connected")
-                and not self.actuator_widget.is_connected
+                hasattr(self.actuator_connection_widget, "is_connected")
+                and not self.actuator_connection_widget.is_connected
             ):
                 logger.info("Connecting Actuator...")
-                if hasattr(self.actuator_widget, "_on_connect_clicked"):
-                    self.actuator_widget._on_connect_clicked()
+                if hasattr(self.actuator_connection_widget, "_on_connect_clicked"):
+                    self.actuator_connection_widget._on_connect_clicked()
 
         # Update button states
         self.connect_all_btn.setEnabled(False)
@@ -891,11 +890,14 @@ class MainWindow(QMainWindow):
                     self.laser_widget._on_disconnect_clicked()
 
         # Disconnect Actuator
-        if hasattr(self, "actuator_widget"):
-            if hasattr(self.actuator_widget, "is_connected") and self.actuator_widget.is_connected:
+        if hasattr(self, "actuator_connection_widget"):
+            if (
+                hasattr(self.actuator_connection_widget, "is_connected")
+                and self.actuator_connection_widget.is_connected
+            ):
                 logger.info("Disconnecting Actuator...")
-                if hasattr(self.actuator_widget, "_on_disconnect_clicked"):
-                    self.actuator_widget._on_disconnect_clicked()
+                if hasattr(self.actuator_connection_widget, "_on_disconnect_clicked"):
+                    self.actuator_connection_widget._on_disconnect_clicked()
 
         # Update button states
         self.connect_all_btn.setEnabled(True)
@@ -971,25 +973,31 @@ class MainWindow(QMainWindow):
         """
         result = {"name": "🔧 Linear Actuator", "passed": False, "details": []}
 
-        if hasattr(self, "actuator_widget") and self.actuator_widget:
-            if hasattr(self.actuator_widget, "is_connected") and self.actuator_widget.is_connected:
+        if hasattr(self, "actuator_connection_widget") and self.actuator_connection_widget:
+            if (
+                hasattr(self.actuator_connection_widget, "is_connected")
+                and self.actuator_connection_widget.is_connected
+            ):
                 result["passed"] = True
                 result["details"].append("Actuator connected")
 
                 # Add homing status
-                if hasattr(self.actuator_widget, "is_homed") and self.actuator_widget.is_homed:
+                if (
+                    hasattr(self.actuator_connection_widget, "is_homed")
+                    and self.actuator_connection_widget.is_homed
+                ):
                     result["details"].append("Homed and ready")
                 else:
                     result["details"].append("Not homed (requires homing)")
 
                 # Add position if available
-                if hasattr(self.actuator_widget, "current_position_um"):
-                    pos_mm = self.actuator_widget.current_position_um / 1000.0
+                if hasattr(self.actuator_connection_widget, "current_position_um"):
+                    pos_mm = self.actuator_connection_widget.current_position_um / 1000.0
                     result["details"].append(f"Position: {pos_mm:.2f} mm")
 
                 # Add range if available
-                if hasattr(self.actuator_widget, "max_position_um"):
-                    max_mm = self.actuator_widget.max_position_um / 1000.0
+                if hasattr(self.actuator_connection_widget, "max_position_um"):
+                    max_mm = self.actuator_connection_widget.max_position_um / 1000.0
                     result["details"].append(f"Range: 0-{max_mm:.1f} mm")
             else:
                 result["details"].append("Actuator not connected")
@@ -1207,8 +1215,8 @@ class MainWindow(QMainWindow):
             self.safety_widget.cleanup()
 
         # Cleanup Protocol Builder (actuator)
-        if hasattr(self, "actuator_widget") and self.actuator_widget:
-            self.actuator_widget.cleanup()
+        if hasattr(self, "actuator_connection_widget") and self.actuator_connection_widget:
+            self.actuator_connection_widget.cleanup()
 
         # Cleanup database
         if hasattr(self, "db_manager") and self.db_manager:

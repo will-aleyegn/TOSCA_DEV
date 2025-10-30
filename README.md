@@ -1,5 +1,8 @@
 # TOSCA Laser Control System
 
+**Version:** 0.9.8-alpha (Production-Ready Camera + Protocol Builder)
+**Last Updated:** 2025-10-30
+
 A comprehensive laser control system integrating hardware control, machine vision, safety interlocks, and treatment protocol execution for precision laser applications.
 
 ---
@@ -21,16 +24,17 @@ This system provides real-time control and monitoring of a diode laser system wi
 ## Hardware Components
 
 ### Primary Devices
-1. **Laser Controller:** Arroyo Instruments TEC Controller (COM4, 38400 baud)
-2. **Linear Actuator:** Xeryon linear stage (COM3, 9600 baud)
-3. **Camera:** Allied Vision 1800 U-158c (USB 3.0, VmbPy SDK)
-4. **GPIO Controller:** Arduino Uno (ATmega328P) with custom watchdog firmware (COM4, 115200 baud)
+1. **Laser Driver:** Arroyo 6300 Controller (COM10, 38400 baud)
+2. **TEC Controller:** Arroyo 5305 Controller (COM9, 38400 baud)
+3. **Linear Actuator:** Xeryon linear stage (COM3, 9600 baud)
+4. **Camera:** Allied Vision 1800 U-158c (USB 3.0, VmbPy SDK)
+5. **GPIO Controller:** Arduino Uno (ATmega328P) with custom watchdog firmware (COM4, 115200 baud)
 
 ### Safety Hardware
-5. **Footpedal:** Normally-open momentary switch (active-high interlock)
-6. **Smoothing Device:** Motor control (D2) with vibration sensor (D3)
-7. **Photodiode:** Analog voltage monitoring (A0, 0-5V, 10-bit ADC)
-8. **Aiming Laser:** 650nm red laser diode for alignment (D4)
+6. **Footpedal:** Normally-open momentary switch (active-high interlock)
+7. **Smoothing Device:** Motor control (D2) with vibration sensor (D3)
+8. **Photodiode:** Analog voltage monitoring (A0, 0-5V, 10-bit ADC)
+9. **Aiming Laser:** 650nm red laser diode for alignment (D4)
 
 ---
 
@@ -133,6 +137,7 @@ Comprehensive technical documentation is available in `docs/architecture/`:
 - Type hints required on all functions
 - Comprehensive docstrings for safety-critical code
 - Pre-commit hooks enforce: Black, Flake8, MyPy, isort
+- Use `git commit --no-verify` for known MyPy false positives (documented in coding standards)
 
 ### Safety Requirements
 - All safety-critical code must have unit tests
@@ -159,15 +164,20 @@ components/
 
 src/
 ├── ui/
-│   ├── main_window.py      [DONE] 4-tab interface with database, event logging
+│   ├── main_window.py      [DONE] 4-tab interface with toolbar, global E-stop
 │   └── widgets/
-│       ├── subject_widget.py         [DONE] Subject selection and session creation
-│       ├── camera_widget.py          [DONE] Live camera streaming, controls
-│       ├── treatment_widget.py       [DONE] Integrated laser/actuator controls
-│       ├── laser_widget.py           [DONE] Laser power and TEC controls
-│       ├── actuator_widget.py        [DONE] Actuator sequences and positioning
-│       ├── safety_widget.py          [DONE] Safety status with event logging
-│       └── gpio_widget.py            [DONE] GPIO safety interlock display
+│       ├── subject_widget.py                [DONE] Subject selection and session creation
+│       ├── camera_live_view.py              [DONE] Live streaming, controls (renamed)
+│       ├── camera_hardware_panel.py         [DONE] Hardware diagnostics panel
+│       ├── treatment_setup_widget.py        [DONE] Protocol selector
+│       ├── active_treatment_widget.py       [DONE] Treatment monitoring dashboard
+│       ├── laser_widget.py                  [DONE] Laser power controls (treatment only)
+│       ├── tec_widget.py                    [DONE] TEC temperature controls
+│       ├── actuator_widget.py               [DONE] Actuator sequences and positioning
+│       ├── safety_widget.py                 [DONE] Safety status with event logging
+│       ├── gpio_widget.py                   [DONE] GPIO safety interlock display
+│       ├── interlocks_widget.py             [DONE] Consolidated safety status
+│       └── protocol_selector_widget.py      [DONE] Visual protocol library browser
 │
 ├── core/
 │   ├── protocol.py         [DONE] Action-based data model
@@ -179,8 +189,9 @@ src/
 │
 ├── hardware/
 │   ├── hardware_controller_base.py   [DONE] ABC with QObject integration
-│   ├── camera_controller.py          [DONE] Allied Vision camera HAL (thread-safe)
-│   ├── laser_controller.py           [DONE] Arroyo laser HAL (thread-safe)
+│   ├── camera_controller.py          [DONE] Allied Vision HAL (thread-safe, VmbPy API compliant)
+│   ├── laser_controller.py           [DONE] Arroyo 6300 laser HAL (COM10, thread-safe)
+│   ├── tec_controller.py             [DONE] Arroyo 5305 TEC HAL (COM9, thread-safe)
 │   ├── actuator_controller.py        [DONE] Xeryon actuator HAL (thread-safe)
 │   ├── actuator_sequence.py          [DONE] Sequence builder data model
 │   └── gpio_controller.py            [DONE] Arduino Uno GPIO HAL (thread-safe)
@@ -306,6 +317,16 @@ pytest --cov=src --cov-report=html
 ## Documentation
 
 For detailed technical information, see:
-- `docs/architecture/` - System design and architecture
+- **`CLAUDE.md`** - Comprehensive AI assistant context and best practices (NEW!)
+- **`LESSONS_LEARNED.md`** - Critical bugs, solutions, and prevention strategies (NEW!)
+- **`PROJECT_STATUS.md`** - Current milestones, component status, technical debt
+- `docs/architecture/` - System design and architecture documentation
+- `docs/architecture/00_IMPLEMENTATION_STATUS.md` - Implementation tiers and readiness
 - `components/*/README.md` - Hardware API documentation
 - `tests/mocks/README.md` - Testing infrastructure guide
+
+### Quick Links
+- Safety System: `docs/architecture/03_safety_system.md`
+- Safety Shutdown Policy: `docs/architecture/SAFETY_SHUTDOWN_POLICY.md`
+- Thread Safety: `docs/architecture/10_concurrency_model.md`
+- Camera Integration: `components/camera_module/README.md`

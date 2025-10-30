@@ -1,7 +1,7 @@
 # TOSCA Implementation Status & Readiness Tiers
 
-**Document Version:** 1.0
-**Last Updated:** 2025-10-26
+**Document Version:** 1.1
+**Last Updated:** 2025-10-30
 **Purpose:** Clear categorization of what's implemented vs what's required for different use cases
 
 ---
@@ -74,7 +74,11 @@ This document categorizes TOSCA features into **readiness tiers** based on what'
 | Safety watchdog (500ms heartbeat) | ✅ Working | 07_safety_watchdog.md |
 | GPIO monitoring (Arduino Nano) | ✅ Working | 03_safety_system.md |
 | **Camera & Image Processing** |
-| Real-time streaming (60 FPS) | ✅ Working | - |
+| Real-time streaming (30 FPS) | ✅ Working | - |
+| Allied Vision API integration | ✅ Working | camera_controller.py |
+| Thread-safe camera controls | ✅ Working | camera_controller.py |
+| Exposure/gain hardware feedback | ✅ Working | camera_widget.py |
+| Pixel format auto-detection | ✅ Working | camera_controller.py |
 | Ring detection | ✅ Working | 05_image_processing.md |
 | Focus measurement | ✅ Working | 05_image_processing.md |
 | **Recording** |
@@ -93,7 +97,7 @@ This document categorizes TOSCA features into **readiness tiers** based on what'
 | Safety watchdog timer | ✅ Working | 10_concurrency_model.md |
 | PyQt6 signal/slot communication | ✅ Working | 10_concurrency_model.md |
 
-**Tier 1 Summary:** **23 features implemented** ✅
+**Tier 1 Summary:** **27 features implemented** ✅ (4 new camera features added Oct 2025)
 
 ---
 
@@ -292,10 +296,10 @@ Lab Testing    Pre-Clinical   Clinical        FDA/Production
 ```
 
 **Total Features:**
-- ✅ **23 implemented** (Tier 1 complete)
+- ✅ **27 implemented** (Tier 1 complete - updated Oct 2025)
 - ⚠️ **13 planned** (Tier 2 - Phase 6)
 - ❌ **33 future** (Tiers 3 & 4 - Phases 7-8+)
-- **69 total features** across all tiers
+- **73 total features** across all tiers
 
 ---
 
@@ -318,8 +322,9 @@ Lab Testing    Pre-Clinical   Clinical        FDA/Production
 
 **Current Capabilities (Tier 1):**
 - Fully functional for **lab experimentation and R&D**
-- **23 core features implemented and tested**
+- **27 core features implemented and tested** (updated Oct 2025)
 - Safe for **development with test data only**
+- Production-ready camera implementation with Allied Vision API compliance
 
 **Next Milestone (Tier 2 - Phase 6):**
 - **13 features to add** (encryption, calibration, audit integrity)
@@ -334,5 +339,11 @@ Lab Testing    Pre-Clinical   Clinical        FDA/Production
 ---
 
 **Document Owner:** Project Manager
-**Last Updated:** 2025-10-26
+**Last Updated:** 2025-10-30
 **Next Review:** Start of Phase 6
+
+**Recent Updates (2025-10-30):**
+- Added 4 new camera features (Allied Vision API integration, thread safety, hardware feedback, pixel format auto-detection)
+- Updated feature count from 23 → 27 implemented features
+- Updated FPS specification from 60 → 30 FPS (hardware-controlled frame rate)
+- Version: 1.1

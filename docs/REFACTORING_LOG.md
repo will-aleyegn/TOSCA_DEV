@@ -72,13 +72,17 @@ self.actuator_connection_widget = ActuatorConnectionWidget(self.actuator_widget)
 - `docs/REFACTORING_LOG.md`: Updated with completion status
 - `docs/architecture/ADR-001-protocol-consolidation.md`: Created ADR
 
-#### Phase 2: Refactor Controller Management
-**Status:** ⏳ Pending
+#### Phase 2: Refactor Controller Management ✅ COMPLETE
+**Status:** ✅ Complete (2025-10-30)
 
 **Actions:**
-1. Move `ActuatorController` instantiation to `MainWindow`
-2. Modify `ActuatorConnectionWidget.__init__()` to accept controller directly
-3. Remove `ActuatorWidget` dependency from connection widget
+1. ✅ Move `ActuatorController` instantiation to `MainWindow`
+2. ✅ Modify `ActuatorConnectionWidget.__init__()` to accept controller directly
+3. ✅ Remove `ActuatorWidget` dependency from connection widget
+4. ✅ Update all MainWindow references from `actuator_widget` to `actuator_connection_widget`
+5. ✅ Move connection/homing logic from delegation to direct controller calls
+6. ✅ Add `_on_limits_changed` signal handler
+7. ✅ Update cleanup logic to disconnect controller
 
 **Code Changes:**
 ```python
@@ -93,7 +97,11 @@ self.actuator_connection_widget = ActuatorConnectionWidget(
 )
 ```
 
-**Estimated Impact:** Removes awkward widget dependency, clarifies controller lifecycle
+**Files Modified:**
+- `src/ui/widgets/actuator_connection_widget.py`: Refactored to accept controller parameter
+- `src/ui/main_window.py`: Controller instantiation and all references updated
+
+**Actual Impact:** Removed widget dependency, clarified controller lifecycle, direct controller access
 
 #### Phase 3: Complete Removal
 **Status:** ⏳ Pending (blocked by Phase 2)
