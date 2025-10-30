@@ -17,6 +17,7 @@ from PyQt6.QtCore import Qt, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QImage, QPixmap
 from PyQt6.QtWidgets import (
     QCheckBox,
+    QComboBox,
     QFileDialog,
     QGroupBox,
     QHBoxLayout,
@@ -317,6 +318,27 @@ class CameraWidget(QWidget):
         wb_layout.addStretch()
         layout.addLayout(wb_layout)
 
+        # Binning control (resolution vs speed trade-off)
+        binning_layout = QHBoxLayout()
+        binning_layout.addWidget(QLabel("Binning:"))
+        self.binning_combo = QComboBox()
+        self.binning_combo.addItems([
+            "Full Resolution (1×1)",
+            "2×2 Binning (~4× faster)",
+            "4×4 Binning (~15× faster)",
+            "8×8 Binning (~60× faster)"
+        ])
+        self.binning_combo.setCurrentIndex(0)  # Default to full resolution
+        self.binning_combo.setEnabled(False)
+        self.binning_combo.setToolTip(
+            "Binning combines pixels for higher frame rates.\n"
+            "Higher binning = lower resolution but smoother video."
+        )
+        self.binning_combo.currentIndexChanged.connect(self._on_binning_changed)
+        binning_layout.addWidget(self.binning_combo)
+        binning_layout.addStretch()
+        layout.addLayout(binning_layout)
+
         group.setLayout(layout)
         return group
 
@@ -506,6 +528,7 @@ class CameraWidget(QWidget):
             self.auto_exposure_check.setEnabled(False)
             self.auto_gain_check.setEnabled(False)
             self.auto_wb_check.setEnabled(False)
+            self.binning_combo.setEnabled(True)  # Re-enable binning after streaming stops
         else:
             success = self.camera_controller.start_streaming()
             if success:
@@ -519,6 +542,7 @@ class CameraWidget(QWidget):
                 self.gain_input.setEnabled(True)
                 self.auto_exposure_check.setEnabled(True)
                 self.auto_gain_check.setEnabled(True)
+                self.binning_combo.setEnabled(False)  # Disable binning during streaming
 
                 # Initialize info displays with current slider values
                 exp_value = self.exposure_slider.value()
@@ -611,6 +635,24 @@ class CameraWidget(QWidget):
 
         if self.camera_controller:
             self.camera_controller.set_auto_white_balance(enabled)
+
+    def _on_binning_changed(self, index: int) -> None:
+        """Handle binning selection change."""
+        # Map combo box index to binning factor
+        binning_map = {0: 1, 1: 2, 2: 4, 3: 8}
+        binning_factor = binning_map.get(index, 1)
+
+        logger.info(f"Binning changed to {binning_factor}×{binning_factor}")
+
+        if self.camera_controller:
+            success = self.camera_controller.set_binning(binning_factor)
+            if success:
+                # Update resolution info to reflect binning
+                fps_info = self.camera_controller.get_acquisition_frame_rate_info()
+                logger.info(
+                    f"Camera FPS after binning change: {fps_info['current_fps']:.2f} "
+                    f"(max: {fps_info['max_fps']:.2f})"
+                )
 
     def _on_capture_image(self) -> None:
         """Handle capture image button click."""
@@ -739,6 +781,7 @@ class CameraWidget(QWidget):
             self.connection_status.setStyleSheet("color: green;")
             self.connect_btn.setText("Disconnect")
             self.stream_btn.setEnabled(True)
+            self.binning_combo.setEnabled(True)  # Enable binning control
         else:
             self.connection_status.setText("Status: Not Connected")
             self.connection_status.setStyleSheet("color: red;")
@@ -746,6 +789,7 @@ class CameraWidget(QWidget):
             self.stream_btn.setEnabled(False)
             self.capture_btn.setEnabled(False)
             self.record_btn.setEnabled(False)
+            self.binning_combo.setEnabled(False)  # Disable binning control
             self.camera_display.clear()
             self.camera_display.setText("Camera feed will appear here")
 
