@@ -55,7 +55,8 @@ class ActuatorConnectionWidget(QWidget):
         layout = QVBoxLayout(self)
 
         # Constrain maximum width to prevent excessive horizontal stretching
-        self.setMaximumWidth(600)
+        # Increased from 600 to accommodate 2-row button layout
+        self.setMaximumWidth(700)
 
         # Connection controls
         connection_group = self._create_connection_group()
@@ -125,11 +126,14 @@ class ActuatorConnectionWidget(QWidget):
     def _create_connection_group(self) -> QGroupBox:
         """Create connection control group."""
         group = QGroupBox("Connection & Homing")
-        layout = QHBoxLayout()
+        main_layout = QVBoxLayout()
+
+        # Row 1: Port selection and connection controls
+        row1_layout = QHBoxLayout()
 
         # COM Port label
         port_label = QLabel("Port:")
-        layout.addWidget(port_label)
+        row1_layout.addWidget(port_label)
 
         # COM Port selection
         self.com_port_combo = QComboBox()
@@ -137,14 +141,14 @@ class ActuatorConnectionWidget(QWidget):
         self.com_port_combo.setToolTip(
             "Select COM port for Actuator\n✓ = Port detected and available"
         )
-        layout.addWidget(self.com_port_combo)
+        row1_layout.addWidget(self.com_port_combo)
 
         # Refresh button
         self.refresh_btn = QPushButton("🔄")
         self.refresh_btn.setFixedWidth(32)
         self.refresh_btn.setToolTip("Refresh available COM ports")
         self.refresh_btn.clicked.connect(self._on_refresh_clicked)
-        layout.addWidget(self.refresh_btn)
+        row1_layout.addWidget(self.refresh_btn)
 
         # Initial port population with detection
         self._refresh_port_list()
@@ -158,43 +162,50 @@ class ActuatorConnectionWidget(QWidget):
                 logger.info(f"Loaded saved Actuator port: {saved_port}")
                 break
 
-        # Connect button - fixed width for compact layout
+        # Connect button
         self.connect_btn = QPushButton("Connect")
-        self.connect_btn.setFixedWidth(120)
+        self.connect_btn.setFixedWidth(100)
         self.connect_btn.setMinimumHeight(32)
         self.connect_btn.clicked.connect(self._on_connect_clicked)
-        layout.addWidget(self.connect_btn)
+        row1_layout.addWidget(self.connect_btn)
 
-        # Home button - fixed width for compact layout
+        # Disconnect button
+        self.disconnect_btn = QPushButton("Disconnect")
+        self.disconnect_btn.setFixedWidth(100)
+        self.disconnect_btn.setMinimumHeight(32)
+        self.disconnect_btn.clicked.connect(self._on_disconnect_clicked)
+        self.disconnect_btn.setEnabled(False)
+        row1_layout.addWidget(self.disconnect_btn)
+
+        row1_layout.addStretch()  # Push controls to left
+        main_layout.addLayout(row1_layout)
+
+        # Row 2: Homing and diagnostic controls
+        row2_layout = QHBoxLayout()
+
+        # Home button
         self.home_btn = QPushButton("Find Home")
         self.home_btn.setFixedWidth(120)
         self.home_btn.setMinimumHeight(32)
         self.home_btn.clicked.connect(self._on_home_clicked)
         self.home_btn.setEnabled(False)
-        layout.addWidget(self.home_btn)
-
-        # Disconnect button - fixed width for compact layout
-        self.disconnect_btn = QPushButton("Disconnect")
-        self.disconnect_btn.setFixedWidth(120)
-        self.disconnect_btn.setMinimumHeight(32)
-        self.disconnect_btn.clicked.connect(self._on_disconnect_clicked)
-        self.disconnect_btn.setEnabled(False)
-        layout.addWidget(self.disconnect_btn)
+        row2_layout.addWidget(self.home_btn)
 
         # Query Settings button - for verifying device-stored settings
         self.query_settings_btn = QPushButton("Query Settings")
         self.query_settings_btn.setFixedWidth(120)
         self.query_settings_btn.setMinimumHeight(32)
         self.query_settings_btn.setToolTip(
-            "Query device-stored settings\n" "(Best used after homing completes)"
+            "Query device-stored settings\n(Best used after homing completes)"
         )
         self.query_settings_btn.clicked.connect(self._on_query_settings_clicked)
         self.query_settings_btn.setEnabled(False)
-        layout.addWidget(self.query_settings_btn)
+        row2_layout.addWidget(self.query_settings_btn)
 
-        layout.addStretch()  # Push buttons to left, leave right space empty
+        row2_layout.addStretch()  # Push controls to left
+        main_layout.addLayout(row2_layout)
 
-        group.setLayout(layout)
+        group.setLayout(main_layout)
         return group
 
     def _create_status_group(self) -> QGroupBox:
@@ -368,8 +379,6 @@ class ActuatorConnectionWidget(QWidget):
             return
 
         logger.info("Querying device settings...")
-
-        # Query settings from controller
         settings = self.actuator_widget.controller.query_device_settings()
 
         # Check for errors
@@ -381,99 +390,96 @@ class ActuatorConnectionWidget(QWidget):
             )
             return
 
-        # Build display message
-        available_count = settings.get("available_count", 0)
-        total_queried = settings.get("total_queried", 0)
-
-        if available_count == 0:
-            message = (
-                "No device settings available\n\n"
-                "This is expected if:\n"
-                "- Device is still initializing\n"
-                "- settings_default.txt is missing (intentional for TOSCA)\n"
-                "- Settings haven't been sent by device yet\n\n"
-                "The system is using conservative defaults:\n"
-                "- LLIM = -45000 µm\n"
-                "- HLIM = 45000 µm\n"
-                "- ACCE/DECE = 65500\n\n"
-                "Try again after homing completes or device has more time to initialize."
-            )
-            title = "No Settings Available"
-            icon = QMessageBox.Icon.Warning
-        else:
-            # Format settings nicely
-            lines = [f"Retrieved {available_count}/{total_queried} device settings\n"]
-
-            # Position limits
-            lines.append("Position Limits:")
-            llim = settings.get("LLIM")
-            hlim = settings.get("HLIM")
-            if llim:
-                lines.append(f"  LLIM (Low Limit) = {llim} µm")
-            else:
-                lines.append("  LLIM (Low Limit) = Not available")
-            if hlim:
-                lines.append(f"  HLIM (High Limit) = {hlim} µm")
-            else:
-                lines.append("  HLIM (High Limit) = Not available")
-
-            # Speed and motion
-            lines.append("\nSpeed & Motion:")
-            sspd = settings.get("SSPD")
-            acce = settings.get("ACCE")
-            dece = settings.get("DECE")
-            if sspd:
-                lines.append(f"  SSPD (Speed) = {sspd} µm/s")
-            else:
-                lines.append("  SSPD (Speed) = Not available")
-            if acce:
-                lines.append(f"  ACCE (Acceleration) = {acce}")
-            else:
-                lines.append("  ACCE (Acceleration) = Not available")
-            if dece:
-                lines.append(f"  DECE (Deceleration) = {dece}")
-            else:
-                lines.append("  DECE (Deceleration) = Not available")
-
-            # Tolerances
-            lines.append("\nPosition Tolerances:")
-            ptol = settings.get("PTOL")
-            pto2 = settings.get("PTO2")
-            tout = settings.get("TOUT")
-            if ptol:
-                lines.append(f"  PTOL (Primary) = {ptol} encoder units")
-            else:
-                lines.append("  PTOL (Primary) = Not available")
-            if pto2:
-                lines.append(f"  PTO2 (Secondary) = {pto2} encoder units")
-            else:
-                lines.append("  PTO2 (Secondary) = Not available")
-            if tout:
-                lines.append(f"  TOUT (Timeout) = {tout} ms")
-            else:
-                lines.append("  TOUT (Timeout) = Not available")
-
-            # Error limit
-            lines.append("\nError Limits:")
-            elim = settings.get("ELIM")
-            if elim:
-                lines.append(f"  ELIM (Error Limit) = {elim}")
-            else:
-                lines.append("  ELIM (Error Limit) = Not available")
-
-            lines.append("\nDevice-stored settings (manufacturer-calibrated)")
-
-            message = "\n".join(lines)
-            title = "Device Settings"
-            icon = QMessageBox.Icon.Information
-
-        # Show dialog
+        # Format and display settings
+        message, title, icon = self._format_settings_display(settings)
         msg_box = QMessageBox(self)
         msg_box.setIcon(icon)
         msg_box.setWindowTitle(title)
         msg_box.setText(message)
         msg_box.setStandardButtons(QMessageBox.StandardButton.Ok)
         msg_box.exec()
+
+    def _format_settings_display(self, settings: dict) -> tuple[str, str, QMessageBox.Icon]:
+        """Format settings data for display.
+
+        Args:
+            settings: Dictionary containing device settings
+
+        Returns:
+            Tuple of (message, title, icon) for QMessageBox
+        """
+        available_count = settings.get("available_count", 0)
+        total_queried = settings.get("total_queried", 0)
+
+        if available_count == 0:
+            return self._format_no_settings_message()
+
+        return self._format_available_settings(settings, available_count, total_queried)
+
+    def _format_no_settings_message(self) -> tuple[str, str, QMessageBox.Icon]:
+        """Format message when no settings are available."""
+        message = (
+            "No device settings available\n\n"
+            "This is expected if:\n"
+            "- Device is still initializing\n"
+            "- settings_default.txt is missing (intentional for TOSCA)\n"
+            "- Settings haven't been sent by device yet\n\n"
+            "The system is using conservative defaults:\n"
+            "- LLIM = -45000 µm\n"
+            "- HLIM = 45000 µm\n"
+            "- ACCE/DECE = 65500\n\n"
+            "Try again after homing completes or device has more time to initialize."
+        )
+        return (message, "No Settings Available", QMessageBox.Icon.Warning)
+
+    def _format_available_settings(
+        self, settings: dict, available_count: int, total_queried: int
+    ) -> tuple[str, str, QMessageBox.Icon]:
+        """Format available settings for display."""
+        lines = [f"Retrieved {available_count}/{total_queried} device settings\n"]
+
+        # Position limits
+        lines.append("Position Limits:")
+        self._add_setting_line(lines, settings, "LLIM", "Low Limit", " µm")
+        self._add_setting_line(lines, settings, "HLIM", "High Limit", " µm")
+
+        # Speed and motion
+        lines.append("\nSpeed & Motion:")
+        self._add_setting_line(lines, settings, "SSPD", "Speed", " µm/s")
+        self._add_setting_line(lines, settings, "ACCE", "Acceleration", "")
+        self._add_setting_line(lines, settings, "DECE", "Deceleration", "")
+
+        # Tolerances
+        lines.append("\nPosition Tolerances:")
+        self._add_setting_line(lines, settings, "PTOL", "Primary", " encoder units")
+        self._add_setting_line(lines, settings, "PTO2", "Secondary", " encoder units")
+        self._add_setting_line(lines, settings, "TOUT", "Timeout", " ms")
+
+        # Error limit
+        lines.append("\nError Limits:")
+        self._add_setting_line(lines, settings, "ELIM", "Error Limit", "")
+
+        lines.append("\nDevice-stored settings (manufacturer-calibrated)")
+
+        return ("\n".join(lines), "Device Settings", QMessageBox.Icon.Information)
+
+    def _add_setting_line(
+        self, lines: list, settings: dict, key: str, label: str, unit: str
+    ) -> None:
+        """Add a setting line to the display list.
+
+        Args:
+            lines: List to append formatted line to
+            settings: Settings dictionary
+            key: Setting key to look up
+            label: Human-readable label
+            unit: Unit suffix (e.g., ' µm', ' ms')
+        """
+        value = settings.get(key)
+        if value:
+            lines.append(f"  {key} ({label}) = {value}{unit}")
+        else:
+            lines.append(f"  {key} ({label}) = Not available")
 
     def cleanup(self) -> None:
         """Cleanup resources (controller is shared, don't disconnect)."""
