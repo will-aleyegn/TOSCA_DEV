@@ -262,7 +262,12 @@ class LaserWidget(QWidget):
     def _on_connect_clicked(self) -> None:
         """Handle connect button click."""
         if not self.controller:
-            logger.error("LaserWidget: No controller available (should be injected by MainWindow)")
+            error_msg = (
+                "Software Error: Laser controller not initialized. "
+                "This indicates a configuration issue. "
+                "Please restart the application."
+            )
+            logger.error(f"LaserWidget: No controller available (DI not configured properly)")
             self.connection_status_label.setText("Error: No controller")
             return
 
@@ -272,8 +277,14 @@ class LaserWidget(QWidget):
         success = self.controller.connect("COM10")
 
         if not success:
-            logger.error("Failed to connect to laser driver")
-            self.connection_status_label.setText("Connection failed")
+            error_msg = (
+                "Failed to connect to laser driver on COM10. "
+                "Check: (1) Device is powered on, "
+                "(2) USB cable is connected, "
+                "(3) COM10 is correct port (check Device Manager)"
+            )
+            logger.error(error_msg)
+            self.connection_status_label.setText("Connection failed - check device")
 
     @pyqtSlot()
     def _on_disconnect_clicked(self) -> None:
@@ -340,6 +351,9 @@ class LaserWidget(QWidget):
     def _on_error(self, error_msg: str) -> None:
         """Handle error from controller."""
         logger.error(f"Laser error: {error_msg}")
+        # Update UI to show error to user
+        self.connection_status_label.setText(f"Error: {error_msg}")
+        self.connection_status_label.setStyleSheet("color: red; font-weight: bold;")
 
     @pyqtSlot(bool)
     def _on_aiming_laser_clicked(self, enable: bool) -> None:
