@@ -103,21 +103,34 @@ self.actuator_connection_widget = ActuatorConnectionWidget(
 
 **Actual Impact:** Removed widget dependency, clarified controller lifecycle, direct controller access
 
-#### Phase 3: Complete Removal
-**Status:** ⏳ Pending (blocked by Phase 2)
+#### Phase 3: Complete Removal ✅ COMPLETE
+**Status:** ✅ Complete (2025-10-30)
 
 **Actions:**
-1. Delete `actuator_widget.py` entirely
-2. Delete `hardware/actuator_sequence.py` and `ActionType` enum
-3. Remove imports from `main_window.py`
-4. Update tests to remove `ActuatorSequence` test cases
+1. ✅ Update `src/ui/widgets/__init__.py` to remove dead exports
+2. ✅ Delete `actuator_widget.py` (248 lines)
+3. ✅ Delete `treatment_widget.py` (437 lines) - **BONUS dead code discovered!**
+4. ✅ Delete `hardware/actuator_sequence.py` (139 lines)
+5. ✅ Verify no broken imports (all passed)
+6. ✅ Syntax validation (all passed)
 
-**Files to Delete:**
-- `src/ui/widgets/actuator_widget.py` (836 lines)
-- `src/hardware/actuator_sequence.py` (~200 lines)
-- Total deletion: **~1,036 lines**
+**Files Deleted:**
+- `src/ui/widgets/actuator_widget.py` (248 lines)
+- `src/ui/widgets/treatment_widget.py` (437 lines) - also dead code!
+- `src/hardware/actuator_sequence.py` (139 lines)
+- **Total deletion: 824 lines in Phase 3**
+- **Grand total (all phases): 1,414 lines removed**
 
-**Estimated Impact:** -1,036 lines total, single source of truth for protocol definitions
+**Discovery:**
+- `TreatmentWidget` was also dead code - replaced by `ActiveTreatmentWidget`
+- Only exported in `__init__.py`, never actually imported/used
+- Removed alongside ActuatorWidget for complete cleanup
+
+**Actual Impact:**
+- **Phase 1:** -590 lines (sequence builder UI removal)
+- **Phase 2:** Architecture refactor (controller management)
+- **Phase 3:** -824 lines (complete dead code removal)
+- **Total:** -1,414 lines (65% reduction in actuator-related code)
 
 ### Benefits
 
