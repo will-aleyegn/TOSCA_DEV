@@ -43,10 +43,14 @@ class CameraStreamThread(QThread):
     error_occurred = pyqtSignal(str)
     fps_update = pyqtSignal(float)
 
-    def __init__(self, camera: "vmbpy.Camera", controller: "CameraController", display_scale: float = 1.0) -> None:
+    def __init__(
+        self, camera: "vmbpy.Camera", controller: "CameraController", display_scale: float = 1.0
+    ) -> None:
         super().__init__()
         self.camera = camera
-        self.controller = controller  # Reference to parent controller for accessing lock and attributes
+        self.controller = (
+            controller  # Reference to parent controller for accessing lock and attributes
+        )
         self.running = False
         self.frame_count = 0
         self.start_time: Optional[float] = None
@@ -180,7 +184,9 @@ class CameraStreamThread(QThread):
 
                     # Debug: Log first few pixmap emissions
                     if self.gui_frame_count <= 5:
-                        logger.info(f"Emitting QPixmap to GUI: #{self.gui_frame_count}, size: {pixmap.width()}x{pixmap.height()}")
+                        logger.info(
+                            f"Emitting QPixmap to GUI: #{self.gui_frame_count}, size: {pixmap.width()}x{pixmap.height()}"
+                        )
 
                     # Emit QPixmap to GUI (FAST - lightweight pointer sharing)
                     self.pixmap_ready.emit(pixmap)
@@ -566,13 +572,17 @@ class CameraController(QObject):
                 # Create stream thread with display scale for pre-transfer downsampling
                 self.stream_thread = CameraStreamThread(self.camera, self, self.display_scale)
                 # NOTE: frame_ready signal NOT connected - all frame handling done in thread's frame_callback
-                self.stream_thread.pixmap_ready.connect(self.pixmap_ready.emit)  # Forward QPixmap to GUI
+                self.stream_thread.pixmap_ready.connect(
+                    self.pixmap_ready.emit
+                )  # Forward QPixmap to GUI
                 self.stream_thread.fps_update.connect(self.fps_update.emit)
                 self.stream_thread.error_occurred.connect(self.error_occurred.emit)
                 self.stream_thread.start()
 
                 self.is_streaming = True
-                scale_info = f" (display scale: {self.display_scale}×)" if self.display_scale < 1.0 else ""
+                scale_info = (
+                    f" (display scale: {self.display_scale}×)" if self.display_scale < 1.0 else ""
+                )
                 logger.info(f"Camera streaming started at 30 FPS{scale_info}")
                 return True
 
@@ -933,10 +943,10 @@ class CameraController(QObject):
 
                 # Try multiple feature names (varies by camera model and firmware)
                 limit_feature_names = [
-                    'ExposureAutoUpperLimit',  # Common on newer cameras
-                    'ExposureAutoMax',         # Alternative name
-                    'ExposureAutoLimitMax',    # Another variant
-                    'ExposureTimeUpperLimit',  # Yet another variant
+                    "ExposureAutoUpperLimit",  # Common on newer cameras
+                    "ExposureAutoMax",  # Alternative name
+                    "ExposureAutoLimitMax",  # Another variant
+                    "ExposureTimeUpperLimit",  # Yet another variant
                 ]
 
                 for feature_name in limit_feature_names:
@@ -1012,10 +1022,10 @@ class CameraController(QObject):
 
                 # Try multiple feature names (varies by camera model and firmware)
                 limit_feature_names = [
-                    'GainAutoUpperLimit',  # Common on newer cameras
-                    'GainAutoMax',         # Alternative name
-                    'GainAutoLimitMax',    # Another variant
-                    'GainUpperLimit',      # Yet another variant
+                    "GainAutoUpperLimit",  # Common on newer cameras
+                    "GainAutoMax",  # Alternative name
+                    "GainAutoLimitMax",  # Another variant
+                    "GainUpperLimit",  # Yet another variant
                 ]
 
                 for feature_name in limit_feature_names:

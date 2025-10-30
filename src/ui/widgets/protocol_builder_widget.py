@@ -754,23 +754,3 @@ class ProtocolBuilderWidget(QWidget):
                 "Protocol has been sent for execution.\n\n"
                 "Switch to the 'Treatment Workflow' tab to monitor execution.",
             )
-
-    def get_protocol(self) -> Optional[Protocol]:
-        """
-        Get the current protocol being built.
-
-        Returns:
-            Protocol instance or None if no actions
-        """
-        if not self.actions:
-            return None
-
-        protocol_name = self.protocol_name_input.text() or "Unnamed Protocol"
-
-        return Protocol(
-            protocol_name=protocol_name,
-            version=self.version_input.text(),
-            actions=self.actions,
-            author=self.author_input.text(),
-            safety_limits=self.safety_limits,
-        )

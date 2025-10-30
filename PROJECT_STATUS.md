@@ -489,7 +489,7 @@ Transform tab-based GUI into integrated "Treatment Dashboard" for improved opera
 | `InterlocksWidget` | ✅ Complete | Consolidated safety interlock display |
 | `ProtocolSelectorWidget` | ✅ Complete | Visual protocol library browser |
 | `HardwareTestDialog` | ✅ Created | Diagnostic results display |
-| ~~`MotorWidget`~~ | ❌ Deleted | Superseded by GPIOWidget |
+| ~~`MotorWidget`~~ | ✅ Deleted | File removed (orphaned, superseded by GPIOWidget) |
 | ~~`ManualOverrideWidget`~~ | ❌ Deleted | Never integrated, removed |
 
 ---

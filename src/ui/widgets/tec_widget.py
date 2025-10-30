@@ -8,7 +8,6 @@ import logging
 from typing import Optional
 
 from PyQt6.QtCore import pyqtSlot
-from ui.constants import WIDGET_WIDTH_STANDARD
 from PyQt6.QtWidgets import (
     QDoubleSpinBox,
     QGridLayout,
@@ -21,6 +20,7 @@ from PyQt6.QtWidgets import (
 )
 
 from hardware.tec_controller import TECController
+from ui.constants import WIDGET_WIDTH_STANDARD
 
 logger = logging.getLogger(__name__)
 
@@ -381,12 +381,3 @@ class TECWidget(QWidget):
             self.setpoint_label.setText("-- °C")
             self.current_label.setText("-- A")
             self.voltage_label.setText("-- V")
-
-    def get_controller(self) -> Optional[TECController]:
-        """
-        Get the TEC controller instance.
-
-        Returns:
-            TECController instance or None if not created
-        """
-        return self.controller

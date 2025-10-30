@@ -24,7 +24,7 @@ from PyQt6.QtWidgets import (
 
 from core.event_logger import EventLogger, EventSeverity, EventType
 from core.protocol_engine import ProtocolEngine
-from core.safety import SafetyManager
+from core.safety import SafetyManager, SafetyState
 from core.safety_watchdog import SafetyWatchdog
 from core.session_manager import SessionManager
 from database.db_manager import DatabaseManager
@@ -507,26 +507,6 @@ class MainWindow(QMainWindow):
 
         # Update UI to reflect dev mode
         if checked:
-            self.setWindowTitle("TOSCA Laser Control System - DEVELOPER MODE")
-            self.subject_widget.setEnabled(False)  # Disable subject selection in dev mode
-            logger.warning(
-                "Developer mode enabled - session management bypassed for UI convenience. "
-                "Safety interlocks remain ACTIVE and enforced. "
-                "For hardware experimentation, use a dedicated test application with "
-                "TestSafetyManager."
-            )
-        else:
-            self.setWindowTitle("TOSCA Laser Control System")
-            self.subject_widget.setEnabled(True)
-
-    def _on_dev_mode_changed(self, state: int) -> None:
-        """Handle dev mode checkbox change."""
-        dev_mode = bool(state)
-        logger.info(f"Dev mode {'enabled' if dev_mode else 'disabled'}")
-        self.dev_mode_changed.emit(dev_mode)
-
-        # Update UI to reflect dev mode
-        if dev_mode:
             self.setWindowTitle("TOSCA Laser Control System - DEVELOPER MODE")
             self.subject_widget.setEnabled(False)  # Disable subject selection in dev mode
             logger.warning(
@@ -1132,8 +1112,6 @@ class MainWindow(QMainWindow):
         Args:
             state: SafetyState enum value (SAFE, UNSAFE, EMERGENCY_STOP)
         """
-        from core.safety import SafetyState
-
         if state == SafetyState.SAFE:
             text = "SYSTEM SAFE"
             color = "#4CAF50"  # Green

@@ -8,7 +8,6 @@ import logging
 from typing import TYPE_CHECKING, Optional
 
 from PyQt6.QtCore import Qt, pyqtSlot
-from ui.constants import WIDGET_WIDTH_STANDARD
 from PyQt6.QtWidgets import (
     QDoubleSpinBox,
     QGridLayout,
@@ -22,6 +21,7 @@ from PyQt6.QtWidgets import (
 )
 
 from hardware.laser_controller import LaserController
+from ui.constants import WIDGET_WIDTH_STANDARD
 
 if TYPE_CHECKING:
     from hardware.gpio_controller import GPIOController

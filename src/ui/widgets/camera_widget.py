@@ -14,7 +14,7 @@ from typing import Any, Optional
 
 import numpy as np
 from PyQt6.QtCore import Qt, pyqtSignal, pyqtSlot
-from PyQt6.QtGui import QImage, QPixmap
+from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -313,7 +313,9 @@ class CameraWidget(QWidget):
 
         # Exposure warning label (appears when long exposure selected)
         self.exposure_warning_label = QLabel("")
-        self.exposure_warning_label.setStyleSheet("color: #ff5555; font-weight: bold; font-size: 10px;")
+        self.exposure_warning_label.setStyleSheet(
+            "color: #ff5555; font-weight: bold; font-size: 10px;"
+        )
         self.exposure_warning_label.setWordWrap(True)
         layout.addWidget(self.exposure_warning_label)
 
@@ -471,21 +473,6 @@ class CameraWidget(QWidget):
 
         group.setLayout(layout)
         return group
-
-    def set_camera_controller(self, controller: Any) -> None:
-        """
-        DEPRECATED: Use constructor injection instead.
-
-        Inject camera controller dependency (legacy setter method).
-        Kept for backwards compatibility, but prefer passing controller to __init__.
-
-        Args:
-            controller: CameraController instance
-        """
-        logger.warning("set_camera_controller() is deprecated. Use constructor injection instead.")
-        self.camera_controller = controller
-        self._connect_controller_signals()
-        logger.info("Camera controller connected to widget (via deprecated setter)")
 
     def set_dev_mode(self, dev_mode: bool) -> None:
         """
@@ -892,23 +879,6 @@ class CameraWidget(QWidget):
 
         except Exception as e:
             logger.error(f"Error displaying pixmap: {e}")
-
-    def _on_frame_received(self, frame: np.ndarray) -> None:
-        """
-        Process raw frame data for recording/capture.
-
-        NOTE: Currently UNUSED during live view. This handler is not connected to avoid
-        transferring 300KB numpy arrays across threads at 30 FPS (9 MB/s signal overhead).
-
-        Will be reconnected when recording feature is implemented. For now, all live
-        display is handled by _on_pixmap_received() which uses Qt's implicit sharing.
-
-        Args:
-            frame: Numpy array frame from camera (downsampled)
-        """
-        # PLACEHOLDER: Will be used for video recording in future implementation
-        # For now, this method is not connected to any signal
-        pass
 
     @pyqtSlot(float)
     def _on_fps_update(self, fps: float) -> None:
