@@ -22,12 +22,14 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from config.config_loader import get_config
 from core.event_logger import EventLogger, EventSeverity, EventType
 from core.protocol_engine import ProtocolEngine
 from core.safety import SafetyManager, SafetyState
 from core.safety_watchdog import SafetyWatchdog
 from core.session_manager import SessionManager
 from database.db_manager import DatabaseManager
+from ui.dialogs.research_mode_warning_dialog import ResearchModeWarningDialog
 from ui.widgets.active_treatment_widget import ActiveTreatmentWidget
 from ui.widgets.camera_widget import CameraWidget
 from ui.widgets.safety_widget import SafetyWidget
@@ -99,12 +101,55 @@ class MainWindow(QMainWindow):
             EventType.SYSTEM_STARTUP, "TOSCA system started", EventSeverity.INFO
         )
 
+        # Show research mode warning dialog if configured
+        self._show_research_mode_warning()
+
         self._init_ui()
         self._init_menubar()
         self._init_toolbar()
         self._init_status_bar()
 
         logger.info("Main window initialized")
+
+    def _show_research_mode_warning(self) -> None:
+        """
+        Show research mode warning dialog if configured.
+
+        Displays a warning dialog informing the user that the system is for
+        research use only and not approved for clinical use. Requires explicit
+        acknowledgment before proceeding.
+
+        If the user rejects the warning (clicks Cancel), the application exits.
+        """
+        config = get_config()
+
+        if config.gui.show_warning_on_startup:
+            logger.info("Showing research mode warning dialog")
+
+            dialog = ResearchModeWarningDialog(self)
+            result = dialog.exec()
+
+            if result == ResearchModeWarningDialog.DialogCode.Accepted:
+                # User acknowledged warning
+                self.event_logger.log_system_event(
+                    EventType.USER_ACTION,
+                    "Research mode warning acknowledged",
+                    EventSeverity.INFO,
+                )
+                logger.info("User acknowledged research mode warning")
+            else:
+                # User rejected warning - exit application
+                self.event_logger.log_system_event(
+                    EventType.USER_ACTION,
+                    "Research mode warning rejected - exiting application",
+                    EventSeverity.WARNING,
+                )
+                logger.warning("User rejected research mode warning - exiting")
+                # Close and exit
+                import sys
+                sys.exit(0)
+        else:
+            logger.info("Research mode warning dialog disabled in configuration")
 
     def _init_ui(self) -> None:
         """Initialize main UI components."""
