@@ -117,9 +117,14 @@ class MainWindow(QMainWindow):
 
         # Set window title with research mode watermark if configured
         if config.gui.research_mode:
-            self.setWindowTitle("TOSCA v0.9.11-alpha - RESEARCH MODE ONLY")
+            title = "TOSCA v0.9.11-alpha - RESEARCH MODE ONLY"
+            self.setWindowTitle(title)
         else:
-            self.setWindowTitle("TOSCA Laser Control System")
+            title = "TOSCA Laser Control System"
+            self.setWindowTitle(title)
+
+        # Store original title for developer mode restoration
+        self.original_title = title
 
         self.setGeometry(100, 100, 1200, 900)  # Adjusted from 1400x900 for better vertical space
 
@@ -645,24 +650,106 @@ class MainWindow(QMainWindow):
                 f"(initial state: {self.safety_manager.state.value})"
             )
 
-    def _on_dev_mode_changed_menubar(self, checked: bool) -> None:
-        """Handle dev mode menu action toggle."""
-        logger.info(f"Dev mode {'enabled' if checked else 'disabled'} (from menubar)")
-        self.dev_mode_changed.emit(checked)
+    def _show_dev_mode_confirmation(self) -> bool:
+        """
+        Show confirmation dialog for enabling developer mode.
 
-        # Update UI to reflect dev mode
-        if checked:
-            self.setWindowTitle("TOSCA Laser Control System - DEVELOPER MODE")
-            self.subject_widget.setEnabled(False)  # Disable subject selection in dev mode
-            logger.warning(
-                "Developer mode enabled - session management bypassed for UI convenience. "
-                "Safety interlocks remain ACTIVE and enforced. "
-                "For hardware experimentation, use a dedicated test application with "
-                "TestSafetyManager."
+        Returns:
+            True if user confirmed, False if cancelled
+        """
+        msg = QMessageBox(self)
+        msg.setIcon(QMessageBox.Icon.Warning)
+        msg.setWindowTitle("⚠️ Developer Mode Warning")
+        msg.setText(
+            "You are about to enable Developer Mode with:\n\n"
+            "• Safety interlock bypass\n"
+            "• Session requirement bypass\n\n"
+            "This mode is for CALIBRATION AND TESTING ONLY.\n"
+            "Never use for actual patient treatment.\n\n"
+            "All actions will be logged for audit trail."
+        )
+        msg.setStandardButtons(
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+        msg.setDefaultButton(QMessageBox.StandardButton.No)
+
+        return msg.exec() == QMessageBox.StandardButton.Yes
+
+    def _show_dev_mode_warnings(self, show: bool) -> None:
+        """
+        Show/hide developer mode warnings in UI.
+
+        Args:
+            show: True to show warnings, False to hide
+        """
+        if show:
+            # Status bar warning (persistent)
+            self.statusBar().showMessage(
+                "⚠️ DEVELOPER MODE: Safety Bypasses Active - FOR TESTING ONLY",
+                0  # Timeout = 0 means persistent
             )
+            self.statusBar().setStyleSheet(
+                "background-color: #FF0000; color: white; font-weight: bold;"
+            )
+
+            # Title bar watermark
+            self.setWindowTitle(f"{self.original_title} [DEV MODE - BYPASSES ACTIVE]")
         else:
-            self.setWindowTitle("TOSCA Laser Control System")
-            self.subject_widget.setEnabled(True)
+            # Restore normal status bar
+            self.statusBar().clearMessage()
+            self.statusBar().setStyleSheet("")
+
+            # Restore normal title
+            self.setWindowTitle(self.original_title)
+
+    def _on_dev_mode_changed_menubar(self, checked: bool) -> None:
+        """Handle dev mode menu action toggle with safety bypass."""
+        if checked:
+            # Show confirmation
+            if not self._show_dev_mode_confirmation():
+                self.dev_mode_action.setChecked(False)
+                return
+
+            # Enable developer mode
+            self.safety_manager.set_developer_mode_bypass(True)
+            self.session_manager.developer_mode_enabled = True
+
+            # Update UI warnings
+            self._show_dev_mode_warnings(True)
+
+            logger.critical("DEVELOPER MODE ENABLED BY USER")
+
+            # Log event
+            if hasattr(self, "event_logger"):
+                from core.event_logger import EventType, EventSeverity
+
+                self.event_logger.log_event(
+                    EventType.SYSTEM,
+                    EventSeverity.CRITICAL,
+                    "Developer mode ENABLED - Safety bypasses active",
+                )
+        else:
+            # Disable developer mode
+            self.safety_manager.set_developer_mode_bypass(False)
+            self.session_manager.developer_mode_enabled = False
+
+            # Remove UI warnings
+            self._show_dev_mode_warnings(False)
+
+            logger.info("Developer mode disabled by user")
+
+            # Log event
+            if hasattr(self, "event_logger"):
+                from core.event_logger import EventType, EventSeverity
+
+                self.event_logger.log_event(
+                    EventType.SYSTEM,
+                    EventSeverity.INFO,
+                    "Developer mode DISABLED",
+                )
+
+        # Emit signal for other widgets
+        self.dev_mode_changed.emit(checked)
 
     def _update_camera_header_status(self, connected: bool) -> None:
         """Update camera section header with connection status."""
@@ -1440,6 +1527,12 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event: QCloseEvent) -> None:
         """Handle window close event and cleanup resources."""
         logger.info("Application closing, cleaning up resources...")
+
+        # Auto-disable developer mode on close (safety default)
+        if hasattr(self, "dev_mode_action") and self.dev_mode_action.isChecked():
+            logger.info("Auto-disabling developer mode on application close")
+            self.dev_mode_action.setChecked(False)
+            # This will trigger _on_dev_mode_changed_menubar which disables bypasses
 
         # Log system shutdown
         if hasattr(self, "event_logger") and self.event_logger:

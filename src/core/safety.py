@@ -39,6 +39,7 @@ class SafetyManager(QObject):
     safety_state_changed = pyqtSignal(SafetyState)  # Overall safety state
     laser_enable_changed = pyqtSignal(bool)  # Laser enable permission
     safety_event = pyqtSignal(str, str)  # (event_type, message)
+    developer_mode_changed = pyqtSignal(bool)  # Developer mode bypass status
 
     def __init__(self) -> None:
         super().__init__()
@@ -55,7 +56,34 @@ class SafetyManager(QObject):
         # Laser enable permission
         self.laser_enable_permitted = False
 
+        # Developer mode bypass (CRITICAL: For calibration/testing ONLY)
+        self.developer_mode_bypass_enabled = False
+
         logger.info("Safety manager initialized")
+
+    def set_developer_mode_bypass(self, enabled: bool) -> None:
+        """
+        Enable/disable developer mode safety bypass.
+
+        **CRITICAL WARNING**: This bypasses ALL safety interlocks.
+        For calibration and testing ONLY. Never use for patient treatment.
+
+        Args:
+            enabled: True to enable bypass, False to disable
+        """
+        if enabled:
+            logger.critical("=" * 80)
+            logger.critical("DEVELOPER MODE: Safety interlocks BYPASS ENABLED")
+            logger.critical("This mode is for CALIBRATION AND TESTING ONLY")
+            logger.critical("=" * 80)
+        else:
+            logger.info("Developer mode safety bypass disabled")
+
+        self.developer_mode_bypass_enabled = enabled
+        self.developer_mode_changed.emit(enabled)
+
+        # Force safety state update
+        self._update_safety_state()
 
     def set_gpio_interlock_status(self, ok: bool) -> None:
         """
@@ -213,8 +241,14 @@ class SafetyManager(QObject):
         Check if laser enable is permitted.
 
         Returns:
-            True if all safety conditions met
+            True if all safety conditions met (or developer mode bypass active)
         """
+        # DEVELOPER MODE BYPASS (early return)
+        if self.developer_mode_bypass_enabled:
+            logger.warning("Safety check BYPASSED (developer mode)")
+            return True
+
+        # Normal safety logic (unchanged)
         return self.laser_enable_permitted
 
     def get_safety_status_text(self) -> str:

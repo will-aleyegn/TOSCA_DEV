@@ -42,6 +42,9 @@ class SessionManager(QObject):
         self.current_session: Optional[Session] = None
         self.current_session_folder: Optional[Path] = None
 
+        # Developer mode bypass
+        self.developer_mode_enabled = False
+
     def create_session(
         self,
         subject: Subject,
@@ -119,6 +122,81 @@ class SessionManager(QObject):
 
         return session
 
+    def create_dev_session(self) -> Optional[Session]:
+        """
+        Create/retrieve developer mode session.
+
+        Automatically creates a DEV-SUBJECT and starts a session for quick testing.
+        For calibration and testing ONLY.
+
+        Returns:
+            Created/active dev Session instance or None if creation fails
+        """
+        # If dev session already active, return it
+        if self.current_session and self.current_session.subject_id == "DEV-SUBJECT":
+            logger.debug("Developer session already active")
+            return self.current_session
+
+        try:
+            # Check if dev subject exists, create if not
+            with self.db_manager.get_session() as db_session:
+                dev_subject = db_session.query(Subject).filter_by(subject_code="DEV-SUBJECT").first()
+
+                if not dev_subject:
+                    logger.info("Creating DEV-SUBJECT for developer mode")
+                    dev_subject = Subject(
+                        subject_code="DEV-SUBJECT",
+                        name="Developer Testing (No Subject)",
+                        notes="Auto-created for developer mode testing",
+                        dob=None,
+                        contact_info=None,
+                    )
+                    db_session.add(dev_subject)
+                    db_session.commit()
+
+            # Create new dev session
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+            with self.db_manager.get_session() as db_session:
+                # Get the dev subject
+                dev_subject = db_session.query(Subject).filter_by(subject_code="DEV-SUBJECT").first()
+
+                if not dev_subject:
+                    logger.error("Failed to create/retrieve DEV-SUBJECT")
+                    return None
+
+                # Create session
+                session = Session(
+                    subject_id=dev_subject.subject_id,
+                    tech_id=0,  # No technician in dev mode
+                    protocol_id=None,
+                    start_time=datetime.now(),
+                    status="in_progress",
+                    treatment_site="DEVELOPER MODE",
+                    treatment_notes=f"Developer mode session {timestamp}",
+                    session_folder_path=None,
+                )
+
+                db_session.add(session)
+                db_session.commit()
+                db_session.refresh(session)
+
+                # Store current session (no folder needed for dev mode)
+                self.current_session = session
+                self.current_session_folder = None
+
+                logger.warning(f"Developer session created: ID={session.session_id}")
+                self.session_started.emit(session.session_id)
+                self.session_status_changed.emit(
+                    f"DEV MODE: Session active (ID: {session.session_id})"
+                )
+
+                return session
+
+        except Exception as e:
+            logger.error(f"Failed to create developer session: {e}", exc_info=True)
+            return None
+
     def _create_session_folder(self, subject_code: str) -> Path:
         """
         Create session data folder.
@@ -146,9 +224,16 @@ class SessionManager(QObject):
         """
         Get the current active session.
 
+        In developer mode, automatically creates a dev session if none exists.
+
         Returns:
             Current Session instance or None
         """
+        # Developer mode: auto-create dev session if needed
+        if self.developer_mode_enabled and not self.current_session:
+            logger.info("Developer mode: Auto-creating dev session")
+            self.create_dev_session()
+
         return self.current_session
 
     def get_session_folder(self) -> Optional[Path]:
