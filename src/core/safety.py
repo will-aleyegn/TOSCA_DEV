@@ -17,6 +17,8 @@ class SafetyState(Enum):
     """Safety system states."""
 
     SAFE = "SAFE"
+    ARMED = "ARMED"  # Ready to treat, all interlocks satisfied
+    TREATING = "TREATING"  # Active treatment in progress
     UNSAFE = "UNSAFE"
     EMERGENCY_STOP = "EMERGENCY_STOP"
 
@@ -96,6 +98,89 @@ class SafetyManager(QObject):
             logger.warning(f"Power limit status: {status}")
             self.safety_event.emit("power_limit", status)
             self._update_safety_state()
+
+    def arm_system(self) -> bool:
+        """
+        Transition from SAFE to ARMED state.
+
+        System can only be armed when:
+        - Current state is SAFE
+        - All interlocks are satisfied
+        - Valid session is active
+
+        Returns:
+            True if system successfully armed, False otherwise
+        """
+        if self.state != SafetyState.SAFE:
+            logger.warning(f"Cannot arm system from state: {self.state.value}")
+            return False
+
+        if not (self.gpio_interlock_ok and self.session_valid and self.power_limit_ok):
+            logger.warning("Cannot arm system: not all interlocks satisfied")
+            return False
+
+        self.state = SafetyState.ARMED
+        self.safety_state_changed.emit(self.state)
+        self.safety_event.emit("state_change", "ARMED")
+        logger.info("System armed - ready for treatment")
+        return True
+
+    def start_treatment(self) -> bool:
+        """
+        Transition from ARMED to TREATING state.
+
+        Treatment can only start when system is ARMED.
+
+        Returns:
+            True if treatment started successfully, False otherwise
+        """
+        if self.state != SafetyState.ARMED:
+            logger.warning(f"Cannot start treatment from state: {self.state.value}")
+            return False
+
+        self.state = SafetyState.TREATING
+        self.safety_state_changed.emit(self.state)
+        self.safety_event.emit("state_change", "TREATING")
+        logger.info("Treatment started")
+        return True
+
+    def stop_treatment(self) -> bool:
+        """
+        Transition from TREATING to ARMED state.
+
+        Stops active treatment and returns to ARMED state.
+
+        Returns:
+            True if treatment stopped successfully, False otherwise
+        """
+        if self.state != SafetyState.TREATING:
+            logger.warning(f"Cannot stop treatment from state: {self.state.value}")
+            return False
+
+        self.state = SafetyState.ARMED
+        self.safety_state_changed.emit(self.state)
+        self.safety_event.emit("state_change", "ARMED (treatment stopped)")
+        logger.info("Treatment stopped - system still armed")
+        return True
+
+    def disarm_system(self) -> bool:
+        """
+        Transition from ARMED to SAFE state.
+
+        Returns system to safe state when treatment is complete.
+
+        Returns:
+            True if system successfully disarmed, False otherwise
+        """
+        if self.state not in (SafetyState.ARMED, SafetyState.TREATING):
+            logger.warning(f"Cannot disarm system from state: {self.state.value}")
+            return False
+
+        self.state = SafetyState.SAFE
+        self.safety_state_changed.emit(self.state)
+        self.safety_event.emit("state_change", "SAFE (disarmed)")
+        logger.info("System disarmed - returned to safe state")
+        return True
 
     def trigger_emergency_stop(self) -> None:
         """
@@ -179,6 +264,10 @@ class SafetyManager(QObject):
         Evaluate all safety conditions and update state.
 
         Called whenever any safety input changes.
+
+        Note: ARMED and TREATING states require explicit transitions via
+        arm_system() and start_treatment(). This method only handles
+        safety violations (transitions to UNSAFE or EMERGENCY_STOP).
         """
         # Emergency stop overrides everything
         if self.emergency_stop_active:
@@ -191,9 +280,17 @@ class SafetyManager(QObject):
             )
 
             if all_conditions_met:
-                new_state = SafetyState.SAFE
-                new_enable = True
+                # If interlocks satisfied, maintain current state
+                # (don't automatically transition to SAFE from ARMED/TREATING)
+                if self.state in (SafetyState.ARMED, SafetyState.TREATING):
+                    new_state = self.state  # Stay in ARMED or TREATING
+                    new_enable = True
+                else:
+                    # From UNSAFE -> SAFE when interlocks are satisfied
+                    new_state = SafetyState.SAFE
+                    new_enable = True
             else:
+                # Safety violation - transition to UNSAFE from any state
                 new_state = SafetyState.UNSAFE
                 new_enable = False
 
