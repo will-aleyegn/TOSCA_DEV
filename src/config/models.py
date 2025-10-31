@@ -5,7 +5,11 @@ Pydantic configuration models for TOSCA Laser Control System.
 Provides type-safe configuration with validation.
 """
 
-from pydantic import BaseModel, Field, ValidationInfo, field_validator
+import logging
+
+from pydantic import BaseModel, Field, model_validator
+
+logger = logging.getLogger(__name__)
 
 
 class CameraConfig(BaseModel):
@@ -125,7 +129,10 @@ class SafetyConfig(BaseModel):
 
     watchdog_enabled: bool = Field(default=True, description="Enable hardware watchdog timer")
     watchdog_heartbeat_ms: int = Field(
-        default=500, ge=100, le=900, description="Heartbeat interval (must be < watchdog timeout)"
+        default=500,
+        ge=100,
+        le=4000,
+        description="Heartbeat interval (must be < watchdog timeout)",
     )
     emergency_stop_enabled: bool = Field(
         default=True, description="Enable emergency stop functionality"
@@ -136,15 +143,6 @@ class SafetyConfig(BaseModel):
     laser_enable_requires_interlocks: bool = Field(
         default=True, description="Laser cannot enable without valid interlocks"
     )
-
-    @field_validator("watchdog_heartbeat_ms")
-    @classmethod
-    def validate_heartbeat(cls, v: int, info: ValidationInfo) -> int:
-        """Ensure heartbeat is less than watchdog timeout."""
-        gpio_timeout = 1000
-        if v >= gpio_timeout:
-            raise ValueError(f"Heartbeat {v}ms must be less than watchdog timeout {gpio_timeout}ms")
-        return v
 
 
 class GUIConfig(BaseModel):
@@ -190,3 +188,37 @@ class TOSCAConfig(BaseModel):
     safety: SafetyConfig = Field(default_factory=SafetyConfig)
     gui: GUIConfig = Field(default_factory=GUIConfig)
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
+
+    @model_validator(mode="after")
+    def validate_heartbeat_against_timeout(self) -> "TOSCAConfig":
+        """
+        Ensure heartbeat is less than watchdog timeout.
+
+        Validates that safety heartbeat interval is shorter than
+        the GPIO watchdog timeout to prevent false timeout triggers.
+
+        Returns:
+            Validated config instance
+
+        Raises:
+            ValueError: If heartbeat >= timeout
+        """
+        heartbeat = self.safety.watchdog_heartbeat_ms
+        timeout = self.hardware.gpio.watchdog_timeout_ms
+
+        if heartbeat >= timeout:
+            raise ValueError(
+                f"Safety heartbeat interval ({heartbeat}ms) must be less than "
+                f"GPIO watchdog timeout ({timeout}ms). "
+                f"Recommended: heartbeat = timeout / 2 = {timeout // 2}ms"
+            )
+
+        # Additional safety margin check (heartbeat should be < 90% of timeout)
+        safety_margin = 0.9
+        if heartbeat >= timeout * safety_margin:
+            logger.warning(
+                f"Safety heartbeat ({heartbeat}ms) is close to timeout ({timeout}ms). "
+                f"Recommended margin: heartbeat < {timeout * safety_margin:.0f}ms"
+            )
+
+        return self

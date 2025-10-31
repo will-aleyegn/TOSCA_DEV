@@ -3,6 +3,28 @@ Event logger for TOSCA treatment system.
 
 Provides immutable audit trail for all safety-critical and operational events.
 Integrates with database SafetyLog table for persistence and emits PyQt6 signals.
+
+ARCHITECTURE ASSUMPTION:
+This implementation assumes single-process operation. The log rotation and
+cleanup methods are not designed for concurrent access from multiple processes.
+
+If TOSCA architecture changes to support multi-process operation (e.g., separate
+processes for UI and hardware control), the following changes would be required:
+
+1. Add file-based locking around rotation check-and-rename operation:
+   ```python
+   from filelock import FileLock
+
+   lock = FileLock(str(self.log_file) + ".lock")
+   with lock:
+       # Perform rotation atomically
+   ```
+
+2. Use inter-process signaling for log cleanup coordination
+
+3. Consider using a dedicated logging service/daemon
+
+Current implementation is appropriate for single-process medical device software.
 """
 
 import json
@@ -14,7 +36,7 @@ from typing import Any, Optional
 
 from PyQt6.QtCore import QObject, pyqtSignal
 
-from database.db_manager import DatabaseManager
+from src.database.db_manager import DatabaseManager
 
 logger = logging.getLogger(__name__)
 
@@ -367,6 +389,11 @@ class EventLogger(QObject):
 
         Rotation occurs when the current log file exceeds rotation_size_mb.
         Rotated files are named with timestamp: events_YYYY-MM-DD_HH-MM-SS.jsonl
+
+        THREAD SAFETY: This method is safe for single-process, multi-threaded use.
+        The try-except block handles race conditions from concurrent rotation attempts.
+
+        NOT SAFE FOR: Multi-process concurrent access. Would require file locking.
         """
         try:
             if not self.log_file.exists():
@@ -401,6 +428,11 @@ class EventLogger(QObject):
 
         Scans the log directory for rotated log files (events_YYYY-MM-DD_*.jsonl)
         and deletes files older than the retention period.
+
+        THREAD SAFETY: This method is safe for single-process, multi-threaded use.
+        File deletion is atomic at the OS level.
+
+        NOT SAFE FOR: Multi-process concurrent cleanup. Would require coordination.
         """
         try:
             log_dir = self.log_file.parent

@@ -10,19 +10,50 @@ from pathlib import Path
 from typing import Optional
 
 import psutil  # type: ignore[import-untyped]
-from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtWidgets import (
-    QGridLayout,
-    QGroupBox,
-    QLabel,
-    QPushButton,
-    QVBoxLayout,
-    QWidget,
-)
+from PyQt6.QtCore import QObject, QRunnable, Qt, QThreadPool, QTimer, pyqtSignal
+from PyQt6.QtGui import QCloseEvent
+from PyQt6.QtWidgets import QGridLayout, QGroupBox, QLabel, QPushButton, QVBoxLayout, QWidget
 
 from database.db_manager import DatabaseManager
 
 logger = logging.getLogger(__name__)
+
+
+class WorkerSignals(QObject):
+    """Signals for background worker threads."""
+
+    finished = pyqtSignal(bool, str, dict)  # (success, message, stats)
+    error = pyqtSignal(str)  # error_message
+
+
+class VacuumWorker(QRunnable):
+    """
+    Background worker for database vacuum operation.
+
+    Executes vacuum in thread pool to prevent GUI freezing.
+    Emits signals when complete for UI updates.
+    """
+
+    def __init__(self, db_manager: DatabaseManager) -> None:
+        """
+        Initialize vacuum worker.
+
+        Args:
+            db_manager: Database manager instance
+        """
+        super().__init__()
+        self.db_manager = db_manager
+        self.signals = WorkerSignals()
+
+    def run(self) -> None:
+        """Execute vacuum operation in background thread."""
+        try:
+            logger.info("Starting database vacuum in background thread")
+            success, message, stats = self.db_manager.vacuum_database()
+            self.signals.finished.emit(success, message, stats)
+        except Exception as e:
+            logger.error(f"Vacuum worker error: {e}", exc_info=True)
+            self.signals.error.emit(str(e))
 
 
 class PerformanceDashboardWidget(QWidget):
@@ -335,7 +366,7 @@ class PerformanceDashboardWidget(QWidget):
             )
 
     def _on_vacuum_clicked(self) -> None:
-        """Handle vacuum database button click."""
+        """Handle vacuum database button click (background thread)."""
         if not self.db_manager:
             logger.warning("Cannot vacuum database: no db manager")
             return
@@ -343,14 +374,41 @@ class PerformanceDashboardWidget(QWidget):
         try:
             self.vacuum_button.setEnabled(False)
             self.vacuum_button.setText("Vacuuming...")
+            self.recommendations_label.setText("Database vacuum in progress...")
+            self.recommendations_label.setStyleSheet(
+                "padding: 10px; background-color: #E3F2FD; "
+                "border: 2px solid #2196F3; border-radius: 5px;"
+            )
 
-            logger.info("Starting database vacuum (user-initiated)")
-            success, message, stats = self.db_manager.vacuum_database()
+            logger.info("Starting database vacuum (user-initiated, background thread)")
 
+            # Create and start worker in background
+            worker = VacuumWorker(self.db_manager)
+            worker.signals.finished.connect(self._on_vacuum_finished)
+            worker.signals.error.connect(self._on_vacuum_error)
+            QThreadPool.globalInstance().start(worker)
+
+        except Exception as e:
+            logger.error(f"Error starting vacuum worker: {e}")
+            self._on_vacuum_error(str(e))
+
+    def _on_vacuum_finished(self, success: bool, message: str, stats: dict) -> None:
+        """
+        Handle completion of vacuum operation (called from background thread signal).
+
+        Args:
+            success: Whether vacuum succeeded
+            message: Result message
+            stats: Vacuum statistics dictionary
+        """
+        try:
             if success:
                 logger.info(f"Database vacuum complete: {message}")
+                reduction = stats.get("size_reduction_percent", 0)
                 self.recommendations_label.setText(
-                    f"Vacuum complete: {stats.get('size_reduction_percent', 0):.1f}% reduction"
+                    f"Vacuum complete: {reduction:.1f}% reduction "
+                    f"({stats.get('size_before_mb', 0):.1f}MB → "
+                    f"{stats.get('size_after_mb', 0):.1f}MB)"
                 )
                 self.recommendations_label.setStyleSheet(
                     "padding: 10px; background-color: #E8F5E9; "
@@ -364,19 +422,49 @@ class PerformanceDashboardWidget(QWidget):
                     "border: 2px solid #F44336; border-radius: 5px;"
                 )
 
-            # Refresh metrics
+            # Refresh metrics to show updated database size
             self.update_metrics()
 
         except Exception as e:
-            logger.error(f"Error during vacuum: {e}")
-            self.recommendations_label.setText(f"Vacuum error: {e}")
+            logger.error(f"Error handling vacuum completion: {e}")
+            self._on_vacuum_error(str(e))
 
         finally:
             self.vacuum_button.setEnabled(True)
             self.vacuum_button.setText("Vacuum Database")
 
+    def _on_vacuum_error(self, error_message: str) -> None:
+        """
+        Handle vacuum operation error (called from background thread signal).
+
+        Args:
+            error_message: Error description
+        """
+        logger.error(f"Vacuum operation error: {error_message}")
+        self.recommendations_label.setText(f"Vacuum error: {error_message}")
+        self.recommendations_label.setStyleSheet(
+            "padding: 10px; background-color: #FFEBEE; "
+            "border: 2px solid #F44336; border-radius: 5px;"
+        )
+        self.vacuum_button.setEnabled(True)
+        self.vacuum_button.setText("Vacuum Database")
+
     def stop_auto_refresh(self) -> None:
         """Stop automatic metric refresh timer."""
-        if hasattr(self, "refresh_timer"):
+        if hasattr(self, "refresh_timer") and self.refresh_timer.isActive():
             self.refresh_timer.stop()
             logger.info("Performance dashboard auto-refresh stopped")
+
+    def closeEvent(self, event: QCloseEvent) -> None:
+        """
+        Handle widget close event.
+
+        Ensures timer is stopped when widget is closed or destroyed
+        to prevent resource leaks and callbacks on deleted widgets.
+
+        Args:
+            event: Close event
+        """
+        logger.debug("Performance dashboard closing, stopping auto-refresh")
+        self.stop_auto_refresh()
+        super().closeEvent(event)
