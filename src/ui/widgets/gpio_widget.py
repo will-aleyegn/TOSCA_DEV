@@ -368,7 +368,7 @@ class GPIOWidget(QWidget):
         requirements_layout = QVBoxLayout()
         requirements_layout.addWidget(QLabel("Requirements for laser operation:"))
         requirements_layout.addWidget(QLabel("  - Smoothing motor must be ON"))
-        requirements_layout.addWidget(QLabel("  # [DONE] Vibration must be DETECTED"))
+        requirements_layout.addWidget(QLabel("  - Vibration must be DETECTED"))
         layout.addLayout(requirements_layout)
 
         group.setLayout(layout)
