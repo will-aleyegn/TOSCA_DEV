@@ -122,20 +122,20 @@ class MainWindow(QMainWindow):
 
         # TAB 1: HARDWARE & DIAGNOSTICS
         # Hardware connection status and diagnostic controls
+        # Layout: 2-column (50% controls | 50% diagnostics) with independent scrolling
         hardware_tab = QWidget()
-        hardware_tab_layout = QVBoxLayout()
+        hardware_tab_layout = QHBoxLayout()
         hardware_tab.setLayout(hardware_tab_layout)
 
-        # Create scroll area for hardware content (prevents vertical squishing)
-        hardware_scroll = QScrollArea()
-        hardware_scroll.setWidgetResizable(True)
-        hardware_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        hardware_scroll.setStyleSheet("QScrollArea { border: none; }")
+        # === LEFT COLUMN (50%): Core Hardware Controls ===
+        left_scroll = QScrollArea()
+        left_scroll.setWidgetResizable(True)
+        left_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        left_scroll.setStyleSheet("QScrollArea { border: none; }")
 
-        # Content widget for scroll area
-        hardware_content = QWidget()
-        hardware_layout = QVBoxLayout()
-        hardware_content.setLayout(hardware_layout)
+        left_content = QWidget()
+        hardware_left_layout = QVBoxLayout()
+        left_content.setLayout(hardware_left_layout)
 
         # === SECTION 1: CAMERA SYSTEM ===
         self.camera_header = QLabel("📷 Camera System ✗")
@@ -143,13 +143,13 @@ class MainWindow(QMainWindow):
             "font-size: 13px; font-weight: bold; padding: 8px; margin-top: 4px; "
             "background-color: #37474F; color: #64B5F6; border-radius: 3px;"
         )
-        hardware_layout.addWidget(self.camera_header)
+        hardware_left_layout.addWidget(self.camera_header)
 
         # Camera connection widget (lightweight status + connect/disconnect)
         from ui.widgets.camera_hardware_panel import CameraHardwarePanel
 
         self.camera_hardware_panel = CameraHardwarePanel(None)  # Will set camera_live_view later
-        hardware_layout.addWidget(self.camera_hardware_panel)
+        hardware_left_layout.addWidget(self.camera_hardware_panel)
 
         # === SECTION 2: LINEAR ACTUATOR ===
         self.actuator_header = QLabel("🔧 Linear Actuator Controller ✗")
@@ -157,11 +157,13 @@ class MainWindow(QMainWindow):
             "font-size: 13px; font-weight: bold; padding: 8px; margin-top: 12px; "
             "background-color: #37474F; color: #81C784; border-radius: 3px;"
         )
-        hardware_layout.addWidget(self.actuator_header)
+        hardware_left_layout.addWidget(self.actuator_header)
 
-        # Actuator connection widget (will be created in Hardware tab with direct controller)
+        # Actuator connection widget (will be created later with direct controller)
         # Placeholder stored for later widget insertion
-        self.actuator_header_index = hardware_layout.count() - 1  # Remember position for insertion
+        self.actuator_header_index = (
+            hardware_left_layout.count() - 1
+        )  # Remember position for insertion
 
         # === SECTION 3: LASER SYSTEMS ===
         self.laser_header = QLabel("⚡ Laser Systems (Driver + TEC) ✗")
@@ -169,19 +171,32 @@ class MainWindow(QMainWindow):
             "font-size: 13px; font-weight: bold; padding: 8px; margin-top: 12px; "
             "background-color: #37474F; color: #FFD54F; border-radius: 3px;"
         )
-        hardware_layout.addWidget(self.laser_header)
+        hardware_left_layout.addWidget(self.laser_header)
 
         # Laser Driver Control Widget (COM10 - laser diode current control)
         from ui.widgets.laser_widget import LaserWidget
 
         self.laser_widget = LaserWidget(controller=self.laser_controller)
-        hardware_layout.addWidget(self.laser_widget)
+        hardware_left_layout.addWidget(self.laser_widget)
 
         # TEC Control Widget (COM9 - temperature control)
         from ui.widgets.tec_widget import TECWidget
 
         self.tec_widget = TECWidget(controller=self.tec_controller)
-        hardware_layout.addWidget(self.tec_widget)
+        hardware_left_layout.addWidget(self.tec_widget)
+
+        hardware_left_layout.addStretch()
+        left_scroll.setWidget(left_content)
+
+        # === RIGHT COLUMN (50%): Diagnostics & Configuration ===
+        right_scroll = QScrollArea()
+        right_scroll.setWidgetResizable(True)
+        right_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        right_scroll.setStyleSheet("QScrollArea { border: none; }")
+
+        right_content = QWidget()
+        hardware_right_layout = QVBoxLayout()
+        right_content.setLayout(hardware_right_layout)
 
         # === SECTION 4: GPIO DIAGNOSTICS ===
         # GPIO widget contains smoothing device, photodiode, and safety interlocks
@@ -189,7 +204,7 @@ class MainWindow(QMainWindow):
         self.safety_widget = SafetyWidget(
             db_manager=self.db_manager, gpio_controller=self.gpio_controller
         )
-        hardware_layout.addWidget(self.safety_widget)
+        hardware_right_layout.addWidget(self.safety_widget)
 
         # === SECTION 5: CONFIGURATION DISPLAY ===
         self.config_header = QLabel("⚙️ System Configuration")
@@ -197,19 +212,20 @@ class MainWindow(QMainWindow):
             "font-size: 13px; font-weight: bold; padding: 8px; margin-top: 12px; "
             "background-color: #37474F; color: #B0BEC5; border-radius: 3px;"
         )
-        hardware_layout.addWidget(self.config_header)
+        hardware_right_layout.addWidget(self.config_header)
 
         # Configuration display widget (read-only config.yaml values)
         from ui.widgets.config_display_widget import ConfigDisplayWidget
 
         self.config_display_widget = ConfigDisplayWidget()
-        hardware_layout.addWidget(self.config_display_widget)
+        hardware_right_layout.addWidget(self.config_display_widget)
 
-        hardware_layout.addStretch()
+        hardware_right_layout.addStretch()
+        right_scroll.setWidget(right_content)
 
-        # Add content to scroll area
-        hardware_scroll.setWidget(hardware_content)
-        hardware_tab_layout.addWidget(hardware_scroll)
+        # Add columns to the main hardware tab layout with a 50/50 split
+        hardware_tab_layout.addWidget(left_scroll, 1)
+        hardware_tab_layout.addWidget(right_scroll, 1)
 
         self.tabs.addTab(hardware_tab, "Hardware & Diagnostics")
 
@@ -300,25 +316,32 @@ class MainWindow(QMainWindow):
         self.dev_mode_changed.connect(self.treatment_setup_widget.set_dev_mode)
         # Motor widget removed from treatment setup - now only in GPIO diagnostics
 
-        # TAB 3: PROTOCOL BUILDER
-        # ProtocolBuilderWidget for creating/editing treatment protocols with laser ramping
+        # TAB 3: LINE-BASED PROTOCOL BUILDER
+        # LineProtocolBuilderWidget for creating treatment protocols with concurrent actions
         protocol_builder_tab = QWidget()
         builder_layout = QVBoxLayout()
         protocol_builder_tab.setLayout(builder_layout)
 
-        # Header
-        builder_header = QLabel("📝 Protocol Builder - Create Treatment Protocols")
-        builder_header.setStyleSheet(
-            "font-size: 14px; font-weight: bold; padding: 8px; "
-            "background-color: #424242; color: #81C784; border-radius: 3px;"
+        # LineProtocolBuilderWidget (line-based concurrent action protocol editor)
+        from core.protocol_line import SafetyLimits
+        from ui.widgets.line_protocol_builder import LineProtocolBuilderWidget
+
+        self.line_protocol_builder = LineProtocolBuilderWidget()
+
+        # Configure safety limits from TOSCA defaults
+        safety_limits = SafetyLimits(
+            max_power_watts=10.0,
+            max_duration_seconds=300.0,
+            min_actuator_position_mm=-20.0,
+            max_actuator_position_mm=20.0,
+            max_actuator_speed_mm_per_s=5.0,
         )
-        builder_layout.addWidget(builder_header)
+        self.line_protocol_builder.set_safety_limits(safety_limits)
 
-        # ProtocolBuilderWidget (visual protocol editor with laser ramping)
-        from ui.widgets.protocol_builder_widget import ProtocolBuilderWidget
+        # Connect protocol execution signal
+        self.line_protocol_builder.protocol_ready.connect(self._on_line_protocol_ready)
 
-        self.protocol_builder_widget = ProtocolBuilderWidget()
-        builder_layout.addWidget(self.protocol_builder_widget)
+        builder_layout.addWidget(self.line_protocol_builder)
 
         self.tabs.addTab(protocol_builder_tab, "Protocol Builder")
 
@@ -329,8 +352,8 @@ class MainWindow(QMainWindow):
         self.actuator_connection_widget = ActuatorConnectionWidget(
             controller=self.actuator_controller
         )
-        # Insert right after actuator header in hardware layout
-        hardware_layout.insertWidget(
+        # Insert right after actuator header in LEFT column layout
+        hardware_left_layout.insertWidget(
             self.actuator_header_index + 1, self.actuator_connection_widget
         )
         logger.info("Actuator connection widget added to Hardware tab (direct controller)")
@@ -808,6 +831,47 @@ class MainWindow(QMainWindow):
         # Optional: Disable Start Treatment button to prevent re-clicks
         self.treatment_setup_widget.ready_button.setEnabled(False)
         self.treatment_setup_widget.ready_button.setText("✓ Treatment Active")
+
+    def _on_line_protocol_ready(self, protocol: Any) -> None:
+        """
+        Handle protocol ready signal from LineProtocolBuilderWidget.
+
+        Args:
+            protocol: LineBasedProtocol ready for execution
+        """
+        from core.protocol_line import LineBasedProtocol
+
+        if not isinstance(protocol, LineBasedProtocol):
+            logger.error(f"Invalid protocol type: {type(protocol)}")
+            QMessageBox.critical(
+                self, "Protocol Error", "Invalid protocol format. Please rebuild the protocol."
+            )
+            return
+
+        logger.info(f"Protocol ready for execution: {protocol.protocol_name}")
+        logger.info(f"  - Lines: {len(protocol.lines)}")
+        logger.info(f"  - Loop count: {protocol.loop_count}")
+        logger.info(f"  - Total duration: {protocol.calculate_total_duration():.1f}s")
+
+        # Log detailed line information
+        for line in protocol.lines:
+            logger.info(f"  - {line.get_summary()}")
+
+        # TODO: Integrate with ProtocolEngine for execution
+        # For now, just display confirmation
+        QMessageBox.information(
+            self,
+            "Protocol Ready",
+            f"Protocol '{protocol.protocol_name}' is ready for execution.\n\n"
+            f"Lines: {len(protocol.lines)}\n"
+            f"Loop count: {protocol.loop_count}\n"
+            f"Total duration: {protocol.calculate_total_duration():.1f}s\n\n"
+            f"Protocol execution engine integration: TODO",
+        )
+
+        # Switch to Treatment Workflow tab for execution
+        self.tabs.setCurrentIndex(1)  # Index 1 = Treatment Workflow tab
+        logger.info("Switched to Treatment Workflow tab for protocol execution")
 
     def _on_global_estop_clicked(self) -> None:
         """Handle global E-STOP button click."""

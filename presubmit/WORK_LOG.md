@@ -12,7 +12,7 @@ Chronological log of development actions, decisions, and implementations (last 1
 
 ### Action: Comprehensive Code Review - Subject Session & Database Integration ✅
 **Status:** ✅ COMPLETE - 9 issues found (1 CRITICAL, 2 HIGH, 4 MEDIUM, 2 LOW)
-**Duration:** ~2 hours (systematic review using zen MCP codereview tool)
+**Duration:** ~2 hours (systematic code review)
 **Commit:** (pending) "docs: Add Milestone 5.13 - Subject Session & Database Code Review"
 
 **Review Scope:**
@@ -150,7 +150,6 @@ Chronological log of development actions, decisions, and implementations (last 1
 - `docs/architecture/SAFETY_SHUTDOWN_POLICY.md` - Selective shutdown design
 
 **Documentation Updates:**
-- Updated `CLAUDE.md` to v0.9.11-alpha
 - Added Milestone 5.12 to `PROJECT_STATUS.md`
 - Documented architecture grade and strategic recommendations
 - Updated version history
@@ -1002,7 +1001,6 @@ Check: (1) [Step 1], (2) [Step 2], (3) [Step 3]..."
 **Phase 1: Core Foundation**
 - Created `presubmit/active/SESSION_STATE.md` - Session checkpoint for crash recovery (<30s resume)
 - Created `presubmit/reference/SESSION_CHECKPOINT_GUIDE.md` - Complete checkpoint system documentation
-- Created `.claude/commands/checkpoint.md` - Manual `/checkpoint` command (local only)
 - **Commits:** 142e323, c6a2784
 
 **Phase 2: Streamlined Onboarding**

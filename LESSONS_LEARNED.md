@@ -371,7 +371,7 @@ Initially implemented TEC temperature ramping in the protocol engine based on mi
 Jumped to implementation without fully clarifying the user's intent. The phrase "ramp laser over x seconds" was interpreted to include both laser and TEC systems.
 
 #### Solution
-1. Used zen MCP to analyze architecture options
+1. Analyzed architecture options
 2. Asked clarifying questions before implementation
 3. Reverted TEC protocol changes using `git restore`
 4. Implemented correct solution: laser power control only

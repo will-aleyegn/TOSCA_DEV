@@ -85,6 +85,7 @@ credentials.json
 *.swp
 *.swo
 cleanup_*.sh
+README_backup.md
 
 # OS files
 Thumbs.db
@@ -112,10 +113,14 @@ safety_report.json
 # AI Configuration (required in root for Claude Code/MCP)
 .claude/
 .mcp.json
+CLAUDE.md
+presubmit/
 
 # AI-related documentation and installation
 COMPONENT_RECOMMENDATIONS.md
 install.txt
+docs/TOOL_*.md
+docs/UI_REDESIGN_PLAN.md
 
 # Regulatory/FDA Strategy Documents (archive only)
 docs/regulatory_archive/
