@@ -12,12 +12,15 @@ Tests:
 """
 
 import asyncio
+import logging
 import sys
 from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
 from PyQt6.QtCore import QCoreApplication
+
+logger = logging.getLogger(__name__)
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
@@ -263,6 +266,116 @@ class TestRealtimeSafetyMonitoring:
         # Should handle gracefully (already stopped after first)
         assert protocol_engine.state in (ExecutionState.STOPPED, ExecutionState.ERROR)
 
+        execution_task.cancel()
+        try:
+            await execution_task
+        except asyncio.CancelledError:
+            pass
+
+
+    @pytest.mark.asyncio
+    async def test_interlock_failure_timing_under_200ms(
+        self, protocol_engine, safety_manager, mock_laser, app
+    ):
+        """Test protocol halts within 200ms of interlock failure (Week 3 requirement)."""
+        import time
+
+        protocol = create_test_protocol(duration=10.0)
+
+        # Start protocol execution
+        execution_task = asyncio.create_task(
+            protocol_engine.execute_protocol(protocol, record=False)
+        )
+
+        # Wait for protocol to start
+        await asyncio.sleep(0.5)
+        assert protocol_engine.state == ExecutionState.RUNNING
+
+        # Record timing: trigger interlock failure and poll for state change
+        start_time = time.perf_counter()
+        safety_manager.laser_enable_changed.emit(False)
+        app.processEvents()
+
+        # Poll for state change (check every 10ms, max 500ms)
+        max_wait = 0.5
+        poll_interval = 0.01
+        elapsed = 0.0
+        while protocol_engine.state == ExecutionState.RUNNING and elapsed < max_wait:
+            await asyncio.sleep(poll_interval)
+            app.processEvents()
+            elapsed = time.perf_counter() - start_time
+
+        # Measure halt time
+        halt_time = time.perf_counter() - start_time
+
+        # Verify protocol stopped
+        assert protocol_engine.state in (ExecutionState.STOPPED, ExecutionState.ERROR)
+
+        # Verify laser disabled
+        assert not mock_laser.is_output_enabled
+
+        # CRITICAL: Verify halt time under 200ms
+        assert halt_time < 0.200, f"Protocol took {halt_time*1000:.1f}ms to halt (required <200ms)"
+
+        # Log for verification
+        logger.info(f"Interlock failure halt time: {halt_time*1000:.1f}ms (requirement: <200ms)")
+
+        # Cleanup
+        execution_task.cancel()
+        try:
+            await execution_task
+        except asyncio.CancelledError:
+            pass
+
+    @pytest.mark.asyncio
+    async def test_emergency_stop_timing_under_100ms(
+        self, protocol_engine, safety_manager, mock_laser, app
+    ):
+        """Test emergency stop halts protocol within 100ms (Week 3 requirement)."""
+        import time
+
+        protocol = create_test_protocol(duration=10.0)
+
+        # Start protocol execution
+        execution_task = asyncio.create_task(
+            protocol_engine.execute_protocol(protocol, record=False)
+        )
+
+        # Wait for protocol to start
+        await asyncio.sleep(0.5)
+        assert protocol_engine.state == ExecutionState.RUNNING
+
+        # Record timing: trigger emergency stop and poll for state change
+        start_time = time.perf_counter()
+        safety_manager.trigger_emergency_stop()
+        app.processEvents()
+
+        # Poll for state change (check every 5ms, max 300ms)
+        max_wait = 0.3
+        poll_interval = 0.005
+        elapsed = 0.0
+        while protocol_engine.state == ExecutionState.RUNNING and elapsed < max_wait:
+            await asyncio.sleep(poll_interval)
+            app.processEvents()
+            elapsed = time.perf_counter() - start_time
+
+        # Measure halt time
+        halt_time = time.perf_counter() - start_time
+
+        # Verify protocol stopped
+        assert protocol_engine.state in (ExecutionState.STOPPED, ExecutionState.ERROR)
+
+        # Verify laser disabled
+        assert not mock_laser.is_output_enabled
+        assert mock_laser.power_setpoint_mw == 0.0
+
+        # CRITICAL: Verify halt time under 100ms
+        assert halt_time < 0.100, f"E-stop took {halt_time*1000:.1f}ms to halt (required <100ms)"
+
+        # Log for verification
+        logger.info(f"Emergency stop halt time: {halt_time*1000:.1f}ms (requirement: <100ms)")
+
+        # Cleanup
         execution_task.cancel()
         try:
             await execution_task
