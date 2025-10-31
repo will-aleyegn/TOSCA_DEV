@@ -517,11 +517,10 @@ def _is_exposure_safe(self, exposure_us: int) -> bool:
 
 - **CAMERA_PERFORMANCE_FIXES.md** - Camera optimization context
 - **LESSONS_LEARNED.md** - Camera-related lessons
-- **CLAUDE.md** - Project overview and safety philosophy
+- **PROJECT_STATUS.md** - Project overview and safety philosophy
 
 ---
 
 **Document Version:** 1.0
-**Author:** AI Assistant (Claude Code)
 **Review Required:** Usability testing with target users
 **Compliance Review:** FDA human factors validation

@@ -38,7 +38,7 @@ This inconsistency created several problems:
 - **Hollywood Principle:** "Don't call us, we'll call you" - inversion of control pattern
 - **Code Maintainability:** Single instantiation point in MainWindow simplifies refactoring
 
-### Code Review Findings (zen review - 2025-10-30)
+### Code Review Findings (Comprehensive Review - 2025-10-30)
 **HIGH Priority Issue #1:** Architectural inconsistency across hardware widgets
 - ActuatorConnectionWidget uses DI pattern (Phase 2)
 - 4 other hardware widgets use self-instantiation (inconsistent)
@@ -294,7 +294,7 @@ class MainWindow(QMainWindow):
 ## Validation Plan
 
 ### Pre-Implementation Validation ✅ COMPLETE
-1. ✅ Code review identified HIGH priority issue (zen review)
+1. ✅ Code review identified HIGH priority issue (comprehensive review)
 2. ✅ Documented all widget controller patterns
 3. ✅ Created comprehensive refactoring plan (Phase 4A-4D)
 4. ✅ Wrote ADR-002 (this document)

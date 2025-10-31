@@ -249,7 +249,7 @@ if low_str is not None:
 
 ## Investigation Tools Used
 
-### Zen Debug MCP Tool
+### Systematic Debugging Analysis
 
 Multi-step investigation with systematic hypothesis testing:
 - **Step 1**: Evidence collection (settings files, live queries, purchase order)

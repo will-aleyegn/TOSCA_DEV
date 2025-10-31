@@ -1,0 +1,77 @@
+{
+  "protocol_name": "Simple Treatment Example",
+  "version": "1.0",
+  "description": "Basic 3-line protocol demonstrating move + laser + dwell",
+  "loop_count": 1,
+  "created_date": "2025-10-30T12:00:00",
+  "author": "TOSCA Team",
+  "safety_limits": {
+    "max_power_watts": 10.0,
+    "max_duration_seconds": 300.0,
+    "min_actuator_position_mm": 0.0,
+    "max_actuator_position_mm": 20.0,
+    "max_actuator_speed_mm_per_s": 5.0
+  },
+  "lines": [
+    {
+      "line_number": 1,
+      "movement": {
+        "type": "move",
+        "params": {
+          "target_position_mm": 5.0,
+          "speed_mm_per_s": 1.0,
+          "move_type": "absolute"
+        }
+      },
+      "laser": {
+        "type": "set",
+        "params": {
+          "power_watts": 2.0
+        }
+      },
+      "dwell": {
+        "duration_s": 3.0
+      },
+      "notes": "Move to 5mm, apply 2W laser, hold for 3 seconds"
+    },
+    {
+      "line_number": 2,
+      "movement": {
+        "type": "move",
+        "params": {
+          "target_position_mm": 10.0,
+          "speed_mm_per_s": 1.5,
+          "move_type": "absolute"
+        }
+      },
+      "laser": {
+        "type": "ramp",
+        "params": {
+          "start_power_watts": 2.0,
+          "end_power_watts": 5.0,
+          "duration_s": 5.0
+        }
+      },
+      "dwell": {
+        "duration_s": 5.0
+      },
+      "notes": "Move to 10mm, ramp laser 2W to 5W over 5 seconds"
+    },
+    {
+      "line_number": 3,
+      "movement": {
+        "type": "home",
+        "params": {
+          "speed_mm_per_s": 2.0
+        }
+      },
+      "laser": {
+        "type": "set",
+        "params": {
+          "power_watts": 0.0
+        }
+      },
+      "notes": "Return home and turn off laser"
+    }
+  ]
+}

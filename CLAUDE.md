@@ -429,8 +429,8 @@ pytest --cov=src --cov-report=html
 - `docs/architecture/SAFETY_SHUTDOWN_POLICY.md` - Selective shutdown rationale
 
 ### Project Management
-- `PROJECT_STATUS.md` - Current milestones, component status, technical debt
-- `WORK_LOG.md` - Detailed development history and decisions
+- `presubmit/PROJECT_STATUS.md` - Current milestones, component status, technical debt
+- `presubmit/WORK_LOG.md` - Detailed development history and decisions
 - `LESSONS_LEARNED.md` - Critical bugs, solutions, prevention strategies
 - `README.md` - Installation, setup, testing instructions
 
@@ -553,7 +553,7 @@ Events are logged to both:
 **v0.9.8-alpha (2025-10-30):** Production-ready camera + Allied Vision API compliance
 **v0.9.7-alpha (2025-10-29):** TEC/Laser integration + protocol builder enhancements
 **v0.9.6-alpha (2025-10-28):** Hardware tab enhancements + code cleanup
-**v0.9.5-alpha (2025-10-28):** AI onboarding + Zen MCP integration
+**v0.9.5-alpha (2025-10-28):** Development workflow optimization
 **v0.9.4-alpha (2025-10-27):** UI/UX redesign Phase 3 complete
 **v0.9.3-alpha (2025-10-27):** UI/UX redesign Phase 2 complete
 **v0.9.2-alpha (2025-10-27):** UI/UX redesign Phase 1 complete

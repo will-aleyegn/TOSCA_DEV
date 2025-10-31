@@ -415,10 +415,9 @@ If issues arise, revert to previous behavior:
 - **LESSONS_LEARNED.md #1** - QImage memory lifetime bug
 - **LESSONS_LEARNED.md #12** - Widget reparenting anti-pattern
 - **LESSONS_LEARNED.md #13** - Hardware binning vs software downsampling
-- **CLAUDE.md** - Camera architecture overview
+- **PROJECT_STATUS.md** - Camera architecture overview
 
 ---
 
 **Document Version:** 1.0
-**Author:** AI Assistant (Claude Code)
 **Review Required:** Hardware validation with actual Allied Vision camera

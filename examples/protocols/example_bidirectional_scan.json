@@ -1,0 +1,121 @@
+{
+  "protocol_name": "Bidirectional Scanning Example",
+  "version": "1.0",
+  "description": "Demonstrates negative position support for bidirectional actuator movement",
+  "loop_count": 2,
+  "created_date": "2025-10-30T12:00:00",
+  "author": "TOSCA Team",
+  "safety_limits": {
+    "max_power_watts": 10.0,
+    "max_duration_seconds": 300.0,
+    "min_actuator_position_mm": -20.0,
+    "max_actuator_position_mm": 20.0,
+    "max_actuator_speed_mm_per_s": 5.0
+  },
+  "lines": [
+    {
+      "line_number": 1,
+      "movement": {
+        "type": "move",
+        "params": {
+          "target_position_mm": -10.0,
+          "speed_mm_per_s": 2.0,
+          "move_type": "absolute"
+        }
+      },
+      "laser": {
+        "type": "set",
+        "params": {
+          "power_watts": 2.5
+        }
+      },
+      "dwell": {
+        "duration_s": 2.0
+      },
+      "notes": "Move to negative position (-10mm), apply laser"
+    },
+    {
+      "line_number": 2,
+      "movement": {
+        "type": "move",
+        "params": {
+          "target_position_mm": 0.0,
+          "speed_mm_per_s": 2.0,
+          "move_type": "absolute"
+        }
+      },
+      "laser": {
+        "type": "ramp",
+        "params": {
+          "start_power_watts": 2.5,
+          "end_power_watts": 5.0,
+          "duration_s": 3.0
+        }
+      },
+      "dwell": {
+        "duration_s": 5.0
+      },
+      "notes": "Move through center (0mm) with ramping laser"
+    },
+    {
+      "line_number": 3,
+      "movement": {
+        "type": "move",
+        "params": {
+          "target_position_mm": 10.0,
+          "speed_mm_per_s": 2.0,
+          "move_type": "absolute"
+        }
+      },
+      "laser": {
+        "type": "set",
+        "params": {
+          "power_watts": 5.0
+        }
+      },
+      "dwell": {
+        "duration_s": 2.0
+      },
+      "notes": "Move to positive position (+10mm), maintain high power"
+    },
+    {
+      "line_number": 4,
+      "movement": {
+        "type": "move",
+        "params": {
+          "target_position_mm": 0.0,
+          "speed_mm_per_s": 3.0,
+          "move_type": "absolute"
+        }
+      },
+      "laser": {
+        "type": "ramp",
+        "params": {
+          "start_power_watts": 5.0,
+          "end_power_watts": 0.0,
+          "duration_s": 2.0
+        }
+      },
+      "dwell": {
+        "duration_s": 3.0
+      },
+      "notes": "Return to center, ramp laser down to zero"
+    },
+    {
+      "line_number": 5,
+      "movement": {
+        "type": "home",
+        "params": {
+          "speed_mm_per_s": 2.0
+        }
+      },
+      "laser": {
+        "type": "set",
+        "params": {
+          "power_watts": 0.0
+        }
+      },
+      "notes": "Return to home position, laser off"
+    }
+  ]
+}

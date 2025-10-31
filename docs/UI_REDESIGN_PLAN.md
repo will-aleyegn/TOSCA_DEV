@@ -939,7 +939,7 @@ gpio_controller.photodiode_power_changed.connect(...)
 
 ## References
 
-- Original analysis: Zen MCP gemini-2.5-pro consultation (2025-10-27)
+- Original analysis: Comprehensive design consultation (2025-10-27)
 - Current codebase: `src/ui/main_window.py`, `src/ui/widgets/*`
 - Safety architecture: `docs/architecture/SAFETY_SHUTDOWN_POLICY.md`
 - GPIO module: `components/gpio_module/CODE_REVIEW_2025-10-27.md`
