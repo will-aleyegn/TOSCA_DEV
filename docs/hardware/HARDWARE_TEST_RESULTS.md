@@ -4,22 +4,22 @@
 
 ---
 
-## ✅ Hardware Validated
+## [DONE] Hardware Validated
 
 ### 1. DC Coreless Motor (7x25mm)
 - **Model:** Amazon B0967SC28N
 - **Specs:** 1.5-3V, 8000-24000 RPM, 6-20mA
 - **Connection:** Arduino D9 (PWM)
-- **Status:** ✅ **FULLY FUNCTIONAL**
+- **Status:** [DONE] **FULLY FUNCTIONAL**
 
 **Test Results:**
 | PWM Value | Voltage | Description | Status |
 |-----------|---------|-------------|--------|
-| 50 | 1.0V | Very low speed | ✅ Working |
-| 76 | 1.5V | Rated minimum | ✅ Working |
-| 100 | 2.0V | Medium speed | ✅ Working |
-| 127 | 2.5V | High speed | ✅ Working |
-| 153 | 3.0V | Maximum safe | ✅ Working |
+| 50 | 1.0V | Very low speed | [DONE] Working |
+| 76 | 1.5V | Rated minimum | [DONE] Working |
+| 100 | 2.0V | Medium speed | [DONE] Working |
+| 127 | 2.5V | High speed | [DONE] Working |
+| 153 | 3.0V | Maximum safe | [DONE] Working |
 
 **Observations:**
 - Smooth operation at all speeds
@@ -33,7 +33,7 @@
 - **Model:** Amazon B01DK83ZYQ
 - **Interface:** I2C (address 0x68)
 - **Connection:** SDA→A4, SCL→A5, VCC→5V, GND→GND
-- **Status:** ✅ **FULLY FUNCTIONAL**
+- **Status:** [DONE] **FULLY FUNCTIONAL**
 
 **Test Results:**
 ```
@@ -58,7 +58,7 @@ Vibration Magnitude:
 ### 3. Watchdog Timer
 - **Timeout:** 1000ms (1 second)
 - **Heartbeat:** WDT_RESET command every 500ms
-- **Status:** ✅ **FULLY FUNCTIONAL**
+- **Status:** [DONE] **FULLY FUNCTIONAL**
 
 **Firmware Fix Applied:**
 Added `wdt_reset()` calls throughout I2C operations to prevent timeouts:
@@ -85,13 +85,13 @@ When motor and accelerometer are both active, Arduino experiences intermittent r
 
 **Working Solution Found:**
 
-✅ **Correct Sequence:**
+[DONE] **Correct Sequence:**
 1. Start motor at desired speed
 2. Wait for motor to stabilize (1-2 seconds)
 3. Initialize accelerometer (`ACCEL_INIT`)
 4. Read vibration data (`GET_VIBRATION_LEVEL`)
 
-❌ **Problematic Sequence:**
+[FAILED] **Problematic Sequence:**
 1. Initialize accelerometer first
 2. Then start motor → **causes reset**
 
@@ -249,9 +249,9 @@ PWM  Voltage  Motor Speed        Vibration
 
 ## 🚀 Next Steps
 
-1. ✅ Motor hardware validated
-2. ✅ Accelerometer hardware validated
-3. ✅ Integration method identified
+1. [DONE] Motor hardware validated
+2. [DONE] Accelerometer hardware validated
+3. [DONE] Integration method identified
 4. ⬜ Integrate into main TOSCA GUI (`src/main.py`)
 5. ⬜ Add vibration monitoring to treatment protocol
 6. ⬜ Implement motor failure detection

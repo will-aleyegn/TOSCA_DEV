@@ -1,6 +1,6 @@
 # GPIO Safety Interlocks - DEPRECATED
 
-**⚠️ This folder contains deprecated FT232H-based documentation.**
+**WARNING: This folder contains deprecated FT232H-based documentation.**
 
 **Current GPIO implementation uses Arduino Nano with PyFirmata.**
 

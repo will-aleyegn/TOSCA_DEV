@@ -216,8 +216,8 @@ class SafetyManager(QObject):
 # ==============================================================================
 # TEST/EXPERIMENTATION SAFETY MANAGER
 # ==============================================================================
-# ⚠️ WARNING: This class is for hardware experimentation and testing ONLY
-# ⚠️ NOT FOR PRODUCTION USE
+# WARNING: WARNING: This class is for hardware experimentation and testing ONLY
+# WARNING: NOT FOR PRODUCTION USE
 # ==============================================================================
 
 
@@ -225,7 +225,7 @@ class TestSafetyManager(SafetyManager):
     """
     Test/experimentation safety manager with relaxed safety checks.
 
-    ⚠️ DANGER: This class bypasses normal safety interlocks for hardware
+    WARNING: DANGER: This class bypasses normal safety interlocks for hardware
     experimentation and development. Use ONLY for:
     - Hardware setup and calibration
     - Component testing
@@ -258,9 +258,9 @@ class TestSafetyManager(SafetyManager):
 
         # Log prominent warning
         logger.warning("=" * 70)
-        logger.warning("⚠️  TEST SAFETY MANAGER ACTIVATED")
-        logger.warning("⚠️  Safety interlocks are BYPASSED for experimentation")
-        logger.warning("⚠️  NOT FOR PRODUCTION OR CLINICAL USE")
+        logger.warning("WARNING:  TEST SAFETY MANAGER ACTIVATED")
+        logger.warning("WARNING:  Safety interlocks are BYPASSED for experimentation")
+        logger.warning("WARNING:  NOT FOR PRODUCTION OR CLINICAL USE")
         logger.warning("=" * 70)
 
         # Automatically satisfy session requirement for testing
@@ -268,7 +268,7 @@ class TestSafetyManager(SafetyManager):
         logger.warning("Test mode: Session validation automatically satisfied")
 
         if bypass_gpio:
-            logger.critical("⚠️  GPIO INTERLOCK BYPASS ENABLED - USE WITH EXTREME CAUTION!")
+            logger.critical("WARNING:  GPIO INTERLOCK BYPASS ENABLED - USE WITH EXTREME CAUTION!")
             self.set_gpio_interlock_status(True)
 
     def set_session_valid(self, valid: bool) -> None:
@@ -298,7 +298,7 @@ class TestSafetyManager(SafetyManager):
     def get_safety_status_text(self) -> str:
         """Override: Add test mode warning to status text."""
         base_status = super().get_safety_status_text()
-        return f"⚠️  TEST MODE - {base_status}"
+        return f"WARNING:  TEST MODE - {base_status}"
 
     def _update_safety_state(self) -> None:
         """Override: Log all safety state changes in test mode."""

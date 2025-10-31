@@ -11,11 +11,11 @@
 The current TOSCA GUI uses a tab-based navigation pattern that causes information fragmentation and workflow disruption during treatment procedures. This redesign consolidates critical controls and status information into an integrated "Treatment Dashboard" that provides operators with continuous visibility of safety interlocks, sensor data, and treatment progress without requiring tab switching.
 
 **Key Problems Solved:**
-- ✅ Eliminates dangerous context-switching between Safety and Treatment tabs
-- ✅ Provides continuous visibility of master safety state
-- ✅ Consolidates smoothing motor controls with treatment workflow
-- ✅ Creates single "mission control" view for procedure execution
-- ✅ Improves information hierarchy and visual clarity
+- [DONE] Eliminates dangerous context-switching between Safety and Treatment tabs
+- [DONE] Provides continuous visibility of master safety state
+- [DONE] Consolidates smoothing motor controls with treatment workflow
+- [DONE] Creates single "mission control" view for procedure execution
+- [DONE] Improves information hierarchy and visual clarity
 
 ---
 
@@ -77,14 +77,14 @@ The current TOSCA GUI uses a tab-based navigation pattern that causes informatio
 ```
 ┌─────────────┬──────────────────────┬────────────────┐
 │ Laser       │                      │ Interlocks     │
-│ Controls    │   [Camera Feed]      │ ✅ Session OK  │
-│ [Collapse]  │                      │ ✅ GPIO OK     │
-│             │                      │ ✅ Power OK    │
-│ - Power     │                      │ ✅ LASER ON    │
+│ Controls    │   [Camera Feed]      │ [DONE] Session OK  │
+│ [Collapse]  │                      │ [DONE] GPIO OK     │
+│             │                      │ [DONE] Power OK    │
+│ - Power     │                      │ [DONE] LASER ON    │
 │ - Aiming    ├──────────────────────┤                │
 │             │                      │ Smoothing      │
 │ Actuator    │ TREATMENT CONTROL    │ Motor: ON      │
-│ Controls    │ [START] [STOP]       │ Vib: 1.65g ✅  │
+│ Controls    │ [START] [STOP]       │ Vib: 1.65g [DONE]  │
 │ [Collapse]  │ Progress: [======]   │ Photo: 5.2mW   │
 │             │ Status: Running      │                │
 │ - Position  │ Action: Move Ring    │ Events         │
@@ -150,11 +150,11 @@ The current TOSCA GUI uses a tab-based navigation pattern that causes informatio
 ### Phase 2: Treatment Dashboard (High Effort, Transformative Impact)
 **Goal:** Create integrated mission control view
 **Estimated Effort:** 12-16 hours
-**Status:** ✅ **COMPLETE** (7/7 - 100%) 🎉
+**Status:** [DONE] **COMPLETE** (7/7 - 100%) 🎉
 **Files Modified:** `treatment_widget.py`, `safety_widget.py`, `main_window.py`, `active_treatment_widget.py`, `treatment_setup_widget.py`, `smoothing_status_widget.py`
 **New Files:** `interlocks_widget.py`, `smoothing_status_widget.py`, `treatment_setup_widget.py`
 
-#### ⚠️ CRITICAL ARCHITECTURAL FIX (2025-10-27) ✅ **COMPLETED**
+#### WARNING: CRITICAL ARCHITECTURAL FIX (2025-10-27) [DONE] **COMPLETED**
 **Issue:** Two separate top-level tabs ("Treatment Setup" and "Active Treatment") forced operators to perform context-switching at treatment start - the exact problem the redesign aimed to solve.
 
 **Solution:** Unified Treatment Dashboard with QStackedWidget state management
@@ -180,19 +180,19 @@ self.treatment_setup_widget.ready_button.clicked.connect(
 ```
 
 **Benefits:**
-- ✅ Zero tab switching during treatment workflow (mission control achieved)
-- ✅ Clear sequential progression (Setup → Active)
-- ✅ One-way transition prevents accidental return to setup
-- ✅ Operator stays in single context throughout procedure
-- ✅ Reduces cognitive load and potential for navigation errors
+- [DONE] Zero tab switching during treatment workflow (mission control achieved)
+- [DONE] Clear sequential progression (Setup → Active)
+- [DONE] One-way transition prevents accidental return to setup
+- [DONE] Operator stays in single context throughout procedure
+- [DONE] Reduces cognitive load and potential for navigation errors
 
 **Files Modified:**
 - `src/ui/main_window.py` (+18 lines, -3 lines) - QStackedWidget implementation
 - `src/ui/widgets/treatment_setup_widget.py` (+1 line) - Updated button tooltip
 
-**Testing:** ✅ Application starts successfully, no errors in initialization logs
+**Testing:** [DONE] Application starts successfully, no errors in initialization logs
 
-#### 2.1: Create Interlocks Status Widget ✅ **COMPLETED**
+#### 2.1: Create Interlocks Status Widget [DONE] **COMPLETED**
 **File:** `src/ui/widgets/interlocks_widget.py`
 
 ```python
@@ -217,7 +217,7 @@ Connected to signals:
 - Embedded in Active Treatment Dashboard right panel
 - Provides continuous visibility of safety prerequisites
 
-#### 2.2: Restructure Treatment Widget Layout ✅ **COMPLETED**
+#### 2.2: Restructure Treatment Widget Layout [DONE] **COMPLETED**
 **Files:** `src/ui/widgets/treatment_setup_widget.py`, `src/ui/widgets/active_treatment_widget.py`
 
 Split Treatment tab into two distinct widgets with horizontal layouts:
@@ -243,7 +243,7 @@ Split Treatment tab into two distinct widgets with horizontal layouts:
 - Compact font sizes (9-13px) and tight margins (5px) for density
 - Stretch factors ensure proportional space allocation
 
-#### 2.3: Integrate Camera Feed ✅ **COMPLETED**
+#### 2.3: Integrate Camera Feed [DONE] **COMPLETED**
 **File:** `src/ui/widgets/active_treatment_widget.py` (lines 277-306)
 
 **Implementation:** Widget reparenting pattern
@@ -267,7 +267,7 @@ def set_camera_widget(self, camera_widget: Any) -> None:
 - Eliminates need to switch tabs during treatment for safety monitoring
 - Live 30 FPS stream maintained without performance impact
 
-#### 2.4: Create Collapsible Control Panels ⏳ **PLANNED**
+#### 2.4: Create Collapsible Control Panels [PENDING] **PLANNED**
 **Files:** `src/ui/widgets/treatment_setup_widget.py`, potentially new collapsible wrapper widget
 
 **Goal:** Reduce visual clutter in Treatment Setup by making hardware controls collapsible
@@ -308,7 +308,7 @@ Option 2 - QSplitter with collapsible widgets:
 - Reduces scrolling in right panel
 - Maintains access to all controls when needed
 
-#### 2.5: Move Smoothing Motor Controls ✅ **COMPLETED**
+#### 2.5: Move Smoothing Motor Controls [DONE] **COMPLETED**
 **New File:** `src/ui/widgets/smoothing_status_widget.py` (230 lines)
 **Modified:** `src/ui/widgets/active_treatment_widget.py`, `src/ui/main_window.py`
 
@@ -339,7 +339,7 @@ class SmoothingStatusWidget(QWidget):
 - Compact layout (30px button heights, 10-11px fonts) for dashboard density
 - Successfully eliminates tab switching for motor control during treatment
 
-#### 2.6: Combine Setup Tab ✅ **COMPLETED**
+#### 2.6: Combine Setup Tab [DONE] **COMPLETED**
 **File Modified:** `src/ui/main_window.py` (+14 lines, -3 lines)
 **Goal:** Consolidate all pre-treatment setup into single tab
 **Completed:** 2025-10-27
@@ -366,19 +366,19 @@ self.tabs.addTab(setup_tab, "Setup")
 ```
 
 **Implementation Notes:**
-- ✅ **Horizontal-First Design:** Utilizes 1:2 stretch factor ratio (33%/66%)
-- ✅ **Natural Left-to-Right Workflow:** Subject entry → Camera alignment
-- ✅ **Expert-Validated:** Horizontal layout superior to vertical split
-- ✅ **Eliminates Tab Switching:** Both setup tasks visible simultaneously
-- ✅ **Maintains Full Functionality:** All widgets retain their complete feature set
-- ✅ **Signal Connections Preserved:** SessionManager, CameraController unchanged
+- [DONE] **Horizontal-First Design:** Utilizes 1:2 stretch factor ratio (33%/66%)
+- [DONE] **Natural Left-to-Right Workflow:** Subject entry → Camera alignment
+- [DONE] **Expert-Validated:** Horizontal layout superior to vertical split
+- [DONE] **Eliminates Tab Switching:** Both setup tasks visible simultaneously
+- [DONE] **Maintains Full Functionality:** All widgets retain their complete feature set
+- [DONE] **Signal Connections Preserved:** SessionManager, CameraController unchanged
 
 **Benefits Achieved:**
-- ✅ Streamlined pre-treatment workflow (one tab instead of two)
-- ✅ Operator can see camera feed while entering subject information
-- ✅ Reduced navigation complexity (3 tabs → 2 tabs total)
-- ✅ Adheres to "go wider" design principle
-- ✅ Better space utilization on widescreen displays
+- [DONE] Streamlined pre-treatment workflow (one tab instead of two)
+- [DONE] Operator can see camera feed while entering subject information
+- [DONE] Reduced navigation complexity (3 tabs → 2 tabs total)
+- [DONE] Adheres to "go wider" design principle
+- [DONE] Better space utilization on widescreen displays
 
 **Tab Structure After Phase 2.6:**
 1. **Setup** - Subject Selection (33%) + Camera/Alignment (66%)
@@ -405,7 +405,7 @@ splitter.setStretchFactor(1, 2)  # Camera gets 2x space
 - Natural left-to-right workflow (info → visual alignment)
 - Eliminates tab switching during pre-treatment preparation
 
-#### 2.7: Create System Diagnostics Tab ⏳ **PLANNED**
+#### 2.7: Create System Diagnostics Tab [PENDING] **PLANNED**
 **Files:** `src/ui/main_window.py`, potentially new `diagnostics_widget.py`
 **Goal:** Create advanced troubleshooting and system monitoring interface
 
@@ -477,7 +477,7 @@ class DiagnosticsWidget(QWidget):
 **Goal:** Add missing operational capabilities
 **Estimated Effort:** 8-10 hours
 
-#### 3.1: Protocol Selector Widget ⏳ **PLANNED**
+#### 3.1: Protocol Selector Widget [PENDING] **PLANNED**
 **New File:** `src/ui/widgets/protocol_selector_widget.py`
 **Modified:** `src/ui/widgets/treatment_setup_widget.py` (embed selector)
 **Goal:** Replace hardcoded test protocol with dynamic protocol loading
@@ -538,7 +538,7 @@ class ProtocolSelectorWidget(QGroupBox):
 - Visual preview reduces configuration errors
 - Validation prevents runtime protocol errors
 
-#### 3.2: Camera Snapshot Feature ⏳ **PLANNED**
+#### 3.2: Camera Snapshot Feature [PENDING] **PLANNED**
 **Modified:** `src/ui/widgets/active_treatment_widget.py`, `src/core/camera_controller.py`
 **Goal:** Allow operators to capture still images during treatment for documentation
 
@@ -618,7 +618,7 @@ def capture_snapshot(self, session_id: str, annotation: str = "") -> str:
 - Training material (before/after comparisons)
 - Regulatory compliance (treatment documentation)
 
-#### 3.3: Manual Interlock Overrides (Dev Mode) ⏳ **PLANNED**
+#### 3.3: Manual Interlock Overrides (Dev Mode) [PENDING] **PLANNED**
 **Modified:** `src/ui/main_window.py`, `src/core/safety_manager.py`
 **Goal:** Allow developers to bypass safety interlocks for testing and calibration
 
@@ -750,7 +750,7 @@ def _on_dev_mode_changed(self, enabled: bool):
 
 ## Design Specifications
 
-### ⚠️ CRITICAL UI GUIDELINES (Established 2025-10-27)
+### WARNING: CRITICAL UI GUIDELINES (Established 2025-10-27)
 
 **Safety-Critical Requirements:**
 
@@ -763,17 +763,17 @@ def _on_dev_mode_changed(self, enabled: bool):
 - **Body Text:** 12px (general UI text, descriptions)
 - **Headings:** 14-18px, bold
 
-**Violations Fixed (2025-10-27):** ✅ **COMPLETE**
-- ✅ `active_treatment_widget.py:164` - Parameter labels: 9px → 11px
-- ✅ `active_treatment_widget.py:206` - Event log: 10px → 11px
-- ✅ `active_treatment_widget.py:252` - Status label: 10px → 11px
-- ✅ `active_treatment_widget.py:257` - Action label: 9px → 11px
-- ✅ `treatment_setup_widget.py:126` - Validation label: 10px → 11px
-- ✅ `smoothing_status_widget.py:83,92,98,109,120` - All labels: 10px → 11px
+**Violations Fixed (2025-10-27):** [DONE] **COMPLETE**
+- [DONE] `active_treatment_widget.py:164` - Parameter labels: 9px → 11px
+- [DONE] `active_treatment_widget.py:206` - Event log: 10px → 11px
+- [DONE] `active_treatment_widget.py:252` - Status label: 10px → 11px
+- [DONE] `active_treatment_widget.py:257` - Action label: 9px → 11px
+- [DONE] `treatment_setup_widget.py:126` - Validation label: 10px → 11px
+- [DONE] `smoothing_status_widget.py:83,92,98,109,120` - All labels: 10px → 11px
 
 **Non-Critical Violations (Informational text, not safety-critical):**
-- ⚠️ `camera_widget.py` - Exposure/gain/resolution info (10px) - Setup phase only
-- ⚠️ `treatment_widget.py` - Deprecated file (not in use)
+- WARNING: `camera_widget.py` - Exposure/gain/resolution info (10px) - Setup phase only
+- WARNING: `treatment_widget.py` - Deprecated file (not in use)
 
 #### Button Specifications (MANDATORY)
 - **Minimum Height:** 35px for standard buttons
@@ -798,8 +798,8 @@ def _on_dev_mode_changed(self, enabled: bool):
 
 ### Icons
 Use Material Design icons or Unicode symbols:
-- ✓ (U+2713) - Success/Connected
-- ✗ (U+2717) - Error/Disconnected
+- [DONE] (U+2713) - Success/Connected
+- [FAILED] (U+2717) - Error/Disconnected
 - ⚠ (U+26A0) - Warning
 - 🛑 (U+1F6D1) - E-Stop
 - 📷 (U+1F4F7) - Camera
@@ -895,19 +895,19 @@ gpio_controller.photodiode_power_changed.connect(...)
 ## Success Metrics
 
 ### Usability
-- ✓ Reduced tab switches during treatment (from 3-5 to 0)
-- ✓ Global safety state always visible
-- ✓ All critical controls accessible without navigation
+- [DONE] Reduced tab switches during treatment (from 3-5 to 0)
+- [DONE] Global safety state always visible
+- [DONE] All critical controls accessible without navigation
 
 ### Safety
-- ✓ E-Stop accessible from any tab
-- ✓ Master safety indicator provides instant situational awareness
-- ✓ Treatment prerequisites visible before starting
+- [DONE] E-Stop accessible from any tab
+- [DONE] Master safety indicator provides instant situational awareness
+- [DONE] Treatment prerequisites visible before starting
 
 ### Efficiency
-- ✓ Faster treatment setup (consolidated view)
-- ✓ Reduced cognitive load (no context switching)
-- ✓ Improved information hierarchy
+- [DONE] Faster treatment setup (consolidated view)
+- [DONE] Reduced cognitive load (no context switching)
+- [DONE] Improved information hierarchy
 
 ---
 
@@ -952,7 +952,7 @@ gpio_controller.photodiode_power_changed.connect(...)
 
 ### Completed Work
 
-**Phase 1: Quick Wins** ✅ **100% COMPLETE** (5/5 tasks)
+**Phase 1: Quick Wins** [DONE] **100% COMPLETE** (5/5 tasks)
 - Global toolbar with E-STOP button accessible from all tabs
 - Master safety indicator in status bar (green/orange/red)
 - Connection status icons for all hardware
@@ -961,18 +961,18 @@ gpio_controller.photodiode_power_changed.connect(...)
 
 **Phase 2: Treatment Dashboard** 🟡 **57% COMPLETE** (4/7 tasks)
 
-✅ **Completed Tasks:**
+[DONE] **Completed Tasks:**
 1. **InterlocksWidget** - Consolidated safety interlock display showing Session Valid, GPIO Interlock, Power Limit, and final LASER PERMITTED/DENIED status
 2. **Horizontal Layout Restructure** - Transformed vertical squishing layouts into horizontal-first designs with proper space allocation (2:1, 3:2 ratios)
 3. **Camera Integration** - Widget reparenting pattern allows camera feed to display in both Camera/Alignment tab and Active Treatment dashboard (250px compact view)
 4. **SmoothingStatusWidget** - Extracted motor controls from GPIO widget and embedded in Active Treatment dashboard with Enable/Disable buttons, voltage control (0-3V), and live vibration/photodiode displays
 
-⏳ **Remaining Tasks:**
+[PENDING] **Remaining Tasks:**
 - Phase 2.4: Collapsible control panels (Laser, Actuator, Motor in Setup)
 - Phase 2.6: Combined Setup tab (Subject + Camera alignment)
 - Phase 2.7: System Diagnostics tab (advanced troubleshooting interface)
 
-**Phase 3: New Features** ⏳ **0% COMPLETE** (0/3 tasks)
+**Phase 3: New Features** [PENDING] **0% COMPLETE** (0/3 tasks)
 - All features planned but not yet started
 
 ### Key Achievements

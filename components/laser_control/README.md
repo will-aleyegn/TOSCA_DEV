@@ -298,5 +298,5 @@ GUI can be tested in "dry run" mode:
 
 ---
 
-**Component Status:** ✅ Complete - Ready for hardware testing
+**Component Status:** [DONE] Complete - Ready for hardware testing
 **Next Step:** Connect to actual Arroyo laser driver and test with hardware

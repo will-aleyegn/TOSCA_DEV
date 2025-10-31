@@ -62,7 +62,7 @@ def _on_exposure_changed(self, value: int) -> None:
 
         # Show warning
         self.exposure_warning_label.setText(
-            "⚠️ Exposure limited to 33ms (30 FPS). "
+            "WARNING: Exposure limited to 33ms (30 FPS). "
             "Enable 'Allow Long Exposure' for longer times."
         )
         return  # Block the change
@@ -101,7 +101,7 @@ def _is_exposure_safe(self, exposure_us: int) -> bool:
 
 2. **Unsafe attempt (user didn't check box):** Red warning
    ```
-   ⚠️ Exposure 50.0ms > 33ms frame period.
+   WARNING: Exposure 50.0ms > 33ms frame period.
    Enable 'Allow Long Exposure' or reduce exposure.
    ```
 
@@ -167,7 +167,7 @@ self.exposure_warning_label.setWordWrap(True)
 1. User starts streaming
 2. User moves exposure slider to 50ms
    → Slider snaps back to 33ms (automatic)
-   → Warning appears: "⚠️ Exposure limited to 33ms..."
+   → Warning appears: "WARNING: Exposure limited to 33ms..."
    → Console log: "Exposure change blocked: 50000µs exceeds frame period"
    → User sees checkbox is unchecked ❌
 ```
@@ -243,10 +243,10 @@ Examples:
 4. Check FPS counter
 
 **Expected:**
-- ✅ Slider moves without restriction
-- ✅ No warnings displayed
-- ✅ FPS remains at 30.0 (±0.5)
-- ✅ Live view smooth and responsive
+- [DONE] Slider moves without restriction
+- [DONE] No warnings displayed
+- [DONE] FPS remains at 30.0 (±0.5)
+- [DONE] Live view smooth and responsive
 
 ### Test 2: Exposure Limiter (Protection) 🛡️
 
@@ -259,11 +259,11 @@ Examples:
 4. Observe slider behavior
 
 **Expected:**
-- ✅ Slider **snaps back** to 33ms (automatic clamp)
-- ✅ Warning appears: "⚠️ Exposure limited to 33ms..."
-- ✅ Console log: "Exposure change blocked: 50000µs exceeds frame period"
-- ✅ FPS remains at 30.0
-- ✅ User cannot set long exposure
+- [DONE] Slider **snaps back** to 33ms (automatic clamp)
+- [DONE] Warning appears: "WARNING: Exposure limited to 33ms..."
+- [DONE] Console log: "Exposure change blocked: 50000µs exceeds frame period"
+- [DONE] FPS remains at 30.0
+- [DONE] User cannot set long exposure
 
 ### Test 3: Override with Checkbox ⚙️
 
@@ -276,11 +276,11 @@ Examples:
 4. Observe FPS and warning
 
 **Expected:**
-- ✅ Slider moves to 100ms (no snap-back)
-- ✅ Info message: "ℹ️ Long exposure active (100.0ms). Expect ~10.0 FPS"
-- ✅ FPS drops to ~10.0 (expected)
-- ✅ Warning is **orange** (informational), not red (error)
-- ✅ Live view choppy but functional
+- [DONE] Slider moves to 100ms (no snap-back)
+- [DONE] Info message: "ℹ️ Long exposure active (100.0ms). Expect ~10.0 FPS"
+- [DONE] FPS drops to ~10.0 (expected)
+- [DONE] Warning is **orange** (informational), not red (error)
+- [DONE] Live view choppy but functional
 
 ### Test 4: Checkbox Toggle Behavior 🔄
 
@@ -292,12 +292,12 @@ Examples:
 3. Observe behavior
 
 **Expected:**
-- ✅ Warning changes to: "⚠️ Exposure 100.0ms > 33ms frame period..."
-- ✅ User sees they need to either:
+- [DONE] Warning changes to: "WARNING: Exposure 100.0ms > 33ms frame period..."
+- [DONE] User sees they need to either:
   - Re-check checkbox, OR
   - Manually reduce exposure to <33ms
-- ✅ Current exposure preserved (not auto-clamped)
-- ✅ Future changes will be blocked until checkbox re-enabled
+- [DONE] Current exposure preserved (not auto-clamped)
+- [DONE] Future changes will be blocked until checkbox re-enabled
 
 ### Test 5: Auto Exposure Interaction 🤖
 
@@ -309,16 +309,16 @@ Examples:
 3. Observe UI state
 
 **Expected:**
-- ✅ Exposure slider **disabled**
-- ✅ "Allow Long Exposure" checkbox **disabled**
-- ✅ Warning label **cleared**
-- ✅ Camera adjusts exposure automatically
-- ✅ No user intervention possible (correct behavior)
+- [DONE] Exposure slider **disabled**
+- [DONE] "Allow Long Exposure" checkbox **disabled**
+- [DONE] Warning label **cleared**
+- [DONE] Camera adjusts exposure automatically
+- [DONE] No user intervention possible (correct behavior)
 
 **Disable auto exposure:**
-- ✅ Controls re-enabled
-- ✅ Safety check runs on current exposure
-- ✅ Warning appears if exposure > 33ms
+- [DONE] Controls re-enabled
+- [DONE] Safety check runs on current exposure
+- [DONE] Warning appears if exposure > 33ms
 
 ### Test 6: Edge Cases 🔬
 
@@ -358,7 +358,7 @@ Expected: Works, ~10,000 FPS theoretical (limited by camera hardware)
 │ [✓] Allow Long Exposure (>33ms, may drop frames)      │  ← NEW CHECKBOX
 │ ▬▬▬▬▬▬▬▬▬▬▬▬▬▬●▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬          │  ← Slider (0.1ms - 1s)
 │ 10000 µs (10.0 ms)              [Enter µs_____]       │
-│ ⚠️ Exposure limited to 33ms (30 FPS).                 │  ← Warning label
+│ WARNING: Exposure limited to 33ms (30 FPS).                 │  ← Warning label
 │    Enable 'Allow Long Exposure' for longer times.     │
 │                                                        │
 │ Gain (dB):                        [✓] Auto            │
@@ -424,20 +424,20 @@ _on_exposure_changed(value)
 **Requirement:** Prevent use errors that could affect safety or effectiveness
 
 **Implementation:**
-- ✅ Guard rail prevents accidental misconfiguration
-- ✅ Clear warning messages explain consequences
-- ✅ Explicit user acknowledgment required (checkbox)
-- ✅ Visual distinction (color coding: red = error, orange = warning)
+- [DONE] Guard rail prevents accidental misconfiguration
+- [DONE] Clear warning messages explain consequences
+- [DONE] Explicit user acknowledgment required (checkbox)
+- [DONE] Visual distinction (color coding: red = error, orange = warning)
 
 ### IEC 62366-1 (Usability Engineering)
 
 **Requirement:** Risk control through user interface design
 
 **Implementation:**
-- ✅ Progressive disclosure (checkbox hidden until needed)
-- ✅ Immediate feedback (warning appears instantly)
-- ✅ Reversible actions (checkbox can be unchecked)
-- ✅ Predictable behavior (consistent with checkbox state)
+- [DONE] Progressive disclosure (checkbox hidden until needed)
+- [DONE] Immediate feedback (warning appears instantly)
+- [DONE] Reversible actions (checkbox can be unchecked)
+- [DONE] Predictable behavior (consistent with checkbox state)
 
 ### Design Rationale (ADR Format)
 
@@ -448,10 +448,10 @@ _on_exposure_changed(value)
 2. **Override mode:** Explicit checkbox enables long exposures
 
 **Consequences:**
-- ✅ Prevents accidental frame drops
-- ✅ Maintains smooth live view by default
-- ✅ Still allows long exposures for still imaging
-- ✅ Clear user intent required for risky operations
+- [DONE] Prevents accidental frame drops
+- [DONE] Maintains smooth live view by default
+- [DONE] Still allows long exposures for still imaging
+- [DONE] Clear user intent required for risky operations
 
 **Alternatives Considered:**
 1. **No limiter:** Rejected (too easy to misconfigure)

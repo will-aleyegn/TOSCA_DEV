@@ -34,7 +34,7 @@ def test_com_port(port_name: str, baudrate: int = 9600, timeout: float = 2.0):
             port=port_name, baudrate=baudrate, timeout=timeout, write_timeout=timeout
         )
 
-        print(f"✅ Successfully opened {port_name}")
+        print(f"# [DONE] Successfully opened {port_name}")
         print(f"   - Baudrate: {baudrate}")
         print(f"   - Timeout: {timeout}s")
 
@@ -74,15 +74,15 @@ def test_com_port(port_name: str, baudrate: int = 9600, timeout: float = 2.0):
             print(f"   - Likely: Xeryon Linear Actuator")
 
         ser.close()
-        print(f"✅ Port closed successfully")
+        print(f"# [DONE] Port closed successfully")
 
     except serial.SerialException as e:
-        print(f"❌ Error opening {port_name}: {e}")
+        print(f"# [FAILED] Error opening {port_name}: {e}")
         print(f"   - Port may be in use by another application")
         print(f"   - Or device not connected/powered")
 
     except Exception as e:
-        print(f"❌ Unexpected error: {e}")
+        print(f"# [FAILED] Unexpected error: {e}")
 
 
 def main():
@@ -91,7 +91,7 @@ def main():
     print("TOSCA Hardware Detection Utility")
     print("=" * 60)
     print("\nThis script will test available COM ports and identify devices.")
-    print("⚠️  WARNING: This will send test commands to connected devices.")
+    print("WARNING:  WARNING: This will send test commands to connected devices.")
     print("    Ensure laser safety interlocks are disconnected!\n")
 
     input("Press Enter to continue, or Ctrl+C to abort...")
@@ -128,5 +128,5 @@ if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        print("\n\n❌ Detection aborted by user")
+        print("\n\n# [FAILED] Detection aborted by user")
         sys.exit(0)

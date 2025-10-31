@@ -101,7 +101,7 @@ class InterlocksWidget(QGroupBox):
         layout.addWidget(label)
 
         # Status icon/text
-        status_label = QLabel("✗ FAIL")
+        status_label = QLabel("# [FAILED] FAIL")
         status_label.setStyleSheet(
             "padding: 4px 8px; background-color: #2b2b2b; color: #f44336; "
             "font-weight: bold; font-size: 11px; border-radius: 2px;"
@@ -205,13 +205,13 @@ class InterlocksWidget(QGroupBox):
             return
 
         if is_ok:
-            status_label.setText("✓ OK")
+            status_label.setText("# [DONE] OK")
             status_label.setStyleSheet(
                 "padding: 4px 8px; background-color: #2b2b2b; color: #4CAF50; "
                 "font-weight: bold; font-size: 11px; border-radius: 2px;"
             )
         else:
-            text = f"✗ {fail_reason}" if fail_reason else "✗ FAIL"
+            text = f"# [FAILED] {fail_reason}" if fail_reason else "# [FAILED] FAIL"
             status_label.setText(text)
             status_label.setStyleSheet(
                 "padding: 4px 8px; background-color: #2b2b2b; color: #f44336; "

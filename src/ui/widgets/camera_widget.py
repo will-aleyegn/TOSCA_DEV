@@ -628,7 +628,7 @@ class CameraWidget(QWidget):
 
             # Show warning
             self.exposure_warning_label.setText(
-                "⚠️ Exposure limited to 33ms (30 FPS). Enable 'Allow Long Exposure' for longer times."
+                "WARNING: Exposure limited to 33ms (30 FPS). Enable 'Allow Long Exposure' for longer times."
             )
             logger.warning(
                 f"Exposure change blocked: {value}µs exceeds frame period. "
@@ -987,7 +987,7 @@ class CameraWidget(QWidget):
         if not self._is_exposure_safe(exposure_us):
             exposure_ms = exposure_us / 1000.0
             self.exposure_warning_label.setText(
-                f"⚠️ Exposure {exposure_ms:.1f}ms > 33ms frame period. "
+                f"WARNING: Exposure {exposure_ms:.1f}ms > 33ms frame period. "
                 f"Enable 'Allow Long Exposure' or reduce exposure."
             )
         else:

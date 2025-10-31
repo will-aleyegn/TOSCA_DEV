@@ -225,7 +225,7 @@ class LineProtocolBuilderWidget(QWidget):
         layout.addLayout(notes_layout)
 
         # Apply changes button
-        self.apply_changes_btn = QPushButton("✓ Apply Changes to Line")
+        self.apply_changes_btn = QPushButton("Apply Changes to Line")
         self.apply_changes_btn.setStyleSheet(
             "background-color: #4CAF50; color: white; font-weight: bold; padding: 8px;"
         )

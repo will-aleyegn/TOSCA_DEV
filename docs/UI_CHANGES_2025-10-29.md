@@ -2,7 +2,7 @@
 
 **Date:** 2025-10-29
 **Issue:** Camera integration on Treatment Workflow tab
-**Status:** ✅ Complete
+**Status:** [DONE] Complete
 
 ---
 
@@ -42,7 +42,7 @@ The Treatment Workflow tab had several usability issues with camera integration:
 │ Setup/Active     │ │   (Full column)       │   │
 │                  │ └───────────────────────┘   │
 │                  │ [Connect Camera]            │
-│                  │ [Start/Stop Streaming] ✓    │
+│                  │ [Start/Stop Streaming] [DONE]    │
 │                  │ Camera Settings             │
 │                  │ Capture Controls            │
 └──────────────────┴─────────────────────────────┘
@@ -85,11 +85,11 @@ The Treatment Workflow tab had several usability issues with camera integration:
 
 ### Benefits
 
-✅ **Camera prominence** - Full 60% column dedicated to camera feed
-✅ **Streaming controls** - Start/Stop streaming button now visible
-✅ **No squishing** - Scroll areas prevent controls from being compressed
-✅ **Responsive** - Minimum widths prevent excessive compression
-✅ **Consistent pattern** - Matches Hardware tab scrolling implementation
+[DONE] **Camera prominence** - Full 60% column dedicated to camera feed
+[DONE] **Streaming controls** - Start/Stop streaming button now visible
+[DONE] **No squishing** - Scroll areas prevent controls from being compressed
+[DONE] **Responsive** - Minimum widths prevent excessive compression
+[DONE] **Consistent pattern** - Matches Hardware tab scrolling implementation
 
 ### Widget Organization
 
@@ -153,12 +153,12 @@ TreatmentWorkflowTab
 ## Testing
 
 **Verified:**
-- ✅ Application launches without errors
-- ✅ 2-column layout renders correctly (40:60 ratio)
-- ✅ Scrolling works when window resized small
-- ✅ Streaming controls visible (Connect + Start/Stop buttons)
-- ✅ Camera feed displays prominently
-- ✅ All workflow functionality preserved
+- [DONE] Application launches without errors
+- [DONE] 2-column layout renders correctly (40:60 ratio)
+- [DONE] Scrolling works when window resized small
+- [DONE] Streaming controls visible (Connect + Start/Stop buttons)
+- [DONE] Camera feed displays prominently
+- [DONE] All workflow functionality preserved
 
 ---
 
@@ -171,6 +171,6 @@ TreatmentWorkflowTab
 
 ---
 
-**Status:** ✅ Complete
+**Status:** [DONE] Complete
 **Committed:** 2025-10-29
-**Tested:** ✅ Application launches and renders correctly
+**Tested:** [DONE] Application launches and renders correctly

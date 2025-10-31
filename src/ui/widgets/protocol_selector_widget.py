@@ -105,7 +105,7 @@ class ProtocolSelectorWidget(QWidget):
         # Action buttons
         button_layout = QHBoxLayout()
 
-        self.load_btn = QPushButton("✓ Load Selected")
+        self.load_btn = QPushButton("# [DONE] Load Selected")
         self.load_btn.setEnabled(False)
         self.load_btn.setMinimumHeight(35)
         self.load_btn.setStyleSheet(
@@ -273,7 +273,7 @@ Actions: {len(actions)} total
             protocol = Protocol.from_dict(protocol_data)
             self.loaded_protocol = protocol
 
-            self.status_label.setText(f"✓ Loaded: {protocol.protocol_name}")
+            self.status_label.setText(f"# [DONE] Loaded: {protocol.protocol_name}")
             self.status_label.setStyleSheet(
                 "color: #4CAF50; font-size: 11px; font-weight: bold; padding: 5px;"
             )
@@ -286,14 +286,14 @@ Actions: {len(actions)} total
             )
 
         except FileNotFoundError:
-            self.status_label.setText("❌ File not found")
+            self.status_label.setText("# [FAILED] File not found")
             self.status_label.setStyleSheet("color: #f44336; font-size: 11px; padding: 5px;")
         except json.JSONDecodeError as e:
-            self.status_label.setText("❌ Invalid JSON")
+            self.status_label.setText("# [FAILED] Invalid JSON")
             self.status_label.setStyleSheet("color: #f44336; font-size: 11px; padding: 5px;")
             logger.error(f"JSON decode error: {e}")
         except Exception as e:
-            self.status_label.setText("❌ Load failed")
+            self.status_label.setText("# [FAILED] Load failed")
             self.status_label.setStyleSheet("color: #f44336; font-size: 11px; padding: 5px;")
             logger.error(f"Protocol load error: {e}")
 

@@ -200,7 +200,7 @@ errors = controller.get_errors()
 
 Per TOSCA Hardware API Usage Rule, ALWAYS use these native features:
 
-**✅ Native Features to Use:**
+**[DONE] Native Features to Use:**
 1. **Current Control** - Hardware current regulation (0-2000 mA)
 2. **TEC Control** - Hardware temperature control
 3. **Safety Interlocks** - Hardware safety features
@@ -208,7 +208,7 @@ Per TOSCA Hardware API Usage Rule, ALWAYS use these native features:
 5. **Temperature Monitoring** - Hardware temperature sensors
 6. **Output Enable/Disable** - Hardware output control
 
-**❌ Don't Implement in Software:**
+**[FAILED] Don't Implement in Software:**
 - Current regulation loops (use `LAS:SET:CURRent`)
 - Temperature control loops (use `TEC:SET:TEMPerature`)
 - Safety interlocks (use hardware features)
@@ -302,7 +302,7 @@ VALUE<LF>
 
 ## Safety Warnings
 
-⚠️ **LASER SAFETY:**
+WARNING: **LASER SAFETY:**
 - This device controls CLASS 3B or CLASS 4 lasers
 - Requires proper laser safety training
 - Use appropriate safety interlocks
@@ -310,7 +310,7 @@ VALUE<LF>
 - Wear appropriate laser safety eyewear
 - Post appropriate laser warning signs
 
-⚠️ **ELECTRICAL SAFETY:**
+WARNING: **ELECTRICAL SAFETY:**
 - High current device (up to 2A)
 - Ensure proper grounding
 - Do not exceed current limits

@@ -34,13 +34,13 @@ Safety Interlock Failure Detected
         ▼
 ┌─────────────────────────────────────────┐
 │  MAINTAINED: Support Systems            │
-│  ✓ Camera (visual monitoring)           │
-│  ✓ Actuator (position control)          │
-│  ✓ Aiming Laser (low-power alignment)   │
-│  ✓ Smoothing Device (if not fault src)  │
-│  ✓ GPIO monitoring                       │
-│  ✓ Event logging                         │
-│  ✓ UI responsiveness                     │
+│  [DONE] Camera (visual monitoring)           │
+│  [DONE] Actuator (position control)          │
+│  [DONE] Aiming Laser (low-power alignment)   │
+│  [DONE] Smoothing Device (if not fault src)  │
+│  [DONE] GPIO monitoring                       │
+│  [DONE] Event logging                         │
+│  [DONE] UI responsiveness                     │
 └─────────────────────────────────────────┘
 ```
 
@@ -326,10 +326,10 @@ class ProtocolEngine:
 ### After Selective Shutdown
 
 **Immediate Actions:**
-1. ✓ Verify treatment laser OFF (check photodiode < 0.1V)
-2. ✓ Assess patient/tissue status visually (camera)
-3. ✓ Document fault conditions in event log
-4. ✓ Determine root cause
+1. [DONE] Verify treatment laser OFF (check photodiode < 0.1V)
+2. [DONE] Assess patient/tissue status visually (camera)
+3. [DONE] Document fault conditions in event log
+4. [DONE] Determine root cause
 
 **Before Re-enabling Treatment Laser:**
 1. Clear the fault condition

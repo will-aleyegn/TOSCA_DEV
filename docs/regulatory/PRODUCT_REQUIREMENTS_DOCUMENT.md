@@ -614,9 +614,9 @@ Source: `README.md:250-262`
 - Large number of events can slow database queries
 
 **Security:**
-- ⚠️ **NO DATABASE ENCRYPTION** - all data stored in plaintext
-- ⚠️ **NO USER AUTHENTICATION** - any technician ID accepted
-- ⚠️ **NOT SUITABLE FOR CLINICAL DATA** in current state
+- WARNING: **NO DATABASE ENCRYPTION** - all data stored in plaintext
+- WARNING: **NO USER AUTHENTICATION** - any technician ID accepted
+- WARNING: **NOT SUITABLE FOR CLINICAL DATA** in current state
 
 **Hardware:**
 - Footpedal not yet integrated (pin assigned, software ready)

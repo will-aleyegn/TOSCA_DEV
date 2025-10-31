@@ -30,7 +30,7 @@
 - Tools → Programmer → **AVRISP mkII** (or leave default)
 
 ### 4. Verify/Compile
-- Click the **✓ Verify** button (or Sketch → Verify/Compile)
+- Click the **[DONE] Verify** button (or Sketch → Verify/Compile)
 - Wait for "Done compiling" message
 - Check for errors in the output window
 
@@ -128,7 +128,7 @@ Before powering on, verify these connections:
 
 ## Safety Notes
 
-- ⚠️ **DO NOT** exceed MOTOR_SPEED:153 (motor damage!)
-- ⚠️ **DO NOT** connect treatment laser yet (only aiming laser on D4)
-- ⚠️ **Keep photodiode covered** until laser is ready
-- ⚠️ **Test watchdog** before connecting any lasers
+- WARNING: **DO NOT** exceed MOTOR_SPEED:153 (motor damage!)
+- WARNING: **DO NOT** connect treatment laser yet (only aiming laser on D4)
+- WARNING: **Keep photodiode covered** until laser is ready
+- WARNING: **Test watchdog** before connecting any lasers

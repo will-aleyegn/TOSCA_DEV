@@ -22,11 +22,11 @@
 
 ## Validated Features
 
-**Status:** ✓ Tested and Working with Physical Hardware
+**Status:** [DONE] Tested and Working with Physical Hardware
 
 ### Camera Discovery and Connection
 - **Script:** `01_list_cameras.py`
-- **Status:** ✓ Working
+- **Status:** [DONE] Working
 - **Capabilities:**
   - Automatic camera detection
   - Camera ID retrieval
@@ -36,7 +36,7 @@
 
 ### Camera Information Retrieval
 - **Script:** `02_camera_info.py`
-- **Status:** ✓ Working
+- **Status:** [DONE] Working
 - **Capabilities:**
   - Resolution: 1456x1088 pixels
   - Pixel format: RGB8
@@ -46,7 +46,7 @@
 
 ### Single Frame Capture
 - **Script:** `03_capture_single_frame.py`
-- **Status:** ✓ Working
+- **Status:** [DONE] Working
 - **Capabilities:**
   - Single frame acquisition
   - NumPy array conversion
@@ -58,7 +58,7 @@
 
 ### Feature Exploration
 - **Script:** `04_explore_features.py`
-- **Status:** ✓ Working
+- **Status:** [DONE] Working
 - **Capabilities:**
   - 313 total camera features discovered
   - 223 readable features (71%)
@@ -75,7 +75,7 @@
 
 ### Continuous Streaming
 - **Script:** `05_continuous_stream.py`
-- **Status:** ✓ Working
+- **Status:** [DONE] Working
 - **Capabilities:**
   - Continuous frame acquisition
   - Callback-based frame handling
@@ -86,7 +86,7 @@
 
 ### Auto Exposure Control
 - **Script:** `06_set_auto_exposure.py`
-- **Status:** ✓ Working
+- **Status:** [DONE] Working
 - **Capabilities:**
   - Exposure modes: Off, Once, Continuous
   - Automatic brightness adjustment
@@ -609,12 +609,12 @@ test_integration/
 
 ```
 examples/
-├── 01_list_cameras.py            # ✓ Validated
-├── 02_camera_info.py             # ✓ Validated
-├── 03_capture_single_frame.py    # ✓ Validated
-├── 04_explore_features.py        # ✓ Validated
-├── 05_continuous_stream.py       # ✓ Validated
-└── 06_set_auto_exposure.py       # ✓ Validated
+├── 01_list_cameras.py            # [DONE] Validated
+├── 02_camera_info.py             # [DONE] Validated
+├── 03_capture_single_frame.py    # [DONE] Validated
+├── 04_explore_features.py        # [DONE] Validated
+├── 05_continuous_stream.py       # [DONE] Validated
+└── 06_set_auto_exposure.py       # [DONE] Validated
 ```
 
 **Status:** All hardware tests passing with physical camera

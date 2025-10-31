@@ -173,7 +173,7 @@ controller.disconnect()
 
 Per TOSCA Hardware API Usage Rule, ALWAYS use these native features:
 
-**✅ Native Features to Use:**
+**[DONE] Native Features to Use:**
 1. **Position Control** - Hardware absolute/relative positioning
 2. **Velocity Control** - Hardware velocity profiles (0.5-400 mm/s)
 3. **Acceleration/Deceleration** - Hardware profiles (1000-65500)
@@ -181,7 +181,7 @@ Per TOSCA Hardware API Usage Rule, ALWAYS use these native features:
 5. **Status Feedback** - Hardware position reporting
 6. **Emergency Stop** - Hardware stop command
 
-**❌ Don't Implement in Software:**
+**[FAILED] Don't Implement in Software:**
 - Position control loops (use `P` command)
 - Velocity ramping (use `V`, `A`, `D` commands)
 - Motion profiling (hardware handles this)

@@ -140,7 +140,7 @@ The device has correct settings stored internally (configured via Windows Interf
 ## Test Results Archive
 
 **Latest Test:** 2025-10-23
-**Result:** ✅ PASSING
+**Result:** [DONE] PASSING
 
 ```
 Index of axis X found.

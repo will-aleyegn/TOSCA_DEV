@@ -13,7 +13,7 @@
 
 ---
 
-> ⚠️ **CRITICAL NOTICE:** Database encryption is NOT implemented in this version. This system is NOT approved for clinical use and MUST NOT be used with protected health information (PHI) or in production medical environments. See [Known Limitations](#known-limitations) for details.
+> WARNING: **CRITICAL NOTICE:** Database encryption is NOT implemented in this version. This system is NOT approved for clinical use and MUST NOT be used with protected health information (PHI) or in production medical environments. See [Known Limitations](#known-limitations) for details.
 
 ---
 
@@ -22,13 +22,13 @@
 TOSCA is a comprehensive laser control system designed for precision laser applications, integrating hardware control, machine vision, safety interlocks, and automated treatment protocol execution. The system emphasizes safety through multi-layered hardware and software interlocks, comprehensive event logging, and a robust hardware abstraction layer.
 
 **Primary Capabilities:**
-- 🔴 Precision laser power control (0-10W diode laser) with real-time feedback
-- 📐 Linear actuator positioning (0-20mm range) for automated sequences
-- 📷 Machine vision integration (Allied Vision 1800 U-158c, 30 FPS)
-- 🛡️ Multi-layer safety architecture with hardware interlocks and watchdog
-- 📊 Comprehensive session and event logging (dual storage: SQLite + JSONL)
-- 🎯 Configurable treatment protocols with visual builder and automated execution
-- 🔒 Selective shutdown policy (disable laser only, preserve diagnostics)
+- Precision laser power control (0-10W diode laser) with real-time feedback
+- Linear actuator positioning (0-20mm range) for automated sequences
+- Machine vision integration (Allied Vision 1800 U-158c, 30 FPS)
+- Multi-layer safety architecture with hardware interlocks and watchdog
+- Comprehensive session and event logging (dual storage: SQLite + JSONL)
+- Configurable treatment protocols with visual builder and automated execution
+- Selective shutdown policy (disable laser only, preserve diagnostics)
 
 ---
 
@@ -237,20 +237,20 @@ TOSCA implements a **defense-in-depth safety strategy** with redundant hardware 
    - Implementation: Arduino digital input monitoring
    - Fail-safe: Releasing pedal immediately disables laser
 
-2. **Smoothing Device Health Monitoring** ✅ **Implemented**
+2. **Smoothing Device Health Monitoring** [DONE] **Implemented**
    - Type: Dual-signal validation (motor + vibration)
    - Behavior: Both motor activation AND vibration detection required
    - Implementation: Digital output (D9 PWM) and input (I2C accelerometer)
    - Calibration: 0.8g threshold (5.7× safety margin above 0.14g noise)
    - Fail-safe: Loss of either signal triggers immediate shutdown
 
-3. **Photodiode Power Verification** ✅ **Implemented**
+3. **Photodiode Power Verification** [DONE] **Implemented**
    - Type: Continuous output monitoring
    - Behavior: Measured power must match commanded power
    - Implementation: Analog input (A0, 10-bit ADC, 0-5V)
    - Fail-safe: Power deviation beyond threshold triggers shutdown
 
-4. **Hardware Watchdog Timer** ✅ **Implemented**
+4. **Hardware Watchdog Timer** [DONE] **Implemented**
    - Type: Independent firmware-based timeout (AVR WDT)
    - Behavior: Requires continuous heartbeat from main application
    - Timing: 1000ms timeout, 500ms heartbeat (2× safety margin)
@@ -264,26 +264,26 @@ TOSCA implements a **defense-in-depth safety strategy** with redundant hardware 
 <details>
 <summary><b>Software Interlocks (Secondary Layer)</b></summary>
 
-1. **Emergency Stop (E-Stop)** ✅ **Implemented**
+1. **Emergency Stop (E-Stop)** [DONE] **Implemented**
    - Large red button in global toolbar (always visible)
    - Immediate treatment halt with highest priority
    - Bypasses all queues and state checks
    - Locks system until manually cleared (requires all interlocks satisfied)
    - Response time: <50ms (measured)
 
-2. **Power Limit Enforcement** ✅ **Implemented**
+2. **Power Limit Enforcement** [DONE] **Implemented**
    - Configurable maximum laser power threshold
    - Real-time validation during protocol execution
    - Automatic shutdown if limit exceeded
    - Event logging for all limit violations
 
-3. **Session Validation** ✅ **Implemented**
+3. **Session Validation** [DONE] **Implemented**
    - Active session required for laser operation
    - Ensures all operations are logged and attributed
    - Prevents accidental firing outside treatment context
    - Database persistence for audit trail
 
-4. **State Machine Control** ✅ **Implemented**
+4. **State Machine Control** [DONE] **Implemented**
    - Strict state transitions (SAFE → UNSAFE → EMERGENCY_STOP)
    - Operations only permitted in valid states
    - Any interlock failure → immediate FAULT transition
@@ -297,9 +297,9 @@ TOSCA implements a **defense-in-depth safety strategy** with redundant hardware 
 
 **Critical Design Decision:** When a safety fault occurs:
 
-✅ **DISABLE:** Treatment laser only (immediate power-off)
-✅ **PRESERVE:** Camera, actuator, monitoring systems, aiming laser
-✅ **RATIONALE:** Allow diagnosis and safe system recovery while maintaining safety
+[DONE] **DISABLE:** Treatment laser only (immediate power-off)
+[DONE] **PRESERVE:** Camera, actuator, monitoring systems, aiming laser
+[DONE] **RATIONALE:** Allow diagnosis and safe system recovery while maintaining safety
 
 This policy enables operators to:
 - View camera feed to assess situation
@@ -346,7 +346,7 @@ This policy enables operators to:
 - **Language:** Python 3.10+
 - **GUI Framework:** PyQt6
 - **Operating System:** Windows 10/11 (64-bit)
-- **Database:** SQLite 3.x (⚠️ unencrypted in v0.9.11-alpha)
+- **Database:** SQLite 3.x (WARNING: unencrypted in v0.9.11-alpha)
 
 ### Key Libraries
 - **SQLAlchemy:** Database ORM for subject/session/event models
@@ -492,10 +492,10 @@ python src/main.py
 
 ### Safety Requirements
 
-- ✅ All safety-critical code MUST have unit tests
-- ✅ Safety interlocks CANNOT be bypassed in production
-- ✅ All safety events MUST be logged immutably
-- ✅ Regular code reviews required for safety-related modules
+- [DONE] All safety-critical code MUST have unit tests
+- [DONE] Safety interlocks CANNOT be bypassed in production
+- [DONE] All safety events MUST be logged immutably
+- [DONE] Regular code reviews required for safety-related modules
 
 ### Thread Safety Pattern
 
@@ -517,10 +517,10 @@ class HardwareController(QObject):
 ### Signal/Slot Architecture (NOT Widget Reparenting!)
 
 ```python
-# ❌ BROKEN - Widget reparenting
+# [FAILED] BROKEN - Widget reparenting
 self.camera_display = other_widget.camera_display  # Steal QLabel!
 
-# ✅ FIXED - Signal/slot architecture
+# [DONE] FIXED - Signal/slot architecture
 other_widget.pixmap_ready.connect(self._on_camera_frame_ready)
 def _on_camera_frame_ready(self, pixmap):
     self.camera_display.setPixmap(pixmap)  # Update OWN label
@@ -529,10 +529,10 @@ def _on_camera_frame_ready(self, pixmap):
 ### QImage Memory Lifetime (CRITICAL)
 
 ```python
-# ❌ BROKEN - Shallow copy, data becomes invalid
+# [FAILED] BROKEN - Shallow copy, data becomes invalid
 q_image = QImage(frame.data, width, height, bytes_per_line, format)
 
-# ✅ FIXED - Deep copy ensures data persists
+# [DONE] FIXED - Deep copy ensures data persists
 frame_copy = frame.copy()
 q_image = QImage(frame_copy.data, width, height, bytes_per_line, format)
 ```
@@ -637,12 +637,12 @@ class MockCameraController(MockHardwareBase):
 
 ### 🔒 Security (CRITICAL)
 
-> ⚠️ **NOT SUITABLE FOR CLINICAL USE**
+> WARNING: **NOT SUITABLE FOR CLINICAL USE**
 
-- ❌ **NO DATABASE ENCRYPTION** - All data stored in plaintext SQLite
-- ❌ **NO USER AUTHENTICATION** - Any technician ID accepted
-- ❌ **NO ACCESS CONTROLS** - All users have full permissions
-- ❌ **NO AUDIT PROTECTION** - Database can be modified externally
+- [FAILED] **NO DATABASE ENCRYPTION** - All data stored in plaintext SQLite
+- [FAILED] **NO USER AUTHENTICATION** - Any technician ID accepted
+- [FAILED] **NO ACCESS CONTROLS** - All users have full permissions
+- [FAILED] **NO AUDIT PROTECTION** - Database can be modified externally
 
 **Status:** Security hardening planned for Phase 6 (Pre-Clinical Validation)
 - Database encryption (SQLCipher or AES-256)
@@ -670,9 +670,9 @@ class MockCameraController(MockHardwareBase):
 
 ### 🧪 Development Status
 
-- ⚠️ **Alpha Version** - Active development, breaking changes possible
-- ⚠️ **Not FDA-Cleared** - No regulatory submissions planned until Phase 6+
-- ⚠️ **Test Coverage Incomplete** - Some modules <80% coverage
+- WARNING: **Alpha Version** - Active development, breaking changes possible
+- WARNING: **Not FDA-Cleared** - No regulatory submissions planned until Phase 6+
+- WARNING: **Test Coverage Incomplete** - Some modules <80% coverage
 
 ---
 
@@ -715,34 +715,34 @@ class MockCameraController(MockHardwareBase):
 
 **Architecture Analysis & Production Readiness Assessment**
 - 🟢 **Active Development**
-- ✅ **Architecture Grade: A (Excellent)** - Validated Oct 30, 2025
-- ✅ 10 core files analyzed in depth (safety, hardware, protocol, UI layers)
-- ✅ Thread safety patterns verified (RLock, signal/slot architecture)
-- ✅ Performance optimizations confirmed (30 FPS sustained)
-- ✅ Safety-critical design validated (selective shutdown, state machine)
+- [DONE] **Architecture Grade: A (Excellent)** - Validated Oct 30, 2025
+- [DONE] 10 core files analyzed in depth (safety, hardware, protocol, UI layers)
+- [DONE] Thread safety patterns verified (RLock, signal/slot architecture)
+- [DONE] Performance optimizations confirmed (30 FPS sustained)
+- [DONE] Safety-critical design validated (selective shutdown, state machine)
 
 ### Recent Milestones (October 2025)
 
-1. ✅ **Comprehensive Architecture Analysis** (Oct 30)
+1. [DONE] **Comprehensive Architecture Analysis** (Oct 30)
    - Production-ready architecture validation
    - Security hardening roadmap defined
    - Medical device compliance assessment (FDA/HIPAA)
 
-2. ✅ **Camera Thread Safety** (Oct 30)
+2. [DONE] **Camera Thread Safety** (Oct 30)
    - Thread-safe exposure/gain controls
    - Hardware feedback loop
    - Signal-based UI updates
 
-3. ✅ **Allied Vision API Compliance** (Oct 30)
+3. [DONE] **Allied Vision API Compliance** (Oct 30)
    - Explicit pixel format configuration
    - Context manager cleanup on failures
    - 30 FPS hardware frame rate control
 
-4. ✅ **TEC/Laser Integration** (Oct 29)
+4. [DONE] **TEC/Laser Integration** (Oct 29)
    - Separated TEC and laser driver controllers
    - Dual-device architecture (COM9 + COM10)
 
-5. ✅ **UI/UX Redesign** (Oct 27-28)
+5. [DONE] **UI/UX Redesign** (Oct 27-28)
    - Global toolbar with E-Stop button
    - Treatment dashboard with consolidated status
    - Protocol selector with visual library browser

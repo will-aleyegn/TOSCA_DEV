@@ -1,7 +1,7 @@
 # Actuator HAL Critical Fix - AUTO_SEND_SETTINGS
 
 **Date:** 2025-10-23
-**Status:** ✅ RESOLVED - Homing now working perfectly
+**Status:** [DONE] RESOLVED - Homing now working perfectly
 **Hardware:** Xeryon XLA-5-125-10MU linear actuator
 
 ---
@@ -143,7 +143,7 @@ Hardware status updates aren't instantaneous:
 - STAT polling interval (POLI): 97ms
 - **Minimum update latency: ~150ms**
 
-## ✅ Verification
+## [DONE] Verification
 
 To verify the fix works on your system:
 
@@ -210,6 +210,6 @@ OUTPUT_TO_CONSOLE = True         # Show debug messages
 ---
 
 **Document Status:** Complete
-**Hardware Status:** ✅ OPERATIONAL
-**Homing Status:** ✅ PASSING
+**Hardware Status:** [DONE] OPERATIONAL
+**Homing Status:** [DONE] PASSING
 **Next Milestone:** Position control implementation

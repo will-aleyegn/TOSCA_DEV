@@ -163,9 +163,9 @@ def _poll_auto_values(self):
 - Console log shows: `Display downsampling enabled: 1456×1088 → 364×272 (scale=0.25×)`
 
 **Pass Criteria:**
-- ✅ FPS ≥ 29.5 FPS sustained for 10+ seconds
-- ✅ Frame display smooth, no stuttering
-- ✅ No dropped frames or visual artifacts
+- [DONE] FPS ≥ 29.5 FPS sustained for 10+ seconds
+- [DONE] Frame display smooth, no stuttering
+- [DONE] No dropped frames or visual artifacts
 
 ### Test 2: Resolution Dropdown Control 🎛️
 
@@ -185,10 +185,10 @@ def _poll_auto_values(self):
 - Console logs: `Display scale updated to X× (live streaming)`
 
 **Pass Criteria:**
-- ✅ Scale changes apply instantly (no restart)
-- ✅ FPS responds correctly to scale changes
-- ✅ Resolution info updates to match scale
-- ✅ No crashes or errors during scale changes
+- [DONE] Scale changes apply instantly (no restart)
+- [DONE] FPS responds correctly to scale changes
+- [DONE] Resolution info updates to match scale
+- [DONE] No crashes or errors during scale changes
 
 ### Test 3: Auto Exposure UI Feedback 🔄
 
@@ -210,10 +210,10 @@ def _poll_auto_values(self):
 - Disable checkbox → slider stops moving
 
 **Pass Criteria:**
-- ✅ Slider tracks camera adjustments (dark → high exposure, bright → low exposure)
-- ✅ Value labels stay synchronized with slider
-- ✅ No lag > 200ms between camera change and UI update
-- ✅ Polling stops when checkbox disabled
+- [DONE] Slider tracks camera adjustments (dark → high exposure, bright → low exposure)
+- [DONE] Value labels stay synchronized with slider
+- [DONE] No lag > 200ms between camera change and UI update
+- [DONE] Polling stops when checkbox disabled
 
 ### Test 4: Auto Gain UI Feedback 🔄
 
@@ -234,10 +234,10 @@ def _poll_auto_values(self):
 - Polling starts/stops with checkbox state
 
 **Pass Criteria:**
-- ✅ Slider tracks camera adjustments (dark → high gain, bright → low gain)
-- ✅ Value labels stay synchronized with slider
-- ✅ No conflicts with auto exposure (both can run simultaneously)
-- ✅ Polling efficient (no performance degradation)
+- [DONE] Slider tracks camera adjustments (dark → high gain, bright → low gain)
+- [DONE] Value labels stay synchronized with slider
+- [DONE] No conflicts with auto exposure (both can run simultaneously)
+- [DONE] Polling efficient (no performance degradation)
 
 ### Test 5: Image Capture Quality 📸
 
@@ -256,9 +256,9 @@ def _poll_auto_values(self):
 - File size: ~1-2 MB (full-resolution PNG)
 
 **Pass Criteria:**
-- ✅ Captured image is full resolution regardless of display scale
-- ✅ No quality loss in captured images
-- ✅ Image filename includes timestamp
+- [DONE] Captured image is full resolution regardless of display scale
+- [DONE] No quality loss in captured images
+- [DONE] Image filename includes timestamp
 
 ### Test 6: Video Recording Quality 🎥
 
@@ -279,9 +279,9 @@ def _poll_auto_values(self):
 - Display during recording: 364×272 (quarter scale)
 
 **Pass Criteria:**
-- ✅ Recorded video is full resolution
-- ✅ No frame drops or stuttering in recording
-- ✅ Display scale doesn't affect recording quality
+- [DONE] Recorded video is full resolution
+- [DONE] No frame drops or stuttering in recording
+- [DONE] Display scale doesn't affect recording quality
 
 ---
 
@@ -343,7 +343,7 @@ def _poll_auto_values(self):
 │                                                                  │
 │  3. Display in QLabel                                           │
 │     • Scale to fit display size                                 │
-│     • Full 30 FPS achieved ✅                                   │
+│     • Full 30 FPS achieved [DONE]                                   │
 └─────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────┐

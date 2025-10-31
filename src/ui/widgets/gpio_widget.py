@@ -154,8 +154,8 @@ class GPIOWidget(QWidget):
         ports_with_status = self._get_available_ports()
         for port, is_available in ports_with_status:
             if is_available:
-                # Add with ✓ indicator for available ports
-                self.com_port_combo.addItem(f"✓ {port}", userData=port)
+                # Add with # [DONE] indicator for available ports
+                self.com_port_combo.addItem(f"# [DONE] {port}", userData=port)
             else:
                 # Add without indicator for unavailable ports (grayed out)
                 self.com_port_combo.addItem(f"  {port}", userData=port)
@@ -182,9 +182,9 @@ class GPIOWidget(QWidget):
 
         # COM Port selection
         self.com_port_combo = QComboBox()
-        self.com_port_combo.setFixedWidth(150)  # Wider for ✓ indicator
+        self.com_port_combo.setFixedWidth(150)  # Wider for # [DONE] indicator
         self.com_port_combo.setToolTip(
-            "Select COM port for Arduino\n✓ = Port detected and available"
+            "Select COM port for Arduino\n# [DONE] = Port detected and available"
         )
         layout.addWidget(self.com_port_combo)
 
@@ -367,8 +367,8 @@ class GPIOWidget(QWidget):
         # Requirements list
         requirements_layout = QVBoxLayout()
         requirements_layout.addWidget(QLabel("Requirements for laser operation:"))
-        requirements_layout.addWidget(QLabel("  ✓ Smoothing motor must be ON"))
-        requirements_layout.addWidget(QLabel("  ✓ Vibration must be DETECTED"))
+        requirements_layout.addWidget(QLabel("  # [DONE] Smoothing motor must be ON"))
+        requirements_layout.addWidget(QLabel("  # [DONE] Vibration must be DETECTED"))
         layout.addLayout(requirements_layout)
 
         group.setLayout(layout)
@@ -425,11 +425,11 @@ class GPIOWidget(QWidget):
     @pyqtSlot()
     def _on_connect_clicked(self) -> None:
         """Handle connect button click."""
-        # Get selected COM port (from userData to remove ✓ indicator)
+        # Get selected COM port (from userData to remove # [DONE] indicator)
         selected_port = self.com_port_combo.currentData()
         if not selected_port:
             # Fallback to text if userData not set
-            selected_port = self.com_port_combo.currentText().replace("✓ ", "").strip()
+            selected_port = self.com_port_combo.currentText().replace("# [DONE] ", "").strip()
 
         logger.info(f"Connecting to GPIO on {selected_port}...")
 

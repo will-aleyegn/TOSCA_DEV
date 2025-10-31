@@ -268,14 +268,14 @@ self.vibration_debounce_threshold = 3  # Number of consecutive readings
 
 Safety system permits laser enable when **ALL** conditions met:
 
-1. ✅ Motor is ON (D2 = HIGH)
-2. ✅ Vibration detected (D3 = HIGH, debounced)
-3. ✅ Photodiode reading valid (A0 reading stable)
+1. [DONE] Motor is ON (D2 = HIGH)
+2. [DONE] Vibration detected (D3 = HIGH, debounced)
+3. [DONE] Photodiode reading valid (A0 reading stable)
 
 If **ANY** condition fails:
-- ❌ Laser is disabled immediately
-- ❌ Safety event logged to database
-- ❌ Safety widget shows "UNSAFE" status
+- [FAILED] Laser is disabled immediately
+- [FAILED] Safety event logged to database
+- [FAILED] Safety widget shows "UNSAFE" status
 
 ### Emergency Stop Override
 
