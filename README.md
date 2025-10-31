@@ -1,10 +1,31 @@
 # TOSCA Laser Control System
 
 Version: 0.9.11-alpha
-Status: Development - NOT for Clinical Use
-Date: 2025-10-30
+Status: RESEARCH MODE - NOT for Clinical Use
+Date: 2025-10-31
 
-WARNING: Database encryption is NOT implemented. This system is NOT approved for clinical use and MUST NOT be used with protected health information or in production medical environments.
+## RESEARCH MODE WARNING
+
+This system is configured for RESEARCH USE ONLY.
+
+CRITICAL WARNINGS:
+- This software is NOT FDA-cleared or approved for clinical use
+- Database encryption is NOT implemented - all data stored in plaintext
+- User authentication is NOT implemented - no access controls
+- NOT suitable for protected health information (PHI)
+- NOT suitable for patient treatment
+
+This system is intended for:
+- Research and development
+- Hardware testing and calibration
+- Algorithm development
+- Educational purposes
+
+Do NOT use this system for:
+- Clinical patient treatment
+- Protected health information (PHI) storage
+- Production medical device operation
+- Any regulated medical environment
 
 ---
 
@@ -244,7 +265,7 @@ TOSCA-dev/
 - [x] Hardware interlocks (smoothing motor + vibration + photodiode + watchdog)
 - [x] Software interlocks (E-stop, power limits, session validation, state machine)
 - [x] Selective shutdown policy (laser only, preserve diagnostics)
-- [x] Safety state machine (SAFE, UNSAFE, EMERGENCY_STOP)
+- [x] Safety state machine (SAFE, ARMED, TREATING, UNSAFE, EMERGENCY_STOP) - 5 states
 - [x] Emergency stop functionality
 - [x] Hardware watchdog timer (1000ms timeout, 500ms heartbeat)
 - [x] Vibration detection (0.8g threshold, 5.7x safety margin)
@@ -327,7 +348,7 @@ TOSCA-dev/
 - GPIO interlock status (motor + vibration + photodiode)
 - Hardware watchdog heartbeat (500ms intervals)
 - Emergency stop availability
-- Safety state display (SAFE/UNSAFE/EMERGENCY_STOP)
+- Safety state display (SAFE/ARMED/TREATING/UNSAFE/EMERGENCY_STOP)
 - Safety event logging (all events timestamped)
 
 ### Data Logging

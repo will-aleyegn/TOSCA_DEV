@@ -1,9 +1,34 @@
 # TOSCA Project Context for AI Assistants
 
-**Last Updated:** 2025-10-30
+**Last Updated:** 2025-10-31
 **Project:** TOSCA Laser Control System
 **Version:** 0.9.11-alpha
+**Mode:** RESEARCH MODE - NOT for Clinical Use
 **Purpose:** Essential context for AI assistants working on this medical device software project
+
+---
+
+## RESEARCH MODE WARNING
+
+**CRITICAL:** This system is currently configured for RESEARCH USE ONLY.
+
+The system includes:
+- Research mode warning dialog on startup (requires explicit acknowledgment)
+- Title bar watermark: "TOSCA v0.9.11-alpha - RESEARCH MODE ONLY"
+- Status bar watermark: Red label "RESEARCH MODE - NOT FOR CLINICAL USE"
+
+**Why Research Mode:**
+- Database encryption NOT implemented (all data in plaintext)
+- User authentication NOT implemented (no access controls)
+- NOT FDA-cleared or approved for clinical use
+- NOT suitable for protected health information (PHI)
+- NOT suitable for patient treatment
+
+This system is intended for:
+- Research and development
+- Hardware testing and calibration
+- Algorithm development
+- Educational purposes
 
 ---
 
@@ -17,7 +42,7 @@ TOSCA is a **medical device laser control system** combining:
 - Comprehensive session and event logging
 - Configurable treatment protocols with automated execution
 
-**Critical Context:** This is **FDA-regulated medical device software**. Safety, traceability, and compliance are paramount.
+**Critical Context:** This is **medical device software under development**. While designed for eventual clinical use, it is currently in research mode. Safety, traceability, and compliance are paramount.
 
 ---
 
@@ -54,7 +79,10 @@ TOSCA is a **medical device laser control system** combining:
 1. **Emergency Stop (E-Stop)** - Global button, highest priority, locks system
 2. **Power Limit Enforcement** - Configurable maximum laser power
 3. **Session Validation** - Active session required for laser operation
-4. **State Machine Control** - Strict transitions (SAFE → ARMED → TREATING)
+4. **State Machine Control** - 5-state safety model (SAFE, ARMED, TREATING, UNSAFE, EMERGENCY_STOP)
+   - Normal transitions: SAFE → ARMED → TREATING → ARMED → SAFE
+   - Safety violations: ANY → UNSAFE
+   - Emergency stop: ANY → EMERGENCY_STOP
 
 ### Selective Shutdown Policy
 **CRITICAL:** When safety fault occurs:
