@@ -1,8 +1,8 @@
 # TOSCA Project Status
 
-**Last Updated:** 2025-10-30 (Comprehensive Architecture Analysis Complete - Grade A)
+**Last Updated:** 2025-10-31 (Week 1 Research Mode Setup Complete)
 **Project:** TOSCA Laser Control System
-**Version:** 0.9.11-alpha (Architecture Analysis & Production Readiness Assessment)
+**Version:** 0.9.11-alpha (Research Mode - NOT for Clinical Use)
 
 ---
 
@@ -263,6 +263,78 @@ Transform tab-based GUI into integrated "Treatment Dashboard" for improved opera
 - Exception handling patterns
 - Audit trail requirements
 - Input validation standards
+
+#### Milestone 5.14: Week 1 Research Mode Setup ✅ **COMPLETE** (2025-10-31)
+**Duration:** Full implementation day using Zen MCP planner + execution
+**Overall Result:** Successfully implemented 5-phase research mode warning system
+
+**Implementation Summary:**
+
+**Phase 1: Configuration (30 minutes)**
+- Added `research_mode` flag to config.yaml (default: true)
+- Added `show_warning_on_startup` flag to config.yaml (default: true)
+- Updated Pydantic GUIConfig model with new fields
+- Configuration loading tested and verified
+- Commit: 0270c25
+
+**Phase 2: Safety State Machine Expansion (60 minutes)**
+- Expanded SafetyState enum from 3 to 5 states
+- Added ARMED state (ready to treat, all interlocks satisfied)
+- Added TREATING state (active treatment in progress)
+- Implemented state transition methods:
+  - `arm_system()` - SAFE → ARMED
+  - `start_treatment()` - ARMED → TREATING
+  - `stop_treatment()` - TREATING → ARMED
+  - `disarm_system()` - ARMED/TREATING → SAFE
+- Updated `_update_safety_state()` to preserve ARMED/TREATING states
+- All transitions tested and working correctly
+- Commit: 70309ce
+
+**Phase 3: Warning Dialog (45 minutes)**
+- Created `ResearchModeWarningDialog` with prominent warnings
+- Dialog requires explicit acknowledgment via checkbox
+- OK button disabled until checkbox checked
+- Cancel button exits application
+- Integrated into MainWindow startup sequence
+- Logs acceptance/rejection events to database
+- Controlled by `config.gui.show_warning_on_startup` flag
+- Commit: c66993b
+
+**Phase 4: UI Watermarks (30 minutes)**
+- Title bar: "TOSCA v0.9.11-alpha - RESEARCH MODE ONLY"
+- Status bar: Red label "RESEARCH MODE - NOT FOR CLINICAL USE"
+- Both controlled by `config.gui.research_mode` flag
+- Commit: 8ecdd09
+
+**Phase 5: Documentation Updates (30 minutes)**
+- README.md: Added prominent RESEARCH MODE WARNING section
+- README.md: Updated safety state machine to 5 states
+- CLAUDE.md: Added RESEARCH MODE WARNING with implementation details
+- CLAUDE.md: Updated safety state machine documentation
+- Both files updated with current date (2025-10-31)
+- Commit: 5f239aa
+
+**Statistics:**
+- Total Commits: 5
+- Files Modified: 6 (config.yaml, models.py, safety.py, main_window.py, README.md, CLAUDE.md)
+- Files Created: 1 (research_mode_warning_dialog.py)
+- Lines Added: 400+
+- Safety States: 3 → 5 (67% increase)
+- State Transition Methods: 4 new methods added
+
+**Why Research Mode:**
+- Database encryption NOT implemented (all data in plaintext)
+- User authentication NOT implemented (no access controls)
+- NOT FDA-cleared or approved for clinical use
+- NOT suitable for protected health information (PHI)
+- System intended for research, development, testing, and education only
+
+**Planning Method:**
+- Used Zen MCP planner tool for systematic planning
+- 5-step planning process (file analysis → config → safety → UI → docs)
+- Safety-first sequential implementation approach
+- Config flags provide foundation for UI and behavior
+- All changes tested incrementally
 
 #### Milestone 4: Database & Session Management (Completed: 2025-10-10)
 - SQLite database with safety event logging
