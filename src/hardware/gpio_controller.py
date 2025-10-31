@@ -323,7 +323,11 @@ class GPIOController(QObject):
                 # Send command with newline terminator
                 cmd_bytes = (command + "\n").encode("utf-8")
                 self.serial.write(cmd_bytes)
-                logger.debug(f"Sent: {command}")
+
+                # Selective logging: Skip routine monitoring commands to reduce log spam
+                is_routine = command in ["GET_PHOTODIODE", "GET_VIBRATION", "GET_MOTOR_STATUS"]
+                if not is_routine:
+                    logger.debug(f"Sent: {command}")
 
                 if not expect_response:
                     return ""
@@ -335,7 +339,8 @@ class GPIOController(QObject):
                     for _ in range(timeout_lines):
                         line = self.serial.readline().decode("utf-8").strip()
                         if line:
-                            logger.debug(f"Received: {line}")
+                            if not is_routine:
+                                logger.debug(f"Received: {line}")
                             lines.append(line)
                             # Stop at terminator
                             if (
@@ -347,7 +352,8 @@ class GPIOController(QObject):
                 else:
                     # Single line response (default)
                     response: str = self.serial.readline().decode("utf-8").strip()
-                    logger.debug(f"Received: {response}")
+                    if not is_routine:
+                        logger.debug(f"Received: {response}")
 
                 # FIX 4: Validate response matches expected format
                 if expected_prefix and not response.startswith(expected_prefix):

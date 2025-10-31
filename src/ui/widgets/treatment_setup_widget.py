@@ -21,6 +21,7 @@ from PyQt6.QtWidgets import (
 )
 
 from core.protocol import Protocol
+from core.protocol_line import LineBasedProtocol
 
 # Hardware widgets removed - now in Hardware & Diagnostics and Protocol Builder tabs
 # This widget is protocol-centric
@@ -46,7 +47,7 @@ class TreatmentSetupWidget(QWidget):
     def __init__(self) -> None:
         super().__init__()
         self.dev_mode = False
-        self.loaded_protocol: Optional[Protocol] = None
+        self.loaded_protocol: Optional[Protocol | LineBasedProtocol] = None
 
         # Hardware control widgets removed - now in Hardware & Diagnostics tab
         # This widget is protocol-centric: Load protocol → Validate → Execute
@@ -124,7 +125,11 @@ class TreatmentSetupWidget(QWidget):
 
         # Compact validation checklist
         self.validation_label = QLabel(
-            "# [DONE] Protocol\n" "# [DONE] Laser\n" "# [DONE] Actuator\n" "# [DONE] Motor\n" "⚠ Session"
+            "# [DONE] Protocol\n"
+            "# [DONE] Laser\n"
+            "# [DONE] Actuator\n"
+            "# [DONE] Motor\n"
+            "⚠ Session"
         )
         self.validation_label.setStyleSheet(
             "font-family: monospace; font-size: 11px; padding: 5px;"
@@ -158,11 +163,15 @@ class TreatmentSetupWidget(QWidget):
         # Hardware widgets removed - no child widgets to propagate to
 
     def _on_load_protocol_clicked(self) -> None:
-        """Handle protocol load button click."""
+        """Handle protocol load button click - supports both Protocol formats."""
+        # Use data/protocols as default directory
+        protocols_dir = Path("data/protocols")
+        protocols_dir.mkdir(parents=True, exist_ok=True)
+
         file_path, _ = QFileDialog.getOpenFileName(
             self,
             "Select Protocol File",
-            str(Path.home()),
+            str(protocols_dir),
             "Protocol Files (*.json);;All Files (*)",
         )
 
@@ -173,23 +182,53 @@ class TreatmentSetupWidget(QWidget):
             with open(file_path, "r") as f:
                 protocol_data = json.load(f)
 
-            protocol = Protocol.from_dict(protocol_data)
-            self.loaded_protocol = protocol
+            # Detect protocol format and load accordingly
+            if "lines" in protocol_data:
+                # New LineBasedProtocol format
+                protocol = LineBasedProtocol.from_dict(protocol_data)
+                self.loaded_protocol = protocol
 
-            self.protocol_name_label.setText(f"# [DONE] {protocol.protocol_name}")
-            self.protocol_name_label.setStyleSheet(
-                "color: #4CAF50; font-size: 11px; font-weight: bold; padding: 5px;"
-            )
+                self.protocol_name_label.setText(f"# [DONE] {protocol.protocol_name}")
+                self.protocol_name_label.setStyleSheet(
+                    "color: #4CAF50; font-size: 11px; font-weight: bold; padding: 5px;"
+                )
 
-            action_count = len(protocol.actions)
-            self.protocol_info_label.setText(f"{action_count} actions loaded")
+                line_count = len(protocol.lines)
+                duration = protocol.calculate_total_duration()
+                self.protocol_info_label.setText(f"{line_count} lines, {duration:.1f}s total")
 
-            logger.info(f"Protocol loaded: {protocol.protocol_name} ({action_count} actions)")
+                logger.info(
+                    f"Line-based protocol loaded: {protocol.protocol_name} ({line_count} lines)"
+                )
+
+            elif "actions" in protocol_data:
+                # Old action-based Protocol format
+                protocol = Protocol.from_dict(protocol_data)
+                self.loaded_protocol = protocol
+
+                self.protocol_name_label.setText(f"# [DONE] {protocol.protocol_name}")
+                self.protocol_name_label.setStyleSheet(
+                    "color: #4CAF50; font-size: 11px; font-weight: bold; padding: 5px;"
+                )
+
+                action_count = len(protocol.actions)
+                self.protocol_info_label.setText(f"{action_count} actions loaded")
+
+                logger.info(
+                    f"Action-based protocol loaded: {protocol.protocol_name} "
+                    f"({action_count} actions)"
+                )
+
+            else:
+                raise ValueError("Unknown protocol format - missing 'lines' or 'actions' key")
 
         except FileNotFoundError:
             QMessageBox.critical(self, "Error", f"File not found: {file_path}")
         except json.JSONDecodeError as e:
             QMessageBox.critical(self, "Error", f"Invalid JSON: {e}")
+        except ValueError as e:
+            QMessageBox.critical(self, "Error", f"Invalid protocol format:\n{e}")
+            logger.error(f"Protocol format error: {e}")
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Failed to load protocol: {e}")
             logger.error(f"Protocol load error: {e}")

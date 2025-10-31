@@ -767,12 +767,15 @@ class LineProtocolBuilderWidget(QWidget):
             )
             return
 
-        # Open file dialog
+        # Open file dialog with data/protocols as default directory
         default_name = self.current_protocol.protocol_name.replace(" ", "_") or "protocol"
+        protocols_dir = Path("data/protocols")
+        protocols_dir.mkdir(parents=True, exist_ok=True)  # Ensure directory exists
+
         file_path, _ = QFileDialog.getSaveFileName(
             self,
             "Save Protocol",
-            str(Path.home() / f"{default_name}.json"),
+            str(protocols_dir / f"{default_name}.json"),
             "JSON Files (*.json);;All Files (*)",
         )
 
@@ -802,11 +805,14 @@ class LineProtocolBuilderWidget(QWidget):
 
     def _on_load_protocol(self) -> None:
         """Load protocol from JSON file."""
-        # Open file dialog
+        # Open file dialog with data/protocols as default directory
+        protocols_dir = Path("data/protocols")
+        protocols_dir.mkdir(parents=True, exist_ok=True)  # Ensure directory exists
+
         file_path, _ = QFileDialog.getOpenFileName(
             self,
             "Load Protocol",
-            str(Path.home()),
+            str(protocols_dir),
             "JSON Files (*.json);;All Files (*)",
         )
 

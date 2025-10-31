@@ -155,6 +155,7 @@ class MainWindow(QMainWindow):
                 logger.warning("User rejected research mode warning - exiting")
                 # Close and exit
                 import sys
+
                 sys.exit(0)
         else:
             logger.info("Research mode warning dialog disabled in configuration")
@@ -924,21 +925,28 @@ class MainWindow(QMainWindow):
         for line in protocol.lines:
             logger.info(f"  - {line.get_summary()}")
 
-        # TODO: Integrate with ProtocolEngine for execution
-        # For now, just display confirmation
+        # TODO: Integrate with ProtocolEngine for LineBasedProtocol execution
+        # Current ProtocolEngine only supports old action-based Protocol format
+        # Need to either:
+        #   1. Create LineBasedProtocolEngine
+        #   2. Extend ProtocolEngine to support both formats
+        #   3. Convert LineBasedProtocol to Protocol format
+
+        # For now, display protocol details and inform user
         QMessageBox.information(
             self,
-            "Protocol Ready",
-            f"Protocol '{protocol.protocol_name}' is ready for execution.\n\n"
-            f"Lines: {len(protocol.lines)}\n"
-            f"Loop count: {protocol.loop_count}\n"
-            f"Total duration: {protocol.calculate_total_duration():.1f}s\n\n"
-            f"Protocol execution engine integration: TODO",
+            "Protocol Validated",
+            f"Protocol '{protocol.protocol_name}' has been validated successfully!\n\n"
+            f"📊 Protocol Details:\n"
+            f"  • Lines: {len(protocol.lines)}\n"
+            f"  • Loop count: {protocol.loop_count}\n"
+            f"  • Total duration: {protocol.calculate_total_duration():.1f}s\n\n"
+            f"⚠️ Execution engine for line-based protocols is not yet implemented.\n"
+            f"The protocol is saved and can be executed once the engine is ready.",
         )
 
-        # Switch to Treatment Workflow tab for execution
-        self.tabs.setCurrentIndex(1)  # Index 1 = Treatment Workflow tab
-        logger.info("Switched to Treatment Workflow tab for protocol execution")
+        # NOTE: Tab switching removed - user wants to stay on Protocol Builder page
+        # If execution is needed, it should happen in-place on the current tab
 
     def _on_global_estop_clicked(self) -> None:
         """Handle global E-STOP button click."""
