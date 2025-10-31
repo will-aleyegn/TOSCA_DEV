@@ -24,9 +24,9 @@ TOSCA is a **medical device laser control system** combining:
 ## Technology Stack
 
 ### Core Technologies
-- **Python 3.10+** - Primary language
-- **PyQt6** - GUI framework (NOT PyQt5!)
-- **SQLite** - Embedded database (unencrypted in current phase)
+- **Python 3.12+** - Primary language (actual: 3.12.10)
+- **PyQt6 6.9.0** - GUI framework (NOT PyQt5!)
+- **SQLite 3.x** - Embedded database (unencrypted in current phase)
 - **OpenCV** - Image processing
 - **NumPy** - Numerical operations
 
@@ -92,26 +92,33 @@ Reference: `docs/architecture/SAFETY_SHUTDOWN_POLICY.md`
 ```
 src/
 ├── ui/
-│   ├── main_window.py              [DONE] 4-tab interface with toolbar
+│   ├── main_window.py              [DONE] 3-tab interface with toolbar (Setup, Treatment, Safety)
 │   └── widgets/
 │       ├── subject_widget.py       [DONE] Subject selection, session creation
-│       ├── camera_live_view.py     [DONE] Live streaming, controls (renamed from camera_widget.py)
+│       ├── camera_widget.py        [DONE] Live streaming, controls
 │       ├── camera_hardware_panel.py [DONE] Hardware diagnostics panel
 │       ├── treatment_setup_widget.py [DONE] Protocol selector
 │       ├── active_treatment_widget.py [DONE] Treatment monitoring dashboard
 │       ├── laser_widget.py         [DONE] Laser power controls (treatment laser only)
 │       ├── tec_widget.py           [DONE] TEC temperature controls
-│       ├── actuator_widget.py      [DONE] Actuator sequences, positioning
+│       ├── actuator_connection_widget.py [DONE] Actuator connection and positioning
 │       ├── safety_widget.py        [DONE] Safety status, event logging
 │       ├── gpio_widget.py          [DONE] GPIO safety interlock display
 │       ├── interlocks_widget.py    [DONE] Consolidated safety interlock status
-│       └── protocol_selector_widget.py [DONE] Visual protocol library browser
+│       ├── smoothing_status_widget.py [DONE] Smoothing motor control and monitoring
+│       ├── protocol_selector_widget.py [DONE] Visual protocol library browser
+│       ├── protocol_builder_widget.py [DONE] Action-based protocol builder
+│       ├── line_protocol_builder.py [DONE] Line-based protocol builder (concurrent actions)
+│       ├── config_display_widget.py [DONE] Configuration display
+│       └── view_sessions_dialog.py  [DONE] Session history viewer
 │
 ├── core/
 │   ├── protocol.py                 [DONE] Action-based data model
+│   ├── protocol_line.py            [DONE] Line-based protocol data model (concurrent actions)
 │   ├── protocol_engine.py          [DONE] Async execution engine
 │   ├── safety.py                   [DONE] Central safety manager with state machine
 │   ├── safety_watchdog.py          [DONE] Hardware watchdog heartbeat
+│   ├── session.py                  [DONE] Session data model
 │   ├── session_manager.py          [DONE] Session lifecycle management
 │   └── event_logger.py             [DONE] Immutable event logging
 │
@@ -132,10 +139,14 @@ src/
 │   ├── models.py                   [DONE] Pydantic configuration models
 │   └── config_loader.py            [DONE] YAML configuration loader
 │
-└── image_processing/
-    ├── ring_detector.py            [TODO] Hough circle detection
-    ├── focus_measure.py            [TODO] Laplacian variance
-    └── video_recorder.py           [TODO] OpenCV recording
+├── image_processing/
+│   ├── ring_detector.py            [FUTURE] Hough circle detection
+│   ├── focus_measure.py            [FUTURE] Laplacian variance
+│   └── video_recorder.py           [DONE] OpenCV recording (implemented in camera_controller)
+│
+└── ui/dialogs/
+    ├── hardware_test_dialog.py     [DONE] Hardware testing interface
+    └── (other dialogs as needed)
 ```
 
 ---
@@ -143,7 +154,7 @@ src/
 ## Current Development Phase
 
 **Phase:** v0.9.11-alpha - Architecture Analysis & Production Readiness Assessment
-**Status:** 🟢 Active Development
+**Status:** Active Development
 **Focus:** Code quality validation, architecture assessment, security hardening roadmap
 
 ### Recent Milestones (October 2025)
