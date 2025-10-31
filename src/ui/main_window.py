@@ -830,7 +830,7 @@ class MainWindow(QMainWindow):
 
         # Optional: Disable Start Treatment button to prevent re-clicks
         self.treatment_setup_widget.ready_button.setEnabled(False)
-        self.treatment_setup_widget.ready_button.setText("# [DONE] Treatment Active")
+        self.treatment_setup_widget.ready_button.setText("Treatment Active")
 
     def _on_line_protocol_ready(self, protocol: Any) -> None:
         """
