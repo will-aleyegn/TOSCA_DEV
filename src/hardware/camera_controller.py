@@ -11,6 +11,7 @@ Provides PyQt6-integrated camera control with:
 """
 
 import logging
+import os
 import threading
 from datetime import datetime
 from pathlib import Path
@@ -299,7 +300,7 @@ class VideoRecorder:
         Initialize video writer with codec fallback.
 
         Tries primary codec first, falls back to fallback codec if unavailable.
-        For H.264, uses CRF quality setting for file size optimization.
+        For H.264, uses CRF quality setting for file size optimization via FFmpeg.
         """
         # Map codec names to fourcc codes
         codec_map = {
@@ -314,24 +315,64 @@ class VideoRecorder:
         # Try primary codec
         codec_code = codec_map.get(self.codec, self.codec)
         fourcc = cv2.VideoWriter_fourcc(*codec_code)
+
+        # === FIX: Apply CRF for H.264 codecs ===
+        # For H.264 codecs, set FFmpeg-specific params via environment variable
+        # This is the standard way to pass CRF to OpenCV's VideoWriter
+        original_ffmpeg_opts = os.environ.get("OPENCV_FFMPEG_WRITER_OPTIONS")
+
+        if "264" in self.codec.upper():
+            # Set CRF quality parameter for H.264 encoding
+            # CRF range: 0 (lossless) to 51 (worst quality)
+            # Recommended: 18 (visually lossless), 23 (default), 28 (good balance)
+            os.environ["OPENCV_FFMPEG_WRITER_OPTIONS"] = f"crf={self.quality_crf}"
+            logger.debug(f"Set FFmpeg CRF={self.quality_crf} for H.264 encoding")
+
         self.writer = cv2.VideoWriter(str(self.output_path), fourcc, self.fps, self.frame_size)
+
+        # Restore original environment variable to avoid side effects
+        if "264" in self.codec.upper():
+            if original_ffmpeg_opts is None:
+                # Remove if it didn't exist before
+                if "OPENCV_FFMPEG_WRITER_OPTIONS" in os.environ:
+                    del os.environ["OPENCV_FFMPEG_WRITER_OPTIONS"]
+            else:
+                # Restore original value
+                os.environ["OPENCV_FFMPEG_WRITER_OPTIONS"] = original_ffmpeg_opts
+            logger.debug("Restored FFmpeg environment variable")
 
         if self.writer and self.writer.isOpened():
             self.actual_codec_used = self.codec
-            logger.info(f"Using primary codec: {self.codec}")
+            logger.info(f"Using primary codec: {self.codec} with CRF={self.quality_crf}")
             return
 
         # Primary codec failed, try fallback
         logger.warning(
             f"Primary codec {self.codec} not available, trying fallback {self.fallback_codec}"
         )
+
+        # Repeat environment variable setup for fallback codec
+        original_ffmpeg_opts = os.environ.get("OPENCV_FFMPEG_WRITER_OPTIONS")
+        if "264" in self.fallback_codec.upper():
+            os.environ["OPENCV_FFMPEG_WRITER_OPTIONS"] = f"crf={self.quality_crf}"
+            logger.debug(f"Set FFmpeg CRF={self.quality_crf} for fallback H.264 encoding")
+
         fallback_code = codec_map.get(self.fallback_codec, self.fallback_codec)
         fourcc = cv2.VideoWriter_fourcc(*fallback_code)
         self.writer = cv2.VideoWriter(str(self.output_path), fourcc, self.fps, self.frame_size)
 
+        # Cleanup for fallback
+        if "264" in self.fallback_codec.upper():
+            if original_ffmpeg_opts is None:
+                if "OPENCV_FFMPEG_WRITER_OPTIONS" in os.environ:
+                    del os.environ["OPENCV_FFMPEG_WRITER_OPTIONS"]
+            else:
+                os.environ["OPENCV_FFMPEG_WRITER_OPTIONS"] = original_ffmpeg_opts
+            logger.debug("Restored FFmpeg environment variable (fallback)")
+
         if self.writer and self.writer.isOpened():
             self.actual_codec_used = self.fallback_codec
-            logger.info(f"Using fallback codec: {self.fallback_codec}")
+            logger.info(f"Using fallback codec: {self.fallback_codec} with CRF={self.quality_crf}")
             return
 
         # Both codecs failed
