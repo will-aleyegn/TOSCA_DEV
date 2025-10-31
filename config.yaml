@@ -59,3 +59,5 @@ gui:
   default_tab_index: 0  # Default selected tab on startup (0=Subject, 1=Camera, 2=Treatment, 3=Safety)
   auto_connect_hardware: false  # Auto-connect to hardware on startup
   enable_developer_mode: false  # Enable developer mode features
+  research_mode: true  # Mark system as research-only (not for clinical use)
+  show_warning_on_startup: true  # Show research mode warning dialog on startup

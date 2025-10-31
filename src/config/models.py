@@ -139,6 +139,8 @@ class GUIConfig(BaseModel):
         default=False, description="Auto-connect to hardware on startup"
     )
     enable_developer_mode: bool = Field(default=False, description="Enable developer mode features")
+    research_mode: bool = Field(default=True, description="Mark system as research-only (not for clinical use)")
+    show_warning_on_startup: bool = Field(default=True, description="Show research mode warning dialog on startup")
 
 
 class TOSCAConfig(BaseModel):

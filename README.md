@@ -181,8 +181,6 @@ TOSCA-dev/
 ├── config.yaml
 ├── requirements.txt
 ├── pyproject.toml
-├── CLAUDE.md
-├── LESSONS_LEARNED.md
 └── README.md
 ```
 
@@ -284,24 +282,6 @@ TOSCA-dev/
 - [ ] Video encryption (NOT IMPLEMENTED - planned Phase 6)
 - [ ] Audit trail integrity (HMAC signatures NOT IMPLEMENTED - planned Phase 6)
 - [ ] Protocol file signatures (NOT IMPLEMENTED - planned Phase 6)
-
-### Documentation
-- [x] Product Requirements Document
-- [x] Technical Specification
-- [x] System Overview
-- [x] Database Schema
-- [x] Safety System
-- [x] Treatment Protocols
-- [x] Safety Shutdown Policy
-- [x] Test Architecture
-- [x] Concurrency Model
-- [x] Architecture Decision Records (2)
-- [x] Comprehensive code review reports (5 reports)
-- [x] Research mode roadmap
-- [x] Clinical deployment roadmap
-- [ ] Risk Management File (ISO 14971) (NOT IMPLEMENTED - planned Phase 6)
-- [ ] Software Requirements Specification (NOT IMPLEMENTED - planned Phase 6)
-- [ ] Verification & Validation protocols (NOT IMPLEMENTED - planned Phase 6)
 
 ---
 
@@ -579,45 +559,3 @@ Thread Safety Pattern:
 - All hardware controllers use threading.RLock()
 - All cross-thread communication uses PyQt6 signals
 - No direct widget access from hardware threads
-
----
-
-## Documentation
-
-Core:
-- README.md (this file)
-- CLAUDE.md (AI assistant context and project guidelines)
-- LESSONS_LEARNED.md (critical bugs and solutions)
-
-Regulatory:
-- docs/regulatory/PRODUCT_REQUIREMENTS_DOCUMENT.md
-- docs/regulatory/TECHNICAL_SPECIFICATION.md
-
-Architecture:
-- docs/architecture/01_system_overview.md
-- docs/architecture/02_database_schema.md
-- docs/architecture/03_safety_system.md
-- docs/architecture/04_treatment_protocols.md
-- docs/architecture/SAFETY_SHUTDOWN_POLICY.md
-
-Review Reports:
-- review_reports/01_EXECUTIVE_SUMMARY.md
-- review_reports/02_PHASE1_ARCHITECTURE_CODE_QUALITY.md
-- review_reports/03_PHASE2_SECURITY_PERFORMANCE.md
-- review_reports/04_ACTION_PLAN_RECOMMENDATIONS.md
-- review_reports/RESEARCH_MODE_ROADMAP.md (active)
-- review_reports/CLINICAL_DEPLOYMENT_ROADMAP.md (deferred)
-
----
-
-## Contact
-
-Project Repository: https://github.com/will-aleyegn/TOSCA_DEV
-Documentation: docs/architecture/
-Issue Tracker: GitHub Issues
-
----
-
-Last Updated: 2025-10-30
-Document Version: 3.0
-Based On: PRODUCT_REQUIREMENTS_DOCUMENT.md + TECHNICAL_SPECIFICATION.md
