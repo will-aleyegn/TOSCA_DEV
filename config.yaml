@@ -7,6 +7,12 @@ hardware:
     hardware_fps: 30.0  # Camera acquisition frame rate
     fps_update_interval: 30  # Frames between FPS calculations
 
+    # Video Recording Settings (Week 4 - Performance Optimization)
+    video_codec: "H264"  # Primary codec (H264 for best compression)
+    video_quality_crf: 28  # Constant Rate Factor (23=default, 28=good balance, 18=visually lossless)
+    video_preset: "medium"  # Encoding preset (faster=larger file, slower=smaller file)
+    video_fallback_codec: "MJPG"  # Fallback if H.264 unavailable
+
   actuator:
     com_port: "COM3"  # Serial port for actuator
     baudrate: 9600  # Serial baudrate (TOSCA uses 9600, NOT 115200)
@@ -61,3 +67,9 @@ gui:
   enable_developer_mode: false  # Enable developer mode features
   research_mode: true  # Mark system as research-only (not for clinical use)
   show_warning_on_startup: true  # Show research mode warning dialog on startup
+
+logging:
+  retention_days: 2555  # Log retention period (7 years for FDA CFR 21 Part 11 compliance)
+  rotation_size_mb: 100  # Maximum log file size before rotation (MB)
+  enable_rotation: true  # Enable automatic log rotation
+  enable_cleanup: true  # Enable automatic cleanup of old log files

@@ -340,3 +340,103 @@ class DatabaseManager:
             logs = list(result.scalars().all())
             logger.debug(f"Retrieved {len(logs)} safety logs")
             return logs
+
+    # Database Maintenance Operations
+
+    def vacuum_database(self) -> tuple[bool, str, dict]:
+        """
+        Perform VACUUM operation to reclaim space and defragment database.
+
+        VACUUM rebuilds the database file, reclaiming unused space from deleted
+        records and defragmenting the database for better performance.
+
+        WARNING: This operation locks the database briefly (seconds to minutes
+        depending on database size). Should only be called when no active
+        sessions are running.
+
+        Returns:
+            tuple[bool, str, dict]: (success, message, stats)
+                - success: True if vacuum succeeded, False if failed
+                - message: Human-readable result message
+                - stats: Dictionary containing before/after file sizes
+
+        Example:
+            success, message, stats = db_manager.vacuum_database()
+            if success:
+                print(f"Vacuum complete: {stats['size_before_mb']:.1f}MB -> "
+                      f"{stats['size_after_mb']:.1f}MB "
+                      f"({stats['size_reduction_percent']:.1f}% reduction)")
+        """
+        try:
+            # Measure database file size before vacuum
+            db_file = Path(self.db_path)
+            if not db_file.exists():
+                return False, "Database file not found", {}
+
+            size_before_bytes = db_file.stat().st_size
+            size_before_mb = size_before_bytes / (1024 * 1024)
+
+            logger.info(f"Starting VACUUM operation (current size: {size_before_mb:.2f}MB)")
+
+            # Perform VACUUM operation
+            # This rebuilds the database file, reclaiming unused space
+            with self.engine.connect() as conn:
+                conn.execute(text("VACUUM"))
+                conn.commit()
+
+            # Measure database file size after vacuum
+            size_after_bytes = db_file.stat().st_size
+            size_after_mb = size_after_bytes / (1024 * 1024)
+            size_reduction_bytes = size_before_bytes - size_after_bytes
+            size_reduction_mb = size_reduction_bytes / (1024 * 1024)
+            size_reduction_percent = (
+                (size_reduction_bytes / size_before_bytes * 100) if size_before_bytes > 0 else 0
+            )
+
+            stats = {
+                "size_before_bytes": size_before_bytes,
+                "size_after_bytes": size_after_bytes,
+                "size_before_mb": size_before_mb,
+                "size_after_mb": size_after_mb,
+                "size_reduction_bytes": size_reduction_bytes,
+                "size_reduction_mb": size_reduction_mb,
+                "size_reduction_percent": size_reduction_percent,
+            }
+
+            message = (
+                f"Database vacuum complete: {size_before_mb:.2f}MB -> {size_after_mb:.2f}MB "
+                f"({size_reduction_mb:.2f}MB freed, {size_reduction_percent:.1f}% reduction)"
+            )
+            logger.info(message)
+
+            return True, message, stats
+
+        except Exception as e:
+            error_msg = f"Database vacuum failed: {e}"
+            logger.error(error_msg)
+            return False, error_msg, {}
+
+    def get_database_size(self) -> tuple[bool, float, str]:
+        """
+        Get current database file size.
+
+        Returns:
+            tuple[bool, float, str]: (success, size_mb, message)
+                - success: True if size retrieved, False if failed
+                - size_mb: Database file size in MB
+                - message: Human-readable message
+        """
+        try:
+            db_file = Path(self.db_path)
+            if not db_file.exists():
+                return False, 0.0, "Database file not found"
+
+            size_bytes = db_file.stat().st_size
+            size_mb = size_bytes / (1024 * 1024)
+            message = f"Database size: {size_mb:.2f}MB"
+            return True, size_mb, message
+
+        except Exception as e:
+            error_msg = f"Failed to get database size: {e}"
+            logger.error(error_msg)
+            return False, 0.0, error_msg

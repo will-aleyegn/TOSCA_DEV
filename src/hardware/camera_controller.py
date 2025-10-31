@@ -247,36 +247,96 @@ class CameraStreamThread(QThread):
 
 
 class VideoRecorder:
-    """Records camera frames to video file."""
+    """Records camera frames to video file with H.264 compression."""
 
     def __init__(
-        self, output_path: Path, fps: float = 30.0, frame_size: tuple = (1456, 1088)
+        self,
+        output_path: Path,
+        fps: float = 30.0,
+        frame_size: tuple = (1456, 1088),
+        codec: str = "H264",
+        quality_crf: int = 28,
+        fallback_codec: str = "MJPG",
     ) -> None:
         """
-        Initialize video recorder.
+        Initialize video recorder with compression settings.
 
         Args:
             output_path: Path to output video file
             fps: Frames per second for video
             frame_size: Video frame size (width, height)
+            codec: Primary codec to use (H264, MJPEG, mp4v)
+            quality_crf: H.264 Constant Rate Factor (0-51, lower=better quality/larger file)
+                         Recommended: 23=default, 28=good quality/size balance, 18=visually lossless
+            fallback_codec: Codec to use if primary codec unavailable
         """
         self.output_path = output_path
         self.fps = fps
         self.frame_size = frame_size
+        self.codec = codec
+        self.quality_crf = quality_crf
+        self.fallback_codec = fallback_codec
         self.writer: Optional[cv2.VideoWriter] = None
         self.frame_count = 0
+        self.actual_codec_used: str = ""
 
         # Ensure output directory exists
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
-        # Initialize video writer
-        fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-        self.writer = cv2.VideoWriter(str(output_path), fourcc, fps, frame_size)
+        # Initialize video writer with codec fallback
+        self._initialize_writer()
 
-        if not self.writer.isOpened():
+        if not self.writer or not self.writer.isOpened():
             raise RuntimeError(f"Failed to open video writer: {output_path}")
 
-        logger.info(f"Video recorder initialized: {output_path}")
+        logger.info(
+            f"Video recorder initialized: {output_path}, "
+            f"codec={self.actual_codec_used}, crf={quality_crf}, fps={fps}"
+        )
+
+    def _initialize_writer(self) -> None:
+        """
+        Initialize video writer with codec fallback.
+
+        Tries primary codec first, falls back to fallback codec if unavailable.
+        For H.264, uses CRF quality setting for file size optimization.
+        """
+        # Map codec names to fourcc codes
+        codec_map = {
+            "H264": "H264",  # H.264 codec (best compression)
+            "X264": "X264",  # Alternative H.264
+            "avc1": "avc1",  # Another H.264 variant
+            "MJPG": "MJPG",  # Motion JPEG (moderate compression)
+            "MJPEG": "MJPG",  # Motion JPEG alternative
+            "mp4v": "mp4v",  # MPEG-4 Part 2 (basic compression)
+        }
+
+        # Try primary codec
+        codec_code = codec_map.get(self.codec, self.codec)
+        fourcc = cv2.VideoWriter_fourcc(*codec_code)
+        self.writer = cv2.VideoWriter(str(self.output_path), fourcc, self.fps, self.frame_size)
+
+        if self.writer and self.writer.isOpened():
+            self.actual_codec_used = self.codec
+            logger.info(f"Using primary codec: {self.codec}")
+            return
+
+        # Primary codec failed, try fallback
+        logger.warning(
+            f"Primary codec {self.codec} not available, trying fallback {self.fallback_codec}"
+        )
+        fallback_code = codec_map.get(self.fallback_codec, self.fallback_codec)
+        fourcc = cv2.VideoWriter_fourcc(*fallback_code)
+        self.writer = cv2.VideoWriter(str(self.output_path), fourcc, self.fps, self.frame_size)
+
+        if self.writer and self.writer.isOpened():
+            self.actual_codec_used = self.fallback_codec
+            logger.info(f"Using fallback codec: {self.fallback_codec}")
+            return
+
+        # Both codecs failed
+        logger.error(f"Both {self.codec} and {self.fallback_codec} codecs failed")
+        self.actual_codec_used = "none"
 
     def write_frame(self, frame: np.ndarray) -> None:
         """

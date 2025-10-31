@@ -21,6 +21,25 @@ class CameraConfig(BaseModel):
         default=30, ge=1, description="Frames between FPS calculations"
     )
 
+    # Video Recording Settings
+    video_codec: str = Field(default="H264", description="Video codec (H264, MJPEG, mp4v)")
+    video_quality_crf: int = Field(
+        default=28,
+        ge=0,
+        le=51,
+        description="H.264 Constant Rate Factor (0=lossless, 51=worst, 23=default, 28=good)",
+    )
+    video_preset: str = Field(
+        default="medium",
+        description=(
+            "H.264 encoding preset "
+            "(ultrafast, superfast, veryfast, faster, fast, medium, slow, slower, veryslow)"
+        ),
+    )
+    video_fallback_codec: str = Field(
+        default="MJPG", description="Fallback codec if primary codec unavailable"
+    )
+
 
 class ActuatorConfig(BaseModel):
     """Actuator hardware configuration."""
@@ -139,8 +158,29 @@ class GUIConfig(BaseModel):
         default=False, description="Auto-connect to hardware on startup"
     )
     enable_developer_mode: bool = Field(default=False, description="Enable developer mode features")
-    research_mode: bool = Field(default=True, description="Mark system as research-only (not for clinical use)")
-    show_warning_on_startup: bool = Field(default=True, description="Show research mode warning dialog on startup")
+    research_mode: bool = Field(
+        default=True, description="Mark system as research-only (not for clinical use)"
+    )
+    show_warning_on_startup: bool = Field(
+        default=True, description="Show research mode warning dialog on startup"
+    )
+
+
+class LoggingConfig(BaseModel):
+    """Logging and audit trail configuration."""
+
+    retention_days: int = Field(
+        default=2555,
+        ge=1,
+        description="Log file retention period (days). Default 2555 = 7 years for FDA compliance.",
+    )
+    rotation_size_mb: int = Field(
+        default=100, ge=1, le=1000, description="Maximum log file size before rotation (MB)"
+    )
+    enable_rotation: bool = Field(default=True, description="Enable automatic log rotation")
+    enable_cleanup: bool = Field(
+        default=True, description="Enable automatic cleanup of old log files"
+    )
 
 
 class TOSCAConfig(BaseModel):
@@ -149,3 +189,4 @@ class TOSCAConfig(BaseModel):
     hardware: HardwareConfig = Field(default_factory=HardwareConfig)
     safety: SafetyConfig = Field(default_factory=SafetyConfig)
     gui: GUIConfig = Field(default_factory=GUIConfig)
+    logging: LoggingConfig = Field(default_factory=LoggingConfig)
