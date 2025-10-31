@@ -39,6 +39,60 @@ from ui.widgets.treatment_setup_widget import TreatmentSetupWidget
 logger = logging.getLogger(__name__)
 
 
+# ============================================================================
+# Protocol Execution Worker (QRunnable + asyncio.run())
+# ============================================================================
+
+
+from PyQt6.QtCore import QObject, QRunnable, pyqtSignal
+import asyncio
+
+
+class LineProtocolWorkerSignals(QObject):
+    """Signals for LineProtocolWorker communication with main thread."""
+
+    finished = pyqtSignal(bool, str)  # success, message
+    error = pyqtSignal(str)  # error_message
+
+
+class LineProtocolWorker(QRunnable):
+    """
+    Worker for executing line-based protocols in a background thread.
+
+    Uses QRunnable + asyncio.run() pattern for safe async execution.
+    This creates a new asyncio event loop in the worker thread,
+    separate from the PyQt6 event loop.
+    """
+
+    def __init__(self, engine, protocol):
+        super().__init__()
+        self.engine = engine
+        self.protocol = protocol
+        self.signals = LineProtocolWorkerSignals()
+
+    def run(self) -> None:
+        """Execute protocol in worker thread with asyncio.run()."""
+        try:
+            # Create new asyncio event loop for this thread
+            success, message = asyncio.run(
+                self.engine.execute_protocol(
+                    self.protocol, record=True, stop_on_error=True
+                )
+            )
+
+            # Emit finished signal
+            self.signals.finished.emit(success, message)
+
+        except Exception as e:
+            logger.error(f"Protocol worker exception: {e}", exc_info=True)
+            self.signals.error.emit(str(e))
+
+
+# ============================================================================
+# Main Window
+# ============================================================================
+
+
 class MainWindow(QMainWindow):
     """
     Main application window.
@@ -814,6 +868,21 @@ class MainWindow(QMainWindow):
             safety_manager=self.safety_manager,
         )
 
+        # Initialize line-based protocol engine
+        from core.line_protocol_engine import LineBasedProtocolEngine
+
+        self.line_protocol_engine = LineBasedProtocolEngine(
+            laser_controller=self.laser_controller,
+            actuator_controller=self.actuator_controller,
+            safety_manager=self.safety_manager,
+        )
+
+        # Connect line protocol engine callbacks for UI updates
+        self.line_protocol_engine.on_line_start = self._on_protocol_line_start
+        self.line_protocol_engine.on_line_complete = self._on_protocol_line_complete
+        self.line_protocol_engine.on_progress_update = self._on_protocol_progress_update
+        self.line_protocol_engine.on_state_change = self._on_protocol_state_change
+
         # Pass protocol engine to active treatment widget for monitoring
         if hasattr(self.active_treatment_widget, "set_protocol_engine"):
             self.active_treatment_widget.set_protocol_engine(self.protocol_engine)
@@ -823,7 +892,7 @@ class MainWindow(QMainWindow):
             self.active_treatment_widget.set_safety_manager(self.safety_manager)
 
         logger.info(
-            f"Protocol engine initialized with MainWindow controllers "
+            f"Protocol engines initialized with MainWindow controllers "
             f"(laser: {self.laser_controller is not None}, "
             f"actuator: {self.actuator_controller is not None}, "
             f"safety: {self.safety_manager is not None})"
@@ -904,6 +973,8 @@ class MainWindow(QMainWindow):
         """
         Handle protocol ready signal from LineProtocolBuilderWidget.
 
+        Executes the line-based protocol using the LineBasedProtocolEngine.
+
         Args:
             protocol: LineBasedProtocol ready for execution
         """
@@ -925,28 +996,87 @@ class MainWindow(QMainWindow):
         for line in protocol.lines:
             logger.info(f"  - {line.get_summary()}")
 
-        # TODO: Integrate with ProtocolEngine for LineBasedProtocol execution
-        # Current ProtocolEngine only supports old action-based Protocol format
-        # Need to either:
-        #   1. Create LineBasedProtocolEngine
-        #   2. Extend ProtocolEngine to support both formats
-        #   3. Convert LineBasedProtocol to Protocol format
-
-        # For now, display protocol details and inform user
-        QMessageBox.information(
+        # Confirm execution with user
+        reply = QMessageBox.question(
             self,
-            "Protocol Validated",
-            f"Protocol '{protocol.protocol_name}' has been validated successfully!\n\n"
+            "Execute Protocol",
+            f"Execute protocol '{protocol.protocol_name}'?\n\n"
             f"📊 Protocol Details:\n"
             f"  • Lines: {len(protocol.lines)}\n"
             f"  • Loop count: {protocol.loop_count}\n"
             f"  • Total duration: {protocol.calculate_total_duration():.1f}s\n\n"
-            f"⚠️ Execution engine for line-based protocols is not yet implemented.\n"
-            f"The protocol is saved and can be executed once the engine is ready.",
+            f"⚠️ Safety checks will be performed before execution starts.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
 
-        # NOTE: Tab switching removed - user wants to stay on Protocol Builder page
-        # If execution is needed, it should happen in-place on the current tab
+        if reply == QMessageBox.StandardButton.No:
+            logger.info("Protocol execution cancelled by user")
+            return
+
+        # Execute protocol asynchronously using QRunnable pattern
+        from PyQt6.QtCore import QRunnable, QThreadPool, pyqtSlot
+
+        # Store protocol for execution
+        self._current_executing_protocol = protocol
+
+        # Create worker for async execution
+        worker = LineProtocolWorker(self.line_protocol_engine, protocol)
+        worker.signals.finished.connect(self._on_protocol_execution_finished)
+        worker.signals.error.connect(self._on_protocol_execution_error)
+
+        # Submit to thread pool
+        QThreadPool.globalInstance().start(worker)
+        logger.info("Protocol execution started in worker thread")
+
+    def _on_protocol_execution_finished(self, success: bool, message: str) -> None:
+        """Handle protocol execution completion."""
+        if success:
+            QMessageBox.information(self, "Protocol Complete", message)
+        else:
+            QMessageBox.critical(self, "Protocol Failed", message)
+
+    def _on_protocol_execution_error(self, error_msg: str) -> None:
+        """Handle protocol execution error."""
+        logger.error(f"Protocol execution error: {error_msg}")
+        QMessageBox.critical(self, "Execution Error", f"Protocol execution failed:\n{error_msg}")
+
+    def _on_protocol_line_start(self, line_number: int, loop_iteration: int) -> None:
+        """Callback when protocol line starts execution."""
+        logger.info(f"Line {line_number} started (Loop {loop_iteration})")
+        # Update UI status (could show in status bar or dedicated widget)
+        self.statusBar().showMessage(
+            f"Executing Line {line_number} (Loop {loop_iteration})", 2000
+        )
+
+    def _on_protocol_line_complete(self, line_number: int, loop_iteration: int) -> None:
+        """Callback when protocol line completes execution."""
+        logger.debug(f"Line {line_number} completed (Loop {loop_iteration})")
+
+    def _on_protocol_progress_update(self, progress: float) -> None:
+        """Callback for protocol execution progress (0.0 to 1.0)."""
+        # Update progress in UI (could use progress bar)
+        percent = int(progress * 100)
+        logger.debug(f"Protocol progress: {percent}%")
+        # Could update status bar or progress widget here
+        if percent % 10 == 0:  # Log every 10%
+            logger.info(f"Protocol execution: {percent}% complete")
+
+    def _on_protocol_state_change(self, state) -> None:
+        """Callback when protocol execution state changes."""
+        from core.line_protocol_engine import ExecutionState
+
+        logger.info(f"Protocol execution state changed to: {state.value}")
+
+        if state == ExecutionState.RUNNING:
+            self.statusBar().showMessage("Protocol execution started", 3000)
+        elif state == ExecutionState.PAUSED:
+            self.statusBar().showMessage("Protocol execution paused", 0)
+        elif state == ExecutionState.STOPPED:
+            self.statusBar().showMessage("Protocol execution stopped", 5000)
+        elif state == ExecutionState.COMPLETED:
+            self.statusBar().showMessage("Protocol execution completed successfully", 5000)
+        elif state == ExecutionState.ERROR:
+            self.statusBar().showMessage("Protocol execution failed", 5000)
 
     def _on_global_estop_clicked(self) -> None:
         """Handle global E-STOP button click."""
