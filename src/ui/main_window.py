@@ -58,7 +58,15 @@ class MainWindow(QMainWindow):
 
         logger.info("Initializing main window")
 
-        self.setWindowTitle("TOSCA Laser Control System")
+        # Load configuration
+        config = get_config()
+
+        # Set window title with research mode watermark if configured
+        if config.gui.research_mode:
+            self.setWindowTitle("TOSCA v0.9.11-alpha - RESEARCH MODE ONLY")
+        else:
+            self.setWindowTitle("TOSCA Laser Control System")
+
         self.setGeometry(100, 100, 1200, 900)  # Adjusted from 1400x900 for better vertical space
 
         # Initialize database and session managers
@@ -520,6 +528,20 @@ class MainWindow(QMainWindow):
         self.setStatusBar(status_bar)
 
         status_layout = QHBoxLayout()
+
+        # Research mode watermark (if configured)
+        config = get_config()
+        if config.gui.research_mode:
+            self.research_mode_label = QLabel("RESEARCH MODE - NOT FOR CLINICAL USE")
+            self.research_mode_label.setStyleSheet(
+                "QLabel { background-color: #D32F2F; color: white; "
+                "padding: 8px 16px; font-weight: bold; font-size: 12px; "
+                "border-radius: 3px; margin-right: 10px; }"
+            )
+            self.research_mode_label.setToolTip(
+                "This system is for research use only and not approved for clinical use"
+            )
+            status_layout.addWidget(self.research_mode_label)
 
         # Connection status with icons (Dev Mode moved to menubar)
         self.camera_status = QLabel("📷 Camera ✗")
