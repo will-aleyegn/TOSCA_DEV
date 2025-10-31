@@ -1,6 +1,6 @@
 # TOSCA Project Status
 
-**Last Updated:** 2025-10-31 (Week 1 Research Mode Setup Complete)
+**Last Updated:** 2025-10-31 (Week 2 Safety Testing Complete)
 **Project:** TOSCA Laser Control System
 **Version:** 0.9.11-alpha (Research Mode - NOT for Clinical Use)
 
@@ -335,6 +335,61 @@ Transform tab-based GUI into integrated "Treatment Dashboard" for improved opera
 - Safety-first sequential implementation approach
 - Config flags provide foundation for UI and behavior
 - All changes tested incrementally
+
+#### Milestone 5.15: Week 2 Safety State Machine Unit Tests ✅ **COMPLETE** (2025-10-31)
+**Duration:** 2 hours (planning + implementation + coverage verification)
+**Overall Result:** Comprehensive test suite achieving 97% code coverage for safety.py
+
+**Implementation Summary:**
+
+**Test Categories:**
+- Category 1: Initialization (3 tests) - Verify default state, laser denial
+- Category 2: State Transitions (12 tests) - All state transition paths + guards
+- Category 3: Interlocks (9 tests) - GPIO, session, power limit coordination
+- Category 4: Emergency Stop (5 tests) - E-stop behavior from all states
+- Category 5: Signal Emissions (8 tests) - PyQt6 signal verification
+- Category 6: Status Queries (7 tests) - Status text and interlock details
+- Category 7: TestSafetyManager (4 tests) - Bypass functionality for testing
+
+**Statistics:**
+- Total Tests: 48 (exceeded target of 38)
+- All Tests: PASSING ✅
+- Coverage: 97% (168 statements, 4 missed branches)
+- Test File: tests/test_safety/test_safety_manager.py (649 lines)
+- Commit: 62daf91
+
+**Coverage Analysis:**
+- Statement coverage: 164/168 (97%)
+- Branch coverage: 40/42 (95%)
+- Missed branches: 2 edge cases in _update_safety_state (lines 274-275, 286-287)
+- Reason: Complex conditional logic, edge cases difficult to trigger in isolation
+
+**Tests Verify:**
+- 5-state machine (SAFE/ARMED/TREATING/UNSAFE/EMERGENCY_STOP)
+- State transition guard conditions (prevent invalid transitions)
+- Interlock coordination (GPIO + session + power limit)
+- Emergency stop override (highest priority safety mechanism)
+- Signal emissions (safety_state_changed, laser_enable_changed, safety_event)
+- TestSafetyManager bypass behavior (GPIO + session auto-satisfied)
+
+**Pre-existing Tests:**
+- Selective shutdown test: test_realtime_safety_monitoring.py (Week 2 requirement met)
+- Integration tests: Protocol execution safety monitoring
+
+**Planning Method:**
+- Used Zen MCP planner for systematic test planning
+- Category-based test organization (medical device compliance)
+- pytest-qt for PyQt6 signal testing
+- pytest-cov for coverage analysis
+- Function-based tests (not class-based) following project patterns
+
+**Week 2 Complete:**
+All 5 Week 2 requirements satisfied:
+✅ Safety state machine unit tests (48 tests, 97% coverage)
+✅ State transitions tested (SAFE/ARMED/TREATING/UNSAFE/ESTOP)
+✅ Interlock failures tested (GPIO, session, power limit)
+✅ Selective shutdown tested (existing integration test)
+✅ Emergency stop behavior tested (5 dedicated tests)
 
 #### Milestone 4: Database & Session Management (Completed: 2025-10-10)
 - SQLite database with safety event logging
