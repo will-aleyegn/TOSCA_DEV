@@ -289,7 +289,7 @@ class ActuatorConnectionWidget(QWidget):
         selected_port = self.com_port_combo.currentData()
         if not selected_port:
             # Fallback to text if userData not set
-            selected_port = self.com_port_combo.currentText().replace("# [DONE] ", "").strip()
+            selected_port = self.com_port_combo.currentText().strip()
 
         # Save this port as preference for next time
         self._save_preference("actuator_com_port", selected_port)

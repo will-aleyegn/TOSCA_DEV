@@ -119,7 +119,7 @@ class HardwareTestDialog(QDialog):
         header_layout.addStretch()
 
         # Status indicator
-        status_text = "# [DONE] PASS" if result["passed"] else "# [FAILED] FAIL"
+        status_text = "PASS" if result["passed"] else "FAIL"
         status_color = "#4CAF50" if result["passed"] else "#f44336"
 
         status_label = QLabel(status_text)
@@ -183,7 +183,7 @@ class HardwareTestDialog(QDialog):
 
         # Detailed breakdown
         if failed > 0:
-            breakdown = QLabel(f"  # [DONE] Passed: {passed}  |  # [FAILED] Failed: {failed}")
+            breakdown = QLabel(f"  Passed: {passed}  |  Failed: {failed}")
             breakdown.setStyleSheet("color: #aaa; font-size: 12px; padding: 4px;")
             breakdown.setAlignment(Qt.AlignmentFlag.AlignCenter)
             layout.addWidget(breakdown)
