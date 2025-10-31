@@ -7,7 +7,7 @@ Integrates with database SafetyLog table for persistence and emits PyQt6 signals
 
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
 from typing import Any, Optional
@@ -95,24 +95,49 @@ class EventLogger(QObject):
     # Signals
     event_logged = pyqtSignal(str, str, str)  # (event_type, severity, description)
 
-    def __init__(self, db_manager: DatabaseManager, log_file: Optional[Path] = None) -> None:
+    def __init__(
+        self,
+        db_manager: DatabaseManager,
+        log_file: Optional[Path] = None,
+        retention_days: int = 2555,  # 7 years for FDA compliance
+        rotation_size_mb: int = 100,
+        enable_rotation: bool = True,
+        enable_cleanup: bool = True,
+    ) -> None:
         """
-        Initialize event logger.
+        Initialize event logger with automatic rotation and cleanup.
 
         Args:
             db_manager: Database manager instance
             log_file: Optional path to JSONL log file (defaults to data/logs/events.jsonl)
+            retention_days: Log file retention period (default: 2555 days = 7 years)
+            rotation_size_mb: Maximum log file size before rotation (default: 100MB)
+            enable_rotation: Enable automatic log rotation (default: True)
+            enable_cleanup: Enable automatic cleanup of old logs (default: True)
         """
         super().__init__()
         self.db_manager = db_manager
         self.log_file = log_file or Path("data/logs/events.jsonl")
         self.current_session_id: Optional[int] = None
         self.current_tech_id: Optional[int] = None
+        self.retention_days = retention_days
+        self.rotation_size_mb = rotation_size_mb
+        self.enable_rotation = enable_rotation
+        self.enable_cleanup = enable_cleanup
 
         # Ensure log directory exists
         self.log_file.parent.mkdir(parents=True, exist_ok=True)
 
-        logger.info(f"Event logger initialized: DB + file ({self.log_file})")
+        # Perform rotation and cleanup on initialization
+        if self.enable_rotation:
+            self._check_and_rotate_log()
+        if self.enable_cleanup:
+            self._cleanup_old_logs()
+
+        logger.info(
+            f"Event logger initialized: DB + file ({self.log_file}), "
+            f"retention={retention_days}d, rotation={rotation_size_mb}MB"
+        )
 
     def set_session(self, session_id: int, tech_id: int) -> None:
         """
@@ -333,3 +358,92 @@ class EventLogger(QObject):
             severity=EventSeverity.CRITICAL,
             details=details,
         )
+
+    # Log Rotation and Cleanup Methods
+
+    def _check_and_rotate_log(self) -> None:
+        """
+        Check if log file needs rotation and rotate if necessary.
+
+        Rotation occurs when the current log file exceeds rotation_size_mb.
+        Rotated files are named with timestamp: events_YYYY-MM-DD_HH-MM-SS.jsonl
+        """
+        try:
+            if not self.log_file.exists():
+                # No current log file, nothing to rotate
+                return
+
+            # Check file size
+            size_bytes = self.log_file.stat().st_size
+            size_mb = size_bytes / (1024 * 1024)
+
+            if size_mb >= self.rotation_size_mb:
+                # Rotate log file
+                timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+                rotated_name = f"{self.log_file.stem}_{timestamp}{self.log_file.suffix}"
+                rotated_path = self.log_file.parent / rotated_name
+
+                # Rename current log file
+                self.log_file.rename(rotated_path)
+                logger.info(
+                    f"Log file rotated: {self.log_file.name} -> {rotated_name} ({size_mb:.1f}MB)"
+                )
+
+                # Create new empty log file
+                self.log_file.touch()
+
+        except Exception as e:
+            logger.error(f"Log rotation failed: {e}")
+
+    def _cleanup_old_logs(self) -> None:
+        """
+        Clean up log files older than retention_days.
+
+        Scans the log directory for rotated log files (events_YYYY-MM-DD_*.jsonl)
+        and deletes files older than the retention period.
+        """
+        try:
+            log_dir = self.log_file.parent
+            if not log_dir.exists():
+                return
+
+            # Calculate cutoff date
+            cutoff_date = datetime.now() - timedelta(days=self.retention_days)
+
+            # Find all rotated log files (pattern: events_YYYY-MM-DD_*.jsonl)
+            rotated_logs = list(log_dir.glob(f"{self.log_file.stem}_*.jsonl"))
+
+            deleted_count = 0
+            for log_path in rotated_logs:
+                try:
+                    # Extract timestamp from filename
+                    # Format: events_YYYY-MM-DD_HH-MM-SS.jsonl
+                    filename = log_path.stem  # Remove .jsonl
+                    parts = filename.split("_")
+                    if len(parts) >= 4:  # events_YYYY_MM_DD_HH_MM_SS
+                        # Parse date from filename
+                        date_str = parts[1]  # YYYY-MM-DD
+                        file_date = datetime.strptime(date_str, "%Y-%m-%d")
+
+                        # Delete if older than retention period
+                        if file_date < cutoff_date:
+                            log_path.unlink()
+                            deleted_count += 1
+                            age_days = (datetime.now() - file_date).days
+                            logger.info(
+                                f"Deleted old log file: {log_path.name} (age: {age_days} days)"
+                            )
+
+                except (ValueError, IndexError) as e:
+                    # Skip files that don't match expected format
+                    logger.debug(f"Skipping file {log_path.name}: {e}")
+                    continue
+
+            if deleted_count > 0:
+                logger.info(
+                    f"Log cleanup complete: {deleted_count} old files deleted "
+                    f"(retention: {self.retention_days} days)"
+                )
+
+        except Exception as e:
+            logger.error(f"Log cleanup failed: {e}")
