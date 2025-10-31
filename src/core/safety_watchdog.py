@@ -256,9 +256,9 @@ class SafetyWatchdog(QObject):
         Stops heartbeat timer to trigger hardware watchdog timeout.
         Hardware should perform emergency shutdown after 1000ms.
 
-        ⚠️  WARNING: TESTING ONLY - DO NOT USE IN PRODUCTION
-        ⚠️  This will cause hardware watchdog to expire and halt Arduino
-        ⚠️  Power cycle required to recover
+        WARNING:  WARNING: TESTING ONLY - DO NOT USE IN PRODUCTION
+        WARNING:  This will cause hardware watchdog to expire and halt Arduino
+        WARNING:  Power cycle required to recover
 
         Usage:
             watchdog.simulate_freeze()
@@ -266,8 +266,8 @@ class SafetyWatchdog(QObject):
             # → Emergency shutdown (all outputs LOW)
             # → Arduino halts (requires power cycle)
         """
-        logger.warning("⚠️  SIMULATING GUI FREEZE - WATCHDOG SHOULD TRIGGER IN 1000ms")
-        logger.warning("⚠️  Hardware will halt - power cycle required to recover")
+        logger.warning("WARNING:  SIMULATING GUI FREEZE - WATCHDOG SHOULD TRIGGER IN 1000ms")
+        logger.warning("WARNING:  Hardware will halt - power cycle required to recover")
 
         # Stop heartbeat timer (simulates frozen GUI)
         self.heartbeat_timer.stop()

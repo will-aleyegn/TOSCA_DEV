@@ -17,7 +17,7 @@ The TOSCA codebase evolved from using `ActuatorSequence` (legacy, movement-only)
 **Evidence:**
 ```python
 # main_window.py:312-324
-self.actuator_widget = ActuatorWidget()  # ❌ Created but never added to layout
+self.actuator_widget = ActuatorWidget()  # [FAILED] Created but never added to layout
 
 # Only exists to create controller:
 self.actuator_connection_widget = ActuatorConnectionWidget(self.actuator_widget)
@@ -38,27 +38,27 @@ self.actuator_connection_widget = ActuatorConnectionWidget(self.actuator_widget)
 | **Laser Control** | Static power only | Dynamic ramping over time |
 | **Widget** | `ActuatorWidget` (dead) | `ProtocolBuilderWidget` (active) |
 | **File Location** | `hardware/actuator_sequence.py` | `core/protocol.py` |
-| **Status** | ❌ Legacy, never displayed | ✅ Active, user-facing |
+| **Status** | [FAILED] Legacy, never displayed | [DONE] Active, user-facing |
 
 ### Refactoring Plan
 
-#### Phase 1: Remove Dead UI Code ✅ COMPLETE
-**Status:** ✅ Complete (2025-10-30)
+#### Phase 1: Remove Dead UI Code [DONE] COMPLETE
+**Status:** [DONE] Complete (2025-10-30)
 
 **Actions:**
-1. ✅ Document refactoring rationale (this file)
-2. ✅ Delete unused UI methods from `actuator_widget.py`:
+1. [DONE] Document refactoring rationale (this file)
+2. [DONE] Delete unused UI methods from `actuator_widget.py`:
    - `_create_sequence_params_group()` (lines 263-361, ~99 lines)
    - `_create_sequence_list_group()` (lines 363-414, ~52 lines)
    - `_create_sequence_controls_group()` (lines 416-468, ~53 lines)
    - Associated signal handlers: `_on_seq_*` methods
    - **Total deletion: 590 lines** (70% code reduction)
 
-3. ✅ Update `_init_ui()` to remove sequence builder references (lines 74-77)
-4. ✅ Document deleted methods in this log
-5. ✅ Remove unused imports (Path, QTimer, QCheckBox, QComboBox, etc.)
-6. ✅ Update module docstring with NOTE about removal
-7. ✅ Syntax validation passed: `python -m py_compile actuator_widget.py`
+3. [DONE] Update `_init_ui()` to remove sequence builder references (lines 74-77)
+4. [DONE] Document deleted methods in this log
+5. [DONE] Remove unused imports (Path, QTimer, QCheckBox, QComboBox, etc.)
+6. [DONE] Update module docstring with NOTE about removal
+7. [DONE] Syntax validation passed: `python -m py_compile actuator_widget.py`
 
 **Preserved:**
 - `ActuatorController` instantiation (still needed for Phase 2)
@@ -72,17 +72,17 @@ self.actuator_connection_widget = ActuatorConnectionWidget(self.actuator_widget)
 - `docs/REFACTORING_LOG.md`: Updated with completion status
 - `docs/architecture/ADR-001-protocol-consolidation.md`: Created ADR
 
-#### Phase 2: Refactor Controller Management ✅ COMPLETE
-**Status:** ✅ Complete (2025-10-30)
+#### Phase 2: Refactor Controller Management [DONE] COMPLETE
+**Status:** [DONE] Complete (2025-10-30)
 
 **Actions:**
-1. ✅ Move `ActuatorController` instantiation to `MainWindow`
-2. ✅ Modify `ActuatorConnectionWidget.__init__()` to accept controller directly
-3. ✅ Remove `ActuatorWidget` dependency from connection widget
-4. ✅ Update all MainWindow references from `actuator_widget` to `actuator_connection_widget`
-5. ✅ Move connection/homing logic from delegation to direct controller calls
-6. ✅ Add `_on_limits_changed` signal handler
-7. ✅ Update cleanup logic to disconnect controller
+1. [DONE] Move `ActuatorController` instantiation to `MainWindow`
+2. [DONE] Modify `ActuatorConnectionWidget.__init__()` to accept controller directly
+3. [DONE] Remove `ActuatorWidget` dependency from connection widget
+4. [DONE] Update all MainWindow references from `actuator_widget` to `actuator_connection_widget`
+5. [DONE] Move connection/homing logic from delegation to direct controller calls
+6. [DONE] Add `_on_limits_changed` signal handler
+7. [DONE] Update cleanup logic to disconnect controller
 
 **Code Changes:**
 ```python
@@ -103,16 +103,16 @@ self.actuator_connection_widget = ActuatorConnectionWidget(
 
 **Actual Impact:** Removed widget dependency, clarified controller lifecycle, direct controller access
 
-#### Phase 3: Complete Removal ✅ COMPLETE
-**Status:** ✅ Complete (2025-10-30)
+#### Phase 3: Complete Removal [DONE] COMPLETE
+**Status:** [DONE] Complete (2025-10-30)
 
 **Actions:**
-1. ✅ Update `src/ui/widgets/__init__.py` to remove dead exports
-2. ✅ Delete `actuator_widget.py` (248 lines)
-3. ✅ Delete `treatment_widget.py` (437 lines) - **BONUS dead code discovered!**
-4. ✅ Delete `hardware/actuator_sequence.py` (139 lines)
-5. ✅ Verify no broken imports (all passed)
-6. ✅ Syntax validation (all passed)
+1. [DONE] Update `src/ui/widgets/__init__.py` to remove dead exports
+2. [DONE] Delete `actuator_widget.py` (248 lines)
+3. [DONE] Delete `treatment_widget.py` (437 lines) - **BONUS dead code discovered!**
+4. [DONE] Delete `hardware/actuator_sequence.py` (139 lines)
+5. [DONE] Verify no broken imports (all passed)
+6. [DONE] Syntax validation (all passed)
 
 **Files Deleted:**
 - `src/ui/widgets/actuator_widget.py` (248 lines)
@@ -153,22 +153,22 @@ self.actuator_connection_widget = ActuatorConnectionWidget(
 ### Testing Strategy
 
 **Phase 1 Testing:**
-- ✅ Syntax validation: `python -m py_compile actuator_widget.py`
-- ⏳ Unit tests: Verify `ActuatorController` still works
-- ⏳ Integration: Test `ActuatorConnectionWidget` functionality
-- ⏳ GUI smoke test: Launch application, verify Hardware tab loads
+- [DONE] Syntax validation: `python -m py_compile actuator_widget.py`
+- [PENDING] Unit tests: Verify `ActuatorController` still works
+- [PENDING] Integration: Test `ActuatorConnectionWidget` functionality
+- [PENDING] GUI smoke test: Launch application, verify Hardware tab loads
 
 **Phase 2 Testing:**
-- ⏳ Controller instantiation: Verify direct creation works
-- ⏳ Connection widget: Test COM port selection, connect/disconnect
-- ⏳ Homing: Verify Find Home functionality
-- ⏳ Protocol execution: Ensure `ProtocolEngine` still has controller access
+- [PENDING] Controller instantiation: Verify direct creation works
+- [PENDING] Connection widget: Test COM port selection, connect/disconnect
+- [PENDING] Homing: Verify Find Home functionality
+- [PENDING] Protocol execution: Ensure `ProtocolEngine` still has controller access
 
 **Phase 3 Testing:**
-- ⏳ Full regression: Run entire test suite
-- ⏳ Import validation: `grep -r "ActuatorWidget" src/`
-- ⏳ Import validation: `grep -r "ActuatorSequence" src/`
-- ⏳ GUI walkthrough: Test all tabs, hardware connections
+- [PENDING] Full regression: Run entire test suite
+- [PENDING] Import validation: `grep -r "ActuatorWidget" src/`
+- [PENDING] Import validation: `grep -r "ActuatorSequence" src/`
+- [PENDING] GUI walkthrough: Test all tabs, hardware connections
 
 ### Timeline
 
@@ -217,7 +217,7 @@ self.actuator_connection_widget = ActuatorConnectionWidget(
 
 ---
 
-## 2025-10-30: Phase 4 - Dependency Injection Pattern Extension ✅ COMPLETE
+## 2025-10-30: Phase 4 - Dependency Injection Pattern Extension [DONE] COMPLETE
 
 ### Context
 
@@ -226,11 +226,11 @@ Following successful Phase 2 (ActuatorController DI pattern) and Phase 3 (dead c
 ### Problem Statement
 
 **Issue:** Architectural inconsistency across hardware widgets
-- ActuatorConnectionWidget: ✅ Constructor injection (Phase 2 success)
-- LaserWidget: ❌ Self-instantiates controller in `_on_connect_clicked()`
-- GPIOWidget: ❌ Self-instantiates controller in `_on_connect_clicked()`
-- TECWidget: ❌ Self-instantiates controller in `_on_connect_clicked()`
-- CameraWidget: ⚠️ Uses setter injection (`set_camera_controller()`)
+- ActuatorConnectionWidget: [DONE] Constructor injection (Phase 2 success)
+- LaserWidget: [FAILED] Self-instantiates controller in `_on_connect_clicked()`
+- GPIOWidget: [FAILED] Self-instantiates controller in `_on_connect_clicked()`
+- TECWidget: [FAILED] Self-instantiates controller in `_on_connect_clicked()`
+- CameraWidget: WARNING: Uses setter injection (`set_camera_controller()`)
 
 **Impact:**
 - Inconsistent patterns confuse developers
@@ -240,17 +240,17 @@ Following successful Phase 2 (ActuatorController DI pattern) and Phase 3 (dead c
 
 ### Refactoring Plan
 
-#### Phase 4A: Widget Constructor Refactoring ✅ COMPLETE
-**Status:** ✅ Complete (2025-10-30)
+#### Phase 4A: Widget Constructor Refactoring [DONE] COMPLETE
+**Status:** [DONE] Complete (2025-10-30)
 
 **Actions:**
-1. ✅ Update LaserWidget to accept `LaserController` via constructor
-2. ✅ Update GPIOWidget to accept `GPIOController` via constructor
-3. ✅ Update TECWidget to accept `TECController` via constructor
-4. ✅ Update CameraWidget to accept `CameraController` via constructor
-5. ✅ Update SafetyWidget to pass `GPIOController` to internal GPIOWidget
-6. ✅ Extract signal connection logic to `_connect_controller_signals()` methods
-7. ✅ Remove controller self-instantiation from `_on_connect_clicked()` methods
+1. [DONE] Update LaserWidget to accept `LaserController` via constructor
+2. [DONE] Update GPIOWidget to accept `GPIOController` via constructor
+3. [DONE] Update TECWidget to accept `TECController` via constructor
+4. [DONE] Update CameraWidget to accept `CameraController` via constructor
+5. [DONE] Update SafetyWidget to pass `GPIOController` to internal GPIOWidget
+6. [DONE] Extract signal connection logic to `_connect_controller_signals()` methods
+7. [DONE] Remove controller self-instantiation from `_on_connect_clicked()` methods
 
 **Code Changes:**
 ```python
@@ -260,11 +260,11 @@ def __init__(self) -> None:
 
 def _on_connect_clicked(self) -> None:
     if not self.controller:
-        self.controller = LaserController()  # ❌ Self-instantiation
+        self.controller = LaserController()  # [FAILED] Self-instantiation
 
 # AFTER (LaserWidget):
 def __init__(self, controller: Optional[LaserController] = None) -> None:
-    self.controller = controller  # ✅ Injected dependency
+    self.controller = controller  # [DONE] Injected dependency
     if self.controller:
         self._connect_controller_signals()
 
@@ -275,19 +275,19 @@ def _connect_controller_signals(self) -> None:
 
 def _on_connect_clicked(self) -> None:
     if not self.controller:
-        logger.error("No controller available")  # ✅ Fail fast
+        logger.error("No controller available")  # [DONE] Fail fast
         return
     self.controller.connect("COM10")
 ```
 
-#### Phase 4B: MainWindow Centralization ✅ COMPLETE
-**Status:** ✅ Complete (2025-10-30)
+#### Phase 4B: MainWindow Centralization [DONE] COMPLETE
+**Status:** [DONE] Complete (2025-10-30)
 
 **Actions:**
-1. ✅ Instantiate all hardware controllers in `MainWindow.__init__()`
-2. ✅ Pass controllers to widget constructors
-3. ✅ Update protocol engine to use MainWindow-managed controllers
-4. ✅ Remove redundant controller instantiation code
+1. [DONE] Instantiate all hardware controllers in `MainWindow.__init__()`
+2. [DONE] Pass controllers to widget constructors
+3. [DONE] Update protocol engine to use MainWindow-managed controllers
+4. [DONE] Remove redundant controller instantiation code
 
 **Code Changes:**
 ```python
@@ -306,8 +306,8 @@ self.gpio_widget = GPIOWidget(controller=self.gpio_controller)
 self.camera_live_view = CameraWidget(camera_controller=self.camera_controller)
 ```
 
-#### Phase 4C: Camera Resource Management Fixes ✅ COMPLETE
-**Status:** ✅ Complete (2025-10-30)
+#### Phase 4C: Camera Resource Management Fixes [DONE] COMPLETE
+**Status:** [DONE] Complete (2025-10-30)
 
 **Problem:** VmbSystem context held open for hours (discovery → disconnect)
 **Impact:** Resource leak, prevents other apps from accessing cameras
@@ -320,14 +320,14 @@ self.camera_live_view = CameraWidget(camera_controller=self.camera_controller)
 ```python
 # BEFORE (CameraController.connect):
 def connect(self):
-    self.vmb.__enter__()  # ❌ Manual context entry
+    self.vmb.__enter__()  # [FAILED] Manual context entry
     cameras = self.vmb.get_all_cameras()
     # ... hours later in disconnect():
-    self.vmb.__exit__()  # ❌ Manual cleanup
+    self.vmb.__exit__()  # [FAILED] Manual cleanup
 
 # AFTER (CameraController.connect):
 def connect(self):
-    with self.vmb:  # ✅ Scoped to discovery only
+    with self.vmb:  # [DONE] Scoped to discovery only
         cameras = self.vmb.get_all_cameras()
         camera = cameras[0]
     # VmbSystem context auto-closed here ✓
@@ -336,8 +336,8 @@ def connect(self):
     self.camera.__enter__()  # Camera-specific context
 ```
 
-#### Phase 4D: Pixel Format Conversion ✅ COMPLETE
-**Status:** ✅ Complete (2025-10-30)
+#### Phase 4D: Pixel Format Conversion [DONE] COMPLETE
+**Status:** [DONE] Complete (2025-10-30)
 
 **Problem:** No pixel format conversion in frame callback
 **Impact:** GUI receives incompatible formats (Mono8, Bayer, YUV)
@@ -403,20 +403,20 @@ elif pixel_format == vmbpy.PixelFormat.Bgr8:
 ### Testing Strategy
 
 **Phase 4 Testing:**
-- ✅ Syntax validation: All files pass
-- ⏳ Unit tests: Mock controllers and verify widget behavior
-- ⏳ Integration: Test hardware connections with real controllers
-- ⏳ GUI smoke test: Verify all tabs load and connect
-- ⏳ Camera test: Verify pixel format conversion with different formats
+- [DONE] Syntax validation: All files pass
+- [PENDING] Unit tests: Mock controllers and verify widget behavior
+- [PENDING] Integration: Test hardware connections with real controllers
+- [PENDING] GUI smoke test: Verify all tabs load and connect
+- [PENDING] Camera test: Verify pixel format conversion with different formats
 
 ### Timeline
 
 | Phase | Duration | Status |
 |-------|----------|--------|
-| **Phase 4A: Widget Refactoring** | 2 hours | ✅ Complete |
-| **Phase 4B: MainWindow Update** | 1 hour | ✅ Complete |
-| **Phase 4C: Camera Context Fix** | 30 minutes | ✅ Complete |
-| **Phase 4D: Pixel Conversion** | 30 minutes | ✅ Complete |
+| **Phase 4A: Widget Refactoring** | 2 hours | [DONE] Complete |
+| **Phase 4B: MainWindow Update** | 1 hour | [DONE] Complete |
+| **Phase 4C: Camera Context Fix** | 30 minutes | [DONE] Complete |
+| **Phase 4D: Pixel Conversion** | 30 minutes | [DONE] Complete |
 | **Documentation** | 30 minutes | 🔄 In Progress |
 | **Total** | **4.5 hours** | - |
 

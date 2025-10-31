@@ -292,7 +292,7 @@ The Protocol Builder provides a visual interface for creating action-based treat
 ├────────────────────────────────────────────────────────────────┤
 │ Total Duration: ~120s  │  Max Power: 8.0W  │                  │
 │                        │                    │  [Execute]       │
-│ Status: Ready         │  Safety: ✓ OK      │  [Execute & Rec] │
+│ Status: Ready         │  Safety: [DONE] OK      │  [Execute & Rec] │
 └────────────────────────────────────────────────────────────────┘
 ```
 

@@ -1,6 +1,6 @@
 # Motor Control & Accelerometer GUI Integration
 
-**Status:** ✅ COMPLETE
+**Status:** [DONE] COMPLETE
 **Date:** 2025-10-27
 
 ---
@@ -243,7 +243,7 @@ WDT_RESET   # Heartbeat (sent every 500ms automatically)
 
 ## Important Notes
 
-### ⚠️ Motor-First Sequence
+### WARNING: Motor-First Sequence
 
 **Always start motor BEFORE initializing accelerometer!**
 
@@ -387,7 +387,7 @@ See: `test_complete_integration.py` for standalone Python test
 
 ---
 
-## ✅ Integration Complete
+## [DONE] Integration Complete
 
 **Motor speed control and accelerometer monitoring are now fully integrated into the TOSCA GUI!**
 

@@ -1,6 +1,6 @@
 # Line Protocol Builder - Quick Start Guide 🚀
 
-**Status:** ✅ Integrated into TOSCA
+**Status:** [DONE] Integrated into TOSCA
 **Location:** Tab 3 - Protocol Builder
 **Time to Test:** < 5 minutes
 
@@ -49,7 +49,7 @@ Protocol Sequence:
 1. Click "Line 2" in the sequence view
 2. Line Editor panel activates
 3. Change laser ramp end power: 5.0W → 7.0W
-4. Click "✓ Apply Changes to Line"
+4. Click "[DONE] Apply Changes to Line"
 ```
 
 **You should see:**
@@ -73,7 +73,7 @@ Line 2 summary updates to show:
 4. Enable Dwell:
    - Duration: 4.0 s
 5. Notes: "Final position treatment"
-6. Click "✓ Apply Changes to Line"
+6. Click "[DONE] Apply Changes to Line"
 ```
 
 **You should see:**
@@ -174,7 +174,7 @@ Application automatically switches to:
 │  │                  │  │  │                                 │ │
 │  │                  │  │  │ Notes: [                    ]   │ │
 │  │                  │  │  │                                 │ │
-│  │                  │  │  │ [✓ Apply Changes to Line]       │ │
+│  │                  │  │  │ [[DONE] Apply Changes to Line]       │ │
 │  └──────────────────┘  │  └─────────────────────────────────┘ │
 │                        │                                      │
 │  [➕ Add] [➖ Remove]   │                                      │
@@ -221,10 +221,10 @@ Loop Count: 3
 ### Feature 5: Safety Validation
 Pre-execution checks:
 ```
-✅ Power within limits (0-10W)
-✅ Position within limits (-20mm to +20mm)
-✅ Speed within limits (0.1-5.0 mm/s)
-✅ Duration within limits (0.1-300s)
+[DONE] Power within limits (0-10W)
+[DONE] Position within limits (-20mm to +20mm)
+[DONE] Speed within limits (0.1-5.0 mm/s)
+[DONE] Duration within limits (0.1-300s)
 ```
 
 ---

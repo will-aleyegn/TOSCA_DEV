@@ -37,7 +37,7 @@ def test_accelerometer(ser):
     response = send_command(ser, "ACCEL_INIT")
 
     if "OK:ACCEL_INITIALIZED" in response:
-        print("✅ Accelerometer detected and initialized!")
+        print("# [DONE] Accelerometer detected and initialized!")
 
         # Read acceleration
         print("\n2. Reading acceleration data...")
@@ -46,25 +46,25 @@ def test_accelerometer(ser):
         if "ACCEL:" in response:
             accel_data = response.split("ACCEL:")[1].strip()
             x, y, z = map(float, accel_data.split(","))
-            print(f"✅ Accelerometer readings: X={x:.3f}g, Y={y:.3f}g, Z={z:.3f}g")
+            print(f"# [DONE] Accelerometer readings: X={x:.3f}g, Y={y:.3f}g, Z={z:.3f}g")
 
             # Check if values are reasonable (Z should be ~1g if sitting flat)
             if abs(z - 1.0) < 0.5:
-                print("✅ Z-axis reads ~1g (gravity) - orientation looks correct")
+                print("# [DONE] Z-axis reads ~1g (gravity) - orientation looks correct")
             else:
-                print(f"⚠️  Z-axis should read ~1g if device is flat, got {z:.3f}g")
+                print(f"WARNING:  Z-axis should read ~1g if device is flat, got {z:.3f}g")
 
         # Test vibration reading
         print("\n3. Reading vibration level...")
         response = send_command(ser, "GET_VIBRATION_LEVEL")
         if "VIBRATION:" in response:
             vib = float(response.split("VIBRATION:")[1])
-            print(f"✅ Vibration: {vib:.3f}g")
+            print(f"# [DONE] Vibration: {vib:.3f}g")
 
         return True
 
     elif "ERROR:NO_ACCEL_FOUND" in response:
-        print("❌ Accelerometer NOT detected on I2C bus")
+        print("# [FAILED] Accelerometer NOT detected on I2C bus")
         print("\nTroubleshooting checklist:")
         print("  1. Check wiring:")
         print("     - VCC → Arduino 5V")
@@ -86,7 +86,7 @@ def test_motor(ser):
     print("MOTOR CONTROL TEST")
     print("=" * 60)
 
-    print("\n⚠️  WARNING: Motor will start spinning!")
+    print("\nWARNING:  WARNING: Motor will start spinning!")
     print("   Make sure motor is secured and nothing is in the way.")
     input("   Press Enter to continue, or Ctrl+C to abort...")
 
@@ -102,25 +102,25 @@ def test_motor(ser):
         response = send_command(ser, f"MOTOR_SPEED:{pwm}")
 
         if f"OK:MOTOR_SPEED:{pwm}" in response:
-            print(f"✅ Motor set to {pwm}")
+            print(f"# [DONE] Motor set to {pwm}")
 
             # Verify
             verify = send_command(ser, "GET_MOTOR_SPEED", verbose=False)
             if f"MOTOR_SPEED:{pwm}" in verify:
-                print(f"✅ Verified: {verify}")
+                print(f"# [DONE] Verified: {verify}")
 
             print("   → Listening for 3 seconds... (motor should be running)")
             time.sleep(3)
         else:
-            print(f"❌ Failed to set motor speed")
+            print(f"# [FAILED] Failed to set motor speed")
 
     # Stop motor
     print("\n→ Stopping motor...")
     response = send_command(ser, "MOTOR_OFF")
     if "OK:MOTOR_OFF" in response:
-        print("✅ Motor stopped")
+        print("# [DONE] Motor stopped")
 
-    print("\n✅ Motor test complete")
+    print("\n# [DONE] Motor test complete")
 
 
 def test_laser(ser):
@@ -129,21 +129,21 @@ def test_laser(ser):
     print("AIMING LASER TEST")
     print("=" * 60)
 
-    print("\n⚠️  WARNING: Aiming laser will turn on!")
+    print("\nWARNING:  WARNING: Aiming laser will turn on!")
     input("   Press Enter to continue, or Ctrl+C to abort...")
 
     # Turn on
     print("\n→ Turning laser ON...")
     response = send_command(ser, "LASER_ON")
     if "OK:LASER_ON" in response:
-        print("✅ Laser should be ON now (check for red dot)")
+        print("# [DONE] Laser should be ON now (check for red dot)")
         time.sleep(2)
 
     # Turn off
     print("\n→ Turning laser OFF...")
     response = send_command(ser, "LASER_OFF")
     if "OK:LASER_OFF" in response:
-        print("✅ Laser should be OFF now")
+        print("# [DONE] Laser should be OFF now")
 
 
 def test_full_status(ser):
@@ -169,7 +169,7 @@ def keep_watchdog_alive(ser):
         time.sleep(0.5)
         print(".", end="", flush=True)
 
-    print("\n✅ Watchdog heartbeat test passed (no reset)")
+    print("\n# [DONE] Watchdog heartbeat test passed (no reset)")
 
 
 def main():
@@ -188,7 +188,7 @@ def main():
         print(f"\nConnecting to {port} at 9600 baud...")
         ser = serial.Serial(port=port, baudrate=9600, timeout=2.0, write_timeout=2.0)
 
-        print(f"✅ Connected to {port}")
+        print(f"# [DONE] Connected to {port}")
 
         # Read startup messages
         time.sleep(2)
@@ -245,17 +245,17 @@ def main():
             send_command(ser, "WDT_RESET", verbose=False)
 
         ser.close()
-        print("✅ Serial port closed")
+        print("# [DONE] Serial port closed")
 
     except serial.SerialException as e:
-        print(f"\n❌ Error: {e}")
+        print(f"\n# [FAILED] Error: {e}")
         print(f"   - Check that {port} is the correct port")
         print(f"   - Make sure no other program is using the port")
         print(f"   - Verify the Arduino is powered on")
         sys.exit(1)
 
     except KeyboardInterrupt:
-        print("\n\n❌ Test aborted by user")
+        print("\n\n# [FAILED] Test aborted by user")
         sys.exit(0)
 
 

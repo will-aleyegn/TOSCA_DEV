@@ -124,7 +124,7 @@ class TreatmentSetupWidget(QWidget):
 
         # Compact validation checklist
         self.validation_label = QLabel(
-            "✓ Protocol\n" "✓ Laser\n" "✓ Actuator\n" "✓ Motor\n" "⚠ Session"
+            "# [DONE] Protocol\n" "# [DONE] Laser\n" "# [DONE] Actuator\n" "# [DONE] Motor\n" "⚠ Session"
         )
         self.validation_label.setStyleSheet(
             "font-family: monospace; font-size: 11px; padding: 5px;"
@@ -176,7 +176,7 @@ class TreatmentSetupWidget(QWidget):
             protocol = Protocol.from_dict(protocol_data)
             self.loaded_protocol = protocol
 
-            self.protocol_name_label.setText(f"✓ {protocol.protocol_name}")
+            self.protocol_name_label.setText(f"# [DONE] {protocol.protocol_name}")
             self.protocol_name_label.setStyleSheet(
                 "color: #4CAF50; font-size: 11px; font-weight: bold; padding: 5px;"
             )

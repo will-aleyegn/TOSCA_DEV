@@ -36,11 +36,11 @@ def test_camera_connection() -> bool:
             logger.error("Failed to connect to camera")
             return False
 
-        logger.info("✓ Camera connected successfully")
+        logger.info("# [DONE] Camera connected successfully")
 
         # Test disconnect
         controller.disconnect()
-        logger.info("✓ Camera disconnected successfully")
+        logger.info("# [DONE] Camera disconnected successfully")
 
         return True
 
@@ -69,7 +69,7 @@ def test_camera_info() -> bool:
             logger.info(f"Interface: {info.interface}")
             logger.info(f"Max Resolution: {info.max_resolution}")
             logger.info(f"Max FPS: {info.max_fps}")
-            logger.info("✓ Camera info retrieved successfully")
+            logger.info("# [DONE] Camera info retrieved successfully")
             result = True
         else:
             logger.error("Failed to get camera info")
@@ -104,7 +104,7 @@ def test_exposure_gain_ranges() -> bool:
         logger.info(f"Gain range: {gain_min} - {gain_max} dB")
 
         if exp_max > exp_min and gain_max >= gain_min:
-            logger.info("✓ Ranges retrieved successfully")
+            logger.info("# [DONE] Ranges retrieved successfully")
             result = True
         else:
             logger.error("Invalid ranges")
@@ -158,7 +158,7 @@ def test_streaming_brief() -> bool:
         logger.info(f"Average FPS: {fps:.1f}")
 
         if fps >= 30:
-            logger.info("✓ Streaming test passed (FPS >= 30)")
+            logger.info("# [DONE] Streaming test passed (FPS >= 30)")
             result = True
         else:
             logger.warning(f"Low FPS detected: {fps:.1f}")
@@ -189,7 +189,7 @@ def test_exposure_control() -> bool:
         for exp_value in test_values:
             success = controller.set_exposure(exp_value)
             if success:
-                logger.info(f"✓ Set exposure to {exp_value} µs")
+                logger.info(f"# [DONE] Set exposure to {exp_value} µs")
             else:
                 logger.error(f"Failed to set exposure to {exp_value} µs")
                 controller.disconnect()
@@ -198,15 +198,15 @@ def test_exposure_control() -> bool:
         # Test auto exposure
         success_auto = controller.set_auto_exposure(True)
         if success_auto:
-            logger.info("✓ Auto exposure enabled")
+            logger.info("# [DONE] Auto exposure enabled")
         else:
             logger.warning("Auto exposure may not be supported")
 
         controller.set_auto_exposure(False)
-        logger.info("✓ Auto exposure disabled")
+        logger.info("# [DONE] Auto exposure disabled")
 
         controller.disconnect()
-        logger.info("✓ Exposure control test passed")
+        logger.info("# [DONE] Exposure control test passed")
         return True
 
     except Exception as e:
@@ -231,7 +231,7 @@ def test_gain_control() -> bool:
         for gain_value in test_values:
             success = controller.set_gain(gain_value)
             if success:
-                logger.info(f"✓ Set gain to {gain_value} dB")
+                logger.info(f"# [DONE] Set gain to {gain_value} dB")
             else:
                 logger.error(f"Failed to set gain to {gain_value} dB")
                 controller.disconnect()
@@ -240,15 +240,15 @@ def test_gain_control() -> bool:
         # Test auto gain
         success_auto = controller.set_auto_gain(True)
         if success_auto:
-            logger.info("✓ Auto gain enabled")
+            logger.info("# [DONE] Auto gain enabled")
         else:
             logger.warning("Auto gain may not be supported")
 
         controller.set_auto_gain(False)
-        logger.info("✓ Auto gain disabled")
+        logger.info("# [DONE] Auto gain disabled")
 
         controller.disconnect()
-        logger.info("✓ Gain control test passed")
+        logger.info("# [DONE] Gain control test passed")
         return True
 
     except Exception as e:
@@ -293,7 +293,7 @@ def main() -> int:
     passed = 0
     failed = 0
     for test_name, result in results.items():
-        status = "✓ PASS" if result else "✗ FAIL"
+        status = "# [DONE] PASS" if result else "# [FAILED] FAIL"
         logger.info(f"{status} - {test_name}")
         if result:
             passed += 1
@@ -305,11 +305,11 @@ def main() -> int:
     logger.info("=" * 60)
 
     if failed == 0:
-        logger.info("\n✓ All tests passed! Camera HAL is working correctly.")
+        logger.info("\n# [DONE] All tests passed! Camera HAL is working correctly.")
         logger.info("You can now proceed to full GUI testing.")
         return 0
     else:
-        logger.warning(f"\n✗ {failed} test(s) failed. Review logs and fix issues.")
+        logger.warning(f"\n# [FAILED] {failed} test(s) failed. Review logs and fix issues.")
         logger.info("Check data/logs/tosca.log for detailed error information.")
         return 1
 

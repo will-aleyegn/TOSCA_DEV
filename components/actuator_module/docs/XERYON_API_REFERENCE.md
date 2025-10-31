@@ -7,7 +7,7 @@
 
 ---
 
-## ⚠️ CRITICAL: TOSCA Hardware Configuration
+## WARNING: CRITICAL: TOSCA Hardware Configuration
 
 **TOSCA XLA-5-125-10MU Actuator is configured with:**
 - **Baudrate**: `9600` (NOT the library default of 115200)
@@ -55,9 +55,9 @@ OUTPUT_TO_CONSOLE = True  # Print commands and responses
 # DISABLE WAITING
 DISABLE_WAITING = False  # If True, library won't wait for position reached
 
-# AUTO_SEND_SETTINGS ⚠️ CRITICAL
+# AUTO_SEND_SETTINGS WARNING: CRITICAL
 AUTO_SEND_SETTINGS = True  # Default: Send settings_default.txt on startup
-# ⚠️ For TOSCA: Set to False to use device-stored settings
+# WARNING: For TOSCA: Set to False to use device-stored settings
 
 # AUTO_SEND_ENBL
 AUTO_SEND_ENBL = False  # Auto-send ENBL=1 on thermal/error events
@@ -83,10 +83,10 @@ TOSCA uses **device-stored settings** approach for medical device reliability:
 4. **No file I/O during operation** - Eliminates potential failure point
 
 **Benefits**:
-- ✅ Guaranteed manufacturer calibration for specific hardware unit
-- ✅ No file synchronization issues between code and device
-- ✅ Simplified deployment (no external config files needed)
-- ✅ Settings survive firmware updates and power cycles
+- [DONE] Guaranteed manufacturer calibration for specific hardware unit
+- [DONE] No file synchronization issues between code and device
+- [DONE] Simplified deployment (no external config files needed)
+- [DONE] Settings survive firmware updates and power cycles
 
 **Implementation**:
 ```python
@@ -148,7 +148,7 @@ from Xeryon import Xeryon, Stage, Units
 # Official library default (for most hardware)
 controller = Xeryon(COM_port="COM3", baudrate=115200)
 
-# ⚠️ TOSCA HARDWARE - Use 9600!
+# WARNING: TOSCA HARDWARE - Use 9600!
 controller = Xeryon(COM_port="COM3", baudrate=9600)
 ```
 
@@ -156,7 +156,7 @@ controller = Xeryon(COM_port="COM3", baudrate=9600)
 - `COM_port` (str): Serial port name (e.g., "COM3", "COM4")
 - `baudrate` (int): Communication speed
   - **Library Default**: `115200`
-  - **TOSCA Hardware**: `9600` ⚠️ (manufacturer pre-configured)
+  - **TOSCA Hardware**: `9600` WARNING: (manufacturer pre-configured)
   - **CRITICAL**: Must match hardware configuration or communication fails
 
 ### 2. Add Axis
@@ -649,10 +649,10 @@ else:
 **CRITICAL**: TOSCA hardware uses `9600`, NOT the library default of `115200`
 
 ```python
-# ✓ Correct for TOSCA XLA-5-125-10MU
+# [DONE] Correct for TOSCA XLA-5-125-10MU
 controller = Xeryon("COM3", 9600)
 
-# ✗ Wrong for TOSCA - library default doesn't work
+# [FAILED] Wrong for TOSCA - library default doesn't work
 controller = Xeryon("COM3", 115200)
 ```
 
@@ -728,7 +728,7 @@ def connect(auto_home=False):
 
 | Operation | API Call | Units | Notes |
 |-----------|----------|-------|-------|
-| **Connection** | `Xeryon("COM3", 9600)` | - | ⚠️ TOSCA uses 9600 (NOT 115200) |
+| **Connection** | `Xeryon("COM3", 9600)` | - | WARNING: TOSCA uses 9600 (NOT 115200) |
 | **Add Axis** | `addAxis(Stage.XLA_1250_3N, "X")` | - | Use correct stage type |
 | **Start** | `controller.start()` | - | Reads settings, enables axes |
 | **Set Units** | `axis.setUnits(Units.mu)` | µm | TOSCA uses micrometers |

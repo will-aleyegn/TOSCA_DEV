@@ -23,15 +23,15 @@ python test_hal_integration.py
 
 **Expected Output:**
 ```
-✓ PASS - Camera Connection
-✓ PASS - Camera Information
-✓ PASS - Exposure/Gain Ranges
-✓ PASS - Brief Streaming
-✓ PASS - Exposure Control
-✓ PASS - Gain Control
+[DONE] PASS - Camera Connection
+[DONE] PASS - Camera Information
+[DONE] PASS - Exposure/Gain Ranges
+[DONE] PASS - Brief Streaming
+[DONE] PASS - Exposure Control
+[DONE] PASS - Gain Control
 
 Total: 6 passed, 0 failed out of 6 tests
-✓ All tests passed! Camera HAL is working correctly.
+[DONE] All tests passed! Camera HAL is working correctly.
 ```
 
 **If all tests pass:** Proceed to Step 3 (GUI testing)
@@ -148,12 +148,12 @@ python src/main.py
 
 **Camera HAL is ready for production if:**
 
-✅ All automated tests pass (test_hal_integration.py)
-✅ GUI streaming maintains 35+ FPS
-✅ Image capture works reliably
-✅ Video recording works reliably
-✅ No crashes during 10-minute streaming
-✅ All controls (exposure, gain, white balance) functional
+[DONE] All automated tests pass (test_hal_integration.py)
+[DONE] GUI streaming maintains 35+ FPS
+[DONE] Image capture works reliably
+[DONE] Video recording works reliably
+[DONE] No crashes during 10-minute streaming
+[DONE] All controls (exposure, gain, white balance) functional
 
 ---
 

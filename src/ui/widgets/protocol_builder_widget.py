@@ -334,7 +334,7 @@ class ProtocolBuilderWidget(QWidget):
         self.load_btn.clicked.connect(self._on_load_protocol)
         btn_layout.addWidget(self.load_btn)
 
-        self.validate_btn = QPushButton("✓ Validate")
+        self.validate_btn = QPushButton("# [DONE] Validate")
         self.validate_btn.setMinimumHeight(35)
         self.validate_btn.clicked.connect(self._on_validate_protocol)
         btn_layout.addWidget(self.validate_btn)
@@ -449,13 +449,13 @@ class ProtocolBuilderWidget(QWidget):
 
             # Update UI
             self._update_action_list()
-            self.status_label.setText(f"✓ Action added: {action.action_type.value}")
+            self.status_label.setText(f"# [DONE] Action added: {action.action_type.value}")
             self.status_label.setStyleSheet("color: #4CAF50; font-size: 11px; padding: 5px;")
 
             logger.info(f"Added action: {action.action_type.value}")
 
         except Exception as e:
-            self.status_label.setText(f"❌ Error: {str(e)}")
+            self.status_label.setText(f"# [FAILED] Error: {str(e)}")
             self.status_label.setStyleSheet("color: #f44336; font-size: 11px; padding: 5px;")
             logger.error(f"Failed to add action: {e}")
 
@@ -598,7 +598,7 @@ class ProtocolBuilderWidget(QWidget):
             with open(file_path, "w") as f:
                 json.dump(protocol_dict, f, indent=2)
 
-            self.status_label.setText(f"✓ Protocol saved: {Path(file_path).name}")
+            self.status_label.setText(f"# [DONE] Protocol saved: {Path(file_path).name}")
             self.status_label.setStyleSheet("color: #4CAF50; font-size: 11px; padding: 5px;")
             logger.info(f"Protocol saved to {file_path}")
 
@@ -641,7 +641,7 @@ class ProtocolBuilderWidget(QWidget):
 
             self._update_action_list()
 
-            self.status_label.setText(f"✓ Protocol loaded: {Path(file_path).name}")
+            self.status_label.setText(f"# [DONE] Protocol loaded: {Path(file_path).name}")
             self.status_label.setStyleSheet("color: #4CAF50; font-size: 11px; padding: 5px;")
             logger.info(f"Protocol loaded from {file_path}")
 
@@ -675,16 +675,16 @@ class ProtocolBuilderWidget(QWidget):
             QMessageBox.information(
                 self,
                 "Validation Passed",
-                f"✓ Protocol is valid!\n\n"
+                f"# [DONE] Protocol is valid!\n\n"
                 f"Actions: {len(protocol.actions)}\n"
                 f"Estimated Duration: {duration_str}",
             )
-            self.status_label.setText("✓ Protocol validated successfully")
+            self.status_label.setText("# [DONE] Protocol validated successfully")
             self.status_label.setStyleSheet("color: #4CAF50; font-size: 11px; padding: 5px;")
         else:
             error_msg = "Protocol validation failed:\n\n" + "\n".join(errors)
             QMessageBox.critical(self, "Validation Failed", error_msg)
-            self.status_label.setText("❌ Validation failed")
+            self.status_label.setText("# [FAILED] Validation failed")
             self.status_label.setStyleSheet("color: #f44336; font-size: 11px; padding: 5px;")
 
     @pyqtSlot()
@@ -743,7 +743,7 @@ class ProtocolBuilderWidget(QWidget):
         if reply == QMessageBox.StandardButton.Yes:
             # Emit signal for execution (main window will handle actual execution)
             self.protocol_created.emit(protocol)
-            self.status_label.setText("✓ Protocol sent for execution")
+            self.status_label.setText("# [DONE] Protocol sent for execution")
             self.status_label.setStyleSheet("color: #4CAF50; font-size: 11px; padding: 5px;")
             logger.info(f"Protocol '{protocol.protocol_name}' sent for execution")
 

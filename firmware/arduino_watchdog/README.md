@@ -202,9 +202,9 @@ time.sleep(2)
 ser.write(b'GET_STATUS\n')
 response = ser.readline().decode().strip()
 if not response:
-    print("✓ Arduino halted by watchdog (no response)")
+    print("[DONE] Arduino halted by watchdog (no response)")
 else:
-    print("✗ Arduino still responding (watchdog failed)")
+    print("[FAILED] Arduino still responding (watchdog failed)")
 ```
 
 **Expected:** No response after timeout (Arduino halted)
@@ -306,7 +306,7 @@ This custom firmware **replaces** StandardFirmata:
 | Feature | StandardFirmata | This Firmware |
 |---------|-----------------|---------------|
 | Protocol | Firmata binary | Custom ASCII text |
-| Watchdog | ❌ No | ✅ Hardware WDT |
+| Watchdog | [FAILED] No | [DONE] Hardware WDT |
 | GPIO | Full GPIO | Limited to required pins |
 | Library | pyfirmata2 | pyserial |
 | Extensibility | High | Moderate |

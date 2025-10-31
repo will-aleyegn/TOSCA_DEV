@@ -9,43 +9,43 @@
 ## 🎯 What Was Delivered
 
 ### 1. Complete Data Model (`src/core/protocol_line.py`) - 600 lines
-- ✅ `ProtocolLine` class with optional concurrent actions
-- ✅ Movement types: `MoveParams` (absolute/relative), `HomeParams`
-- ✅ Laser types: `LaserSetParams` (fixed), `LaserRampParams` (time-based)
-- ✅ `DwellParams` for wait/hold duration
-- ✅ `LineBasedProtocol` container with loop support
-- ✅ Automatic duration calculation (MAX of all action durations)
-- ✅ Safety validation against configurable limits
-- ✅ Complete JSON serialization/deserialization
+- [DONE] `ProtocolLine` class with optional concurrent actions
+- [DONE] Movement types: `MoveParams` (absolute/relative), `HomeParams`
+- [DONE] Laser types: `LaserSetParams` (fixed), `LaserRampParams` (time-based)
+- [DONE] `DwellParams` for wait/hold duration
+- [DONE] `LineBasedProtocol` container with loop support
+- [DONE] Automatic duration calculation (MAX of all action durations)
+- [DONE] Safety validation against configurable limits
+- [DONE] Complete JSON serialization/deserialization
 
 ### 2. Hybrid UI Widget (`src/ui/widgets/line_protocol_builder.py`) - 800 lines
-- ✅ **Sequence View**: List of line summaries with reorder controls
-- ✅ **Line Editor**: Contextual panel with enable/disable checkboxes
-- ✅ **Movement Section**: Position vs Home radio buttons
-- ✅ **Laser Section**: Set vs Ramp radio buttons
-- ✅ **Dwell Section**: Duration configuration
-- ✅ **Metadata**: Protocol name, loop count, total duration display
-- ✅ **File Operations**: New, Save, Load protocol JSON
-- ✅ **Validation**: Pre-save and pre-execute validation with error messages
-- ✅ **Signal Integration**: `protocol_ready` signal for execution handoff
+- [DONE] **Sequence View**: List of line summaries with reorder controls
+- [DONE] **Line Editor**: Contextual panel with enable/disable checkboxes
+- [DONE] **Movement Section**: Position vs Home radio buttons
+- [DONE] **Laser Section**: Set vs Ramp radio buttons
+- [DONE] **Dwell Section**: Duration configuration
+- [DONE] **Metadata**: Protocol name, loop count, total duration display
+- [DONE] **File Operations**: New, Save, Load protocol JSON
+- [DONE] **Validation**: Pre-save and pre-execute validation with error messages
+- [DONE] **Signal Integration**: `protocol_ready` signal for execution handoff
 
 ### 3. Example Protocols (`examples/protocols/`) - 3 files
-- ✅ `example_simple_treatment.json` - 3-line basic protocol
-- ✅ `example_scanning_pattern.json` - 4-line multi-position scan with looping
-- ✅ `example_bidirectional_scan.json` - 5-line bidirectional movement (-10mm to +10mm)
+- [DONE] `example_simple_treatment.json` - 3-line basic protocol
+- [DONE] `example_scanning_pattern.json` - 4-line multi-position scan with looping
+- [DONE] `example_bidirectional_scan.json` - 5-line bidirectional movement (-10mm to +10mm)
 
 ### 4. Test Runner (`examples/test_line_protocol_builder.py`)
-- ✅ Standalone Qt application for testing
-- ✅ Load/test example protocols
-- ✅ Console logging of execution events
+- [DONE] Standalone Qt application for testing
+- [DONE] Load/test example protocols
+- [DONE] Console logging of execution events
 
 ### 5. Documentation (`docs/architecture/LINE_PROTOCOL_BUILDER.md`)
-- ✅ Complete architecture overview
-- ✅ Data model reference
-- ✅ UI design specification
-- ✅ Integration guide with code examples
-- ✅ Safety & validation documentation
-- ✅ Medical device compliance notes
+- [DONE] Complete architecture overview
+- [DONE] Data model reference
+- [DONE] UI design specification
+- [DONE] Integration guide with code examples
+- [DONE] Safety & validation documentation
+- [DONE] Medical device compliance notes
 
 ---
 
@@ -149,7 +149,7 @@ Click "📂 Load Protocol"
 # 3. Edit protocol
 Click a line in the sequence view
 → Modify movement/laser/dwell parameters
-→ Click "✓ Apply Changes"
+→ Click "[DONE] Apply Changes"
 
 # 4. Save modified protocol
 Click "💾 Save Protocol"
@@ -191,20 +191,20 @@ self.protocol_tab.addWidget(self.protocol_builder)
 TOSCA-dev/
 ├── src/
 │   ├── core/
-│   │   └── protocol_line.py          ✅ Data model (600 lines)
+│   │   └── protocol_line.py          [DONE] Data model (600 lines)
 │   └── ui/
 │       └── widgets/
-│           └── line_protocol_builder.py ✅ UI widget (800 lines)
+│           └── line_protocol_builder.py [DONE] UI widget (800 lines)
 │
 ├── examples/
 │   ├── protocols/
-│   │   ├── example_simple_treatment.json     ✅ 3-line example
-│   │   └── example_scanning_pattern.json     ✅ 4-line looped example
-│   └── test_line_protocol_builder.py         ✅ Test runner
+│   │   ├── example_simple_treatment.json     [DONE] 3-line example
+│   │   └── example_scanning_pattern.json     [DONE] 4-line looped example
+│   └── test_line_protocol_builder.py         [DONE] Test runner
 │
 └── docs/
     └── architecture/
-        └── LINE_PROTOCOL_BUILDER.md           ✅ Full documentation
+        └── LINE_PROTOCOL_BUILDER.md           [DONE] Full documentation
 ```
 
 ---
@@ -236,10 +236,10 @@ TOSCA-dev/
 ## 🔮 Next Steps
 
 ### Immediate (Before Clinical Use)
-1. ✅ **Done:** Data model + UI complete
-2. ⏳ **TODO:** Protocol execution engine for LineBasedProtocol
-3. ⏳ **TODO:** Database encryption (SQLCipher)
-4. ⏳ **TODO:** User authentication + role-based access
+1. [DONE] **Done:** Data model + UI complete
+2. [PENDING] **TODO:** Protocol execution engine for LineBasedProtocol
+3. [PENDING] **TODO:** Database encryption (SQLCipher)
+4. [PENDING] **TODO:** User authentication + role-based access
 
 ### Future Enhancements
 - Visual timeline view (Gantt chart)

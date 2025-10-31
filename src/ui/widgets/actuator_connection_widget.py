@@ -111,7 +111,7 @@ class ActuatorConnectionWidget(QWidget):
         ports_with_status = self._get_available_ports()
         for port, is_available in ports_with_status:
             if is_available:
-                self.com_port_combo.addItem(f"✓ {port}", userData=port)
+                self.com_port_combo.addItem(f"# [DONE] {port}", userData=port)
             else:
                 self.com_port_combo.addItem(f"  {port}", userData=port)
         if current_port:
@@ -142,9 +142,9 @@ class ActuatorConnectionWidget(QWidget):
 
         # COM Port selection
         self.com_port_combo = QComboBox()
-        self.com_port_combo.setFixedWidth(150)  # Wider for ✓ indicator
+        self.com_port_combo.setFixedWidth(150)  # Wider for # [DONE] indicator
         self.com_port_combo.setToolTip(
-            "Select COM port for Actuator\n✓ = Port detected and available"
+            "Select COM port for Actuator\n# [DONE] = Port detected and available"
         )
         row1_layout.addWidget(self.com_port_combo)
 
@@ -285,11 +285,11 @@ class ActuatorConnectionWidget(QWidget):
             )
             return
 
-        # Get selected COM port (from userData to remove ✓ indicator)
+        # Get selected COM port (from userData to remove # [DONE] indicator)
         selected_port = self.com_port_combo.currentData()
         if not selected_port:
             # Fallback to text if userData not set
-            selected_port = self.com_port_combo.currentText().replace("✓ ", "").strip()
+            selected_port = self.com_port_combo.currentText().replace("# [DONE] ", "").strip()
 
         # Save this port as preference for next time
         self._save_preference("actuator_com_port", selected_port)

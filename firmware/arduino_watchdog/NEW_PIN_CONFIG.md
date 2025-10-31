@@ -64,7 +64,7 @@ MIN (stopped)  0.0V       0            0%
 LOW            1.5V       76           30%
 MEDIUM         2.25V      115          45%
 HIGH           3.0V       153          60%
-MAX (danger)   5.0V       255          100% ⚠️ DO NOT USE
+MAX (danger)   5.0V       255          100% WARNING: DO NOT USE
 ```
 
 **CRITICAL**: Never exceed 3.0V (PWM 153) to avoid motor damage!

@@ -2,21 +2,21 @@
 
 **Document Version:** 1.0
 **Last Updated:** 2025-10-26
-**Status:** ⚠️ **NOT IMPLEMENTED** - Planning Only (Phase 6+)
+**Status:** WARNING: **NOT IMPLEMENTED** - Planning Only (Phase 6+)
 **Priority:** CRITICAL - Required for treatment accuracy and FDA compliance
 
 ---
 
-> **⚠️ WARNING - No Calibration Procedures Implemented:**
+> **WARNING: WARNING - No Calibration Procedures Implemented:**
 >
 > **Current Status:** ALL calibration procedures documented here are **PLANNED ONLY**.
 >
 > **NO calibration workflows are implemented** in the current codebase:
-> - ❌ Photodiode calibration - NOT implemented
-> - ❌ Actuator calibration - NOT implemented
-> - ❌ Camera pixel calibration - NOT implemented
-> - ❌ Power verification - NOT implemented
-> - ❌ Calibration database storage - NOT implemented
+> - [FAILED] Photodiode calibration - NOT implemented
+> - [FAILED] Actuator calibration - NOT implemented
+> - [FAILED] Camera pixel calibration - NOT implemented
+> - [FAILED] Power verification - NOT implemented
+> - [FAILED] Calibration database storage - NOT implemented
 >
 > **Current Operation:** System operates with factory defaults (no field calibration)
 >
@@ -230,9 +230,9 @@ db.save_calibration_record(calibration_record)
 ```
 
 **Acceptance Criteria:**
-- ✅ All 5 points within ±5% of certified meter
-- ✅ Linear fit R² > 0.99
-- ✅ Verification point within ±5%
+- [DONE] All 5 points within ±5% of certified meter
+- [DONE] Linear fit R² > 0.99
+- [DONE] Verification point within ±5%
 
 ---
 
@@ -265,11 +265,11 @@ Test at 5 positions across range:
 
 | Commanded Position (mm) | Micrometer Reading (mm) | Error (µm) | Acceptable? |
 |------------------------|------------------------|-----------|-------------|
-| 0.000 | 0.000 ± 0.001 | 0 | ✅ <10 µm |
-| 5.000 | 5.002 ± 0.001 | +2 | ✅ <10 µm |
-| 10.000 | 10.001 ± 0.001 | +1 | ✅ <10 µm |
-| 15.000 | 14.998 ± 0.001 | -2 | ✅ <10 µm |
-| 20.000 | 20.003 ± 0.001 | +3 | ✅ <10 µm |
+| 0.000 | 0.000 ± 0.001 | 0 | [DONE] <10 µm |
+| 5.000 | 5.002 ± 0.001 | +2 | [DONE] <10 µm |
+| 10.000 | 10.001 ± 0.001 | +1 | [DONE] <10 µm |
+| 15.000 | 14.998 ± 0.001 | -2 | [DONE] <10 µm |
+| 20.000 | 20.003 ± 0.001 | +3 | [DONE] <10 µm |
 
 **Step 3: Calibration Adjustment**
 
@@ -292,8 +292,8 @@ config.actuator_position_offset_um = offset
 ```
 
 **Acceptance Criteria:**
-- ✅ All positions within ±10 µm
-- ✅ No systematic drift (error should average ~0)
+- [DONE] All positions within ±10 µm
+- [DONE] No systematic drift (error should average ~0)
 
 ---
 
@@ -335,8 +335,8 @@ config.camera_um_per_pixel = um_per_pixel
 ```
 
 **Acceptance Criteria:**
-- ✅ Calculated µm/pixel within ±1% of expected
-- ✅ Distortion <2% across image
+- [DONE] Calculated µm/pixel within ±1% of expected
+- [DONE] Distortion <2% across image
 
 ---
 
@@ -374,7 +374,7 @@ def weekly_power_check():
 ```
 
 **Acceptance Criteria:**
-- ✅ Measured power within ±10% of commanded
+- [DONE] Measured power within ±10% of commanded
 
 ---
 
@@ -427,11 +427,11 @@ CREATE TABLE calibration_records (
 > Each manufacturer shall ensure that all inspection, measuring, and test equipment... is routinely calibrated, inspected, checked, and maintained.
 
 **TOSCA Compliance:**
-- ✅ Written calibration procedures (this document)
-- ✅ Calibration schedule defined
-- ✅ NIST traceable standards
-- ✅ Documented calibration records
-- ✅ Out-of-calibration handling procedures
+- [DONE] Written calibration procedures (this document)
+- [DONE] Calibration schedule defined
+- [DONE] NIST traceable standards
+- [DONE] Documented calibration records
+- [DONE] Out-of-calibration handling procedures
 
 ### Calibration Certificate Example
 

@@ -36,15 +36,15 @@ This document describes the threading and concurrency model for TOSCA, including
 **Primary Principle:** **PyQt6 signals/slots for all cross-thread communication**
 
 **Benefits:**
-- ✅ Thread-safe by design (Qt event loop handles synchronization)
-- ✅ Automatic queuing (signals queued across thread boundaries)
-- ✅ Type-safe (pyqtSignal validates parameter types)
-- ✅ Decoupled (emitters don't know about receivers)
+- [DONE] Thread-safe by design (Qt event loop handles synchronization)
+- [DONE] Automatic queuing (signals queued across thread boundaries)
+- [DONE] Type-safe (pyqtSignal validates parameter types)
+- [DONE] Decoupled (emitters don't know about receivers)
 
 **Avoid:**
-- ❌ Manual mutex/lock management (error-prone)
-- ❌ Shared mutable state (race conditions)
-- ❌ Direct cross-thread method calls (unsafe)
+- [FAILED] Manual mutex/lock management (error-prone)
+- [FAILED] Shared mutable state (race conditions)
+- [FAILED] Direct cross-thread method calls (unsafe)
 
 ---
 
@@ -86,10 +86,10 @@ This document describes the threading and concurrency model for TOSCA, including
 | **Workers** | (Future) | Task duration | Image processing, video encoding |
 
 **Current Status (Phase 5):**
-- ✅ Main GUI thread operational
-- ✅ Camera stream thread implemented (QThread)
-- ⏳ Database thread planned (Phase 6)
-- ⏳ Worker pool planned (Phase 7+)
+- [DONE] Main GUI thread operational
+- [DONE] Camera stream thread implemented (QThread)
+- [PENDING] Database thread planned (Phase 6)
+- [PENDING] Worker pool planned (Phase 7+)
 
 ---
 
@@ -133,9 +133,9 @@ This document describes the threading and concurrency model for TOSCA, including
 - FPS calculation state
 
 **Thread-Safety:**
-- ✅ No shared mutable state with main thread
-- ✅ Communicates via PyQt6 signals only
-- ✅ Self-contained (no callbacks from main thread)
+- [DONE] No shared mutable state with main thread
+- [DONE] Communicates via PyQt6 signals only
+- [DONE] Self-contained (no callbacks from main thread)
 
 ### Database Thread (Future - Phase 6)
 
@@ -196,10 +196,10 @@ class CameraWidget(QWidget):
 6. UI updated safely (all UI updates in main thread)
 
 **Benefits:**
-- ✅ No manual locking required
-- ✅ Automatic memory management (Qt copies signal data)
-- ✅ Type-safe (pyqtSignal enforces parameter types)
-- ✅ Decoupled (emitter doesn't know about receiver)
+- [DONE] No manual locking required
+- [DONE] Automatic memory management (Qt copies signal data)
+- [DONE] Type-safe (pyqtSignal enforces parameter types)
+- [DONE] Decoupled (emitter doesn't know about receiver)
 
 ### Frame Throttling Example
 
@@ -238,7 +238,7 @@ class CameraStreamThread(QThread):
 
 **Qt::DirectConnection:**
 - Always direct call (synchronous)
-- ⚠️ UNSAFE across threads (can cause race conditions)
+- WARNING: UNSAFE across threads (can cause race conditions)
 - Only use within same thread
 
 **Qt::QueuedConnection:**
@@ -266,9 +266,9 @@ signal.connect(slot, Qt.ConnectionType.QueuedConnection)
 **Thread Affinity:** Main GUI thread
 
 **Thread Safety:**
-- ✅ All methods called from main thread only
-- ✅ Serial I/O operations (pyserial) not thread-safe
-- ✅ PyQt6 signals emitted in main thread
+- [DONE] All methods called from main thread only
+- [DONE] Serial I/O operations (pyserial) not thread-safe
+- [DONE] PyQt6 signals emitted in main thread
 
 **No Locking Required:**
 - All hardware operations sequential in main thread
@@ -309,9 +309,9 @@ class CameraController(HardwareControllerBase):
 **Thread Affinity:** Main GUI thread
 
 **Thread Safety:**
-- ✅ All safety logic runs in main thread
-- ✅ Watchdog heartbeat (QTimer) runs in main thread
-- ✅ No concurrent access to safety state
+- [DONE] All safety logic runs in main thread
+- [DONE] Watchdog heartbeat (QTimer) runs in main thread
+- [DONE] No concurrent access to safety state
 
 **Critical Section:** None (single-threaded)
 
@@ -320,9 +320,9 @@ class CameraController(HardwareControllerBase):
 **Thread Affinity:** Main GUI thread
 
 **Thread Safety:**
-- ✅ SQLite database operations are thread-safe (serialized mode)
-- ✅ All database calls from main thread only
-- ⚠️ Future: Move heavy queries to separate thread (Phase 6)
+- [DONE] SQLite database operations are thread-safe (serialized mode)
+- [DONE] All database calls from main thread only
+- WARNING: Future: Move heavy queries to separate thread (Phase 6)
 
 ---
 
@@ -345,9 +345,9 @@ class WorkerThread(QThread):
 ```
 
 **Benefits:**
-- ✅ Keeps GUI responsive
-- ✅ Easy to start/stop (QThread API)
-- ✅ Automatic signal queuing
+- [DONE] Keeps GUI responsive
+- [DONE] Easy to start/stop (QThread API)
+- [DONE] Automatic signal queuing
 
 ### Pattern 2: QTimer for Periodic Tasks
 
@@ -371,9 +371,9 @@ class SafetyWatchdog(QObject):
 ```
 
 **Benefits:**
-- ✅ No separate thread needed
-- ✅ Runs in main thread (safe for UI updates)
-- ✅ Automatic Qt integration
+- [DONE] No separate thread needed
+- [DONE] Runs in main thread (safe for UI updates)
+- [DONE] Automatic Qt integration
 
 ### Pattern 3: Signals/Slots for Decoupling
 
@@ -401,9 +401,9 @@ class LaserWidget(QWidget):
 ```
 
 **Benefits:**
-- ✅ Decoupled (hardware doesn't know about UI)
-- ✅ Thread-safe (automatic queuing)
-- ✅ Testable (can mock signal connections)
+- [DONE] Decoupled (hardware doesn't know about UI)
+- [DONE] Thread-safe (automatic queuing)
+- [DONE] Testable (can mock signal connections)
 
 ---
 
@@ -419,9 +419,9 @@ class LaserWidget(QWidget):
 - All hardware I/O in main thread (no concurrent access)
 
 **Benefits:**
-- ✅ No deadlock possible (no locks)
-- ✅ Simpler code (less error-prone)
-- ✅ Easier to reason about
+- [DONE] No deadlock possible (no locks)
+- [DONE] Simpler code (less error-prone)
+- [DONE] Easier to reason about
 
 ### Future Considerations (Phase 6+)
 

@@ -23,21 +23,21 @@
 **Location:** `components/camera_module/manufacturer_docs/`
 
 ### Vimba Manuals (3.7 MB)
-- ✓ Vimba Manual.pdf (832 KB) - Complete SDK documentation
-- ✓ Vimba Quickstart Guide.pdf (377 KB) - Quick start guide
-- ✓ Vimba Tour.pdf (914 KB) - SDK capabilities tour
-- ✓ Vimba Viewer Guide.pdf (1.5 MB) - Viewer application guide
-- ✓ Terms and Conditions (117 KB)
+- [DONE] Vimba Manual.pdf (832 KB) - Complete SDK documentation
+- [DONE] Vimba Quickstart Guide.pdf (377 KB) - Quick start guide
+- [DONE] Vimba Tour.pdf (914 KB) - SDK capabilities tour
+- [DONE] Vimba Viewer Guide.pdf (1.5 MB) - Viewer application guide
+- [DONE] Terms and Conditions (117 KB)
 
 ### VmbPy API Reference (138 KB)
-- ✓ Camera.txt - Camera class reference
-- ✓ Feature.txt - Feature control reference (most important)
-- ✓ Frame.txt - Frame acquisition reference
-- ✓ Stream.txt - Streaming reference
-- ✓ VmbSystem.txt - System-level reference
-- ✓ Interface.txt, LocalDevice.txt, TransportLayer.txt
-- ✓ Error.txt - Error handling
-- ✓ Index files (genindex, index, search)
+- [DONE] Camera.txt - Camera class reference
+- [DONE] Feature.txt - Feature control reference (most important)
+- [DONE] Frame.txt - Frame acquisition reference
+- [DONE] Stream.txt - Streaming reference
+- [DONE] VmbSystem.txt - System-level reference
+- [DONE] Interface.txt, LocalDevice.txt, TransportLayer.txt
+- [DONE] Error.txt - Error handling
+- [DONE] Index files (genindex, index, search)
 
 **README:** `camera_module/manufacturer_docs/README.md`
 
@@ -48,14 +48,14 @@
 **Location:** `components/actuator_module/manufacturer_docs/`
 
 ### Xeryon Manuals (2.1 MB)
-- ✓ Controller Manual.pdf (1.8 MB) - Complete command reference
-- ✓ XLA5.pdf (283 KB) - Stage specifications
+- [DONE] Controller Manual.pdf (1.8 MB) - Complete command reference
+- [DONE] XLA5.pdf (283 KB) - Stage specifications
 
 ### Xeryon Library (163 KB)
-- ✓ Xeryon.py (60 KB) - v1.88 official Python library
-- ✓ Xeryon Python-Matlab Library - Complete library with examples
-- ✓ Jupyter notebooks with examples
-- ✓ README.md - Library usage guide
+- [DONE] Xeryon.py (60 KB) - v1.88 official Python library
+- [DONE] Xeryon Python-Matlab Library - Complete library with examples
+- [DONE] Jupyter notebooks with examples
+- [DONE] README.md - Library usage guide
 
 **README:** `actuator_module/manufacturer_docs/README.md`
 
@@ -66,12 +66,12 @@
 **Location:** `components/laser_control/manufacturer_docs/`
 
 ### Arroyo Manuals (2.1 MB)
-- ✓ Arroyo_4320_Manual.pdf (851 KB) - Device operation manual
-- ✓ ArroyoComputerInterfacingManual.pdf (1.3 MB) - Programming guide
+- [DONE] Arroyo_4320_Manual.pdf (851 KB) - Device operation manual
+- [DONE] ArroyoComputerInterfacingManual.pdf (1.3 MB) - Programming guide
 
 ### Arroyo SDK (141 KB)
-- ✓ arroyo_tec/ - Official Python SDK package
-- ✓ ARROYO_SDK_README.md - SDK usage guide
+- [DONE] arroyo_tec/ - Official Python SDK package
+- [DONE] ARROYO_SDK_README.md - SDK usage guide
 
 **README:** `laser_control/manufacturer_docs/README.md`
 
@@ -99,7 +99,7 @@ components/<component_name>/
 
 ## What's Included vs Excluded
 
-### ✅ Included (Organized)
+### [DONE] Included (Organized)
 
 **Manuals:**
 - Device operation manuals
@@ -118,7 +118,7 @@ components/<component_name>/
 - SDK packages
 - Manufacturer-provided code
 
-### ❌ Not Included
+### [FAILED] Not Included
 
 **Installers:**
 - Full SDK installers (Vimba_v6.0_Windows.exe - 186 MB)
@@ -180,7 +180,7 @@ Each manufacturer_docs/README.md includes:
 
 ### Following Hardware API Rule
 
-⚠️ **CRITICAL:** Per CODING_STANDARDS.md, ALWAYS check manufacturer documentation BEFORE implementing hardware control.
+WARNING: **CRITICAL:** Per CODING_STANDARDS.md, ALWAYS check manufacturer documentation BEFORE implementing hardware control.
 
 **Correct workflow:**
 1. Read manufacturer documentation first
@@ -189,8 +189,8 @@ Each manufacturer_docs/README.md includes:
 4. Only implement software workarounds if hardware doesn't support the feature
 
 **Example:**
-- ❌ BAD: Implement frame rate throttling in software
-- ✅ GOOD: Use camera's `AcquisitionFrameRate` feature
+- [FAILED] BAD: Implement frame rate throttling in software
+- [DONE] GOOD: Use camera's `AcquisitionFrameRate` feature
 
 ---
 
@@ -287,12 +287,12 @@ Grand Total:               ~8.36 MB
 **Purpose:** Centralize all hardware documentation for easy reference and compliance
 
 **Benefits:**
-- ✅ All documentation in one place (project repository)
-- ✅ Easy navigation with README files
-- ✅ Clear organization by component
-- ✅ Version controlled with git
-- ✅ Supports Hardware API Usage Rule compliance
-- ✅ Facilitates future development and onboarding
+- [DONE] All documentation in one place (project repository)
+- [DONE] Easy navigation with README files
+- [DONE] Clear organization by component
+- [DONE] Version controlled with git
+- [DONE] Supports Hardware API Usage Rule compliance
+- [DONE] Facilitates future development and onboarding
 
 ---
 

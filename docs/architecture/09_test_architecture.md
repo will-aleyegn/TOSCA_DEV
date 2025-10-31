@@ -44,9 +44,9 @@ This document describes the test architecture for the TOSCA Medical Laser Contro
 |--------|--------|---------------|
 | **Code Coverage** | ≥90% (safety-critical: 100%) | Week 1: ~85% |
 | **Test Count** | ≥500 tests | 30 files, expanding |
-| **Safety Tests** | 100% path coverage | ✅ Complete |
-| **Hardware Mock Coverage** | All 4 controllers | ✅ 4/4 implemented |
-| **CI/CD** | All tests pass before merge | ⏳ Phase 6 |
+| **Safety Tests** | 100% path coverage | [DONE] Complete |
+| **Hardware Mock Coverage** | All 4 controllers | [DONE] 4/4 implemented |
+| **CI/CD** | All tests pass before merge | [PENDING] Phase 6 |
 
 ---
 
@@ -61,10 +61,10 @@ This document describes the test architecture for the TOSCA Medical Laser Contro
 4. **Repeat**
 
 **Benefits:**
-- ✅ Better test coverage (written before code)
-- ✅ Clearer specifications (tests document expected behavior)
-- ✅ Fewer bugs (caught early in development)
-- ✅ Safer refactoring (tests catch regressions)
+- [DONE] Better test coverage (written before code)
+- [DONE] Clearer specifications (tests document expected behavior)
+- [DONE] Fewer bugs (caught early in development)
+- [DONE] Safer refactoring (tests catch regressions)
 
 ### Testing Pyramid
 
@@ -122,10 +122,10 @@ class SafetyManager:
 ```
 
 **Problems with Traditional Approach:**
-- ❌ Cannot run tests without hardware
-- ❌ Hardware failures break all tests
-- ❌ Slow (real hardware has delays)
-- ❌ Cannot simulate edge cases (connection failures, timeouts)
+- [FAILED] Cannot run tests without hardware
+- [FAILED] Hardware failures break all tests
+- [FAILED] Slow (real hardware has delays)
+- [FAILED] Cannot simulate edge cases (connection failures, timeouts)
 
 ### MockHardwareBase Solution
 
@@ -147,10 +147,10 @@ safety = SafetyManager(laser=mock_laser)
 ```
 
 **Benefits:**
-- ✅ Tests run without hardware (faster, more reliable)
-- ✅ Can simulate failures (connection errors, timeouts, edge cases)
-- ✅ Full control over behavior (deterministic testing)
-- ✅ Supports PyQt6 signals (verify UI responses)
+- [DONE] Tests run without hardware (faster, more reliable)
+- [DONE] Can simulate failures (connection errors, timeouts, edge cases)
+- [DONE] Full control over behavior (deterministic testing)
+- [DONE] Supports PyQt6 signals (verify UI responses)
 
 ### MockHardwareBase Implementation
 
@@ -326,11 +326,11 @@ class TestSafetyManager:
 6. Treatment protocol execution
 
 **Testing Requirements:**
-- ✅ 100% branch coverage (every if/else tested)
-- ✅ All edge cases (boundary values, error conditions)
-- ✅ Failure modes (connection loss, timeout, hardware error)
-- ✅ Concurrent access (threading, race conditions)
-- ✅ Signal/slot correctness (PyQt6 event handling)
+- [DONE] 100% branch coverage (every if/else tested)
+- [DONE] All edge cases (boundary values, error conditions)
+- [DONE] Failure modes (connection loss, timeout, hardware error)
+- [DONE] Concurrent access (threading, race conditions)
+- [DONE] Signal/slot correctness (PyQt6 event handling)
 
 ### Coverage Measurement
 
@@ -413,11 +413,11 @@ def test_laser_enable_requires_all_interlocks() -> None:
 ```
 
 **Why This Test is Good:**
-- ✅ Fast (uses mocks, no hardware)
-- ✅ Isolated (one specific scenario)
-- ✅ Clear purpose (docstring explains why)
-- ✅ Arrange-Act-Assert structure (readable)
-- ✅ Explicit assertions (documents expected behavior)
+- [DONE] Fast (uses mocks, no hardware)
+- [DONE] Isolated (one specific scenario)
+- [DONE] Clear purpose (docstring explains why)
+- [DONE] Arrange-Act-Assert structure (readable)
+- [DONE] Explicit assertions (documents expected behavior)
 
 ### Writing Integration Tests
 
@@ -500,9 +500,9 @@ def test_laser_enable_success(safety_manager, mock_gpio) -> None:
 ```
 
 **Benefits:**
-- ✅ Reduces duplicate setup code
-- ✅ Ensures clean state (fresh fixture per test)
-- ✅ Improves readability (clear dependencies)
+- [DONE] Reduces duplicate setup code
+- [DONE] Ensures clean state (fresh fixture per test)
+- [DONE] Improves readability (clear dependencies)
 
 ### Parameterized Tests
 
@@ -528,9 +528,9 @@ def test_laser_power_validation(power, expected_valid) -> None:
 ```
 
 **Benefits:**
-- ✅ Tests multiple cases with single function
-- ✅ Clear boundary value testing
-- ✅ Easy to add new test cases
+- [DONE] Tests multiple cases with single function
+- [DONE] Clear boundary value testing
+- [DONE] Easy to add new test cases
 
 ---
 
@@ -577,10 +577,10 @@ jobs:
 ```
 
 **Benefits:**
-- ✅ Automatic testing on every commit
-- ✅ Prevents merging broken code
-- ✅ Coverage enforcement (fail if <90%)
-- ✅ Historical coverage tracking
+- [DONE] Automatic testing on every commit
+- [DONE] Prevents merging broken code
+- [DONE] Coverage enforcement (fail if <90%)
+- [DONE] Historical coverage tracking
 
 ### Pre-Commit Hooks (Local)
 
@@ -599,9 +599,9 @@ repos:
 ```
 
 **Benefits:**
-- ✅ Catches failures before push
-- ✅ Faster feedback loop
-- ✅ Reduces CI/CD failures
+- [DONE] Catches failures before push
+- [DONE] Faster feedback loop
+- [DONE] Reduces CI/CD failures
 
 ---
 
@@ -629,13 +629,13 @@ repos:
 ### Test Documentation for FDA Submission
 
 **Required Artifacts:**
-1. ✅ Test Architecture (this document)
-2. ✅ Test Plan (test organization + fixtures)
-3. ✅ Test Cases (all test functions with docstrings)
-4. ✅ Test Results (pytest HTML report)
-5. ✅ Coverage Report (pytest-cov HTML report)
-6. ✅ Traceability Matrix (requirements ↔ tests)
-7. ⏳ Design Verification Report (summary of testing)
+1. [DONE] Test Architecture (this document)
+2. [DONE] Test Plan (test organization + fixtures)
+3. [DONE] Test Cases (all test functions with docstrings)
+4. [DONE] Test Results (pytest HTML report)
+5. [DONE] Coverage Report (pytest-cov HTML report)
+6. [DONE] Traceability Matrix (requirements ↔ tests)
+7. [PENDING] Design Verification Report (summary of testing)
 
 ---
 

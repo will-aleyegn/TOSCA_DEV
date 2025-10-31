@@ -35,7 +35,7 @@ Source: `README.md`
 - **Version:** 0.9.11-alpha
 - **Phase:** Architecture Analysis & Production Readiness Assessment
 - **Status:** Active development
-- **Security:** ⚠️ Database encryption NOT implemented (planned Phase 6)
+- **Security:** WARNING: Database encryption NOT implemented (planned Phase 6)
 - **Regulatory:** NOT FDA-cleared, NOT for clinical deployment
 
 Source: Version information
@@ -372,10 +372,10 @@ Source: Observed directory structure
 ### 6.3 Data Security Status
 
 **Current Status (v0.9.11-alpha):**
-- ⚠️ Database is UNENCRYPTED
-- ⚠️ No user authentication implemented
-- ⚠️ No access controls
-- ⚠️ NOT suitable for clinical data
+- WARNING: Database is UNENCRYPTED
+- WARNING: No user authentication implemented
+- WARNING: No access controls
+- WARNING: NOT suitable for clinical data
 
 **Planned (Phase 6 - Future):**
 - Database encryption (SQLCipher or AES-256)

@@ -74,12 +74,12 @@ TOSCA implements a comprehensive event logging system that provides an **immutab
 
 | Requirement | JSONL File | SQLite Database |
 |------------|-----------|----------------|
-| **High frequency** | ✅ Excellent (append-only) | ❌ Slow (transaction overhead) |
-| **Queryable** | ❌ Linear scan | ✅ Excellent (indexed queries) |
-| **FDA audit** | ✅ Immutable text | ✅ Structured + signatures |
-| **Real-time** | ✅ Fast writes | ⚠️ Slower inserts |
-| **Post-analysis** | ❌ Hard to query | ✅ SQL queries |
-| **Backup** | ✅ Copy file | ✅ Export + verify |
+| **High frequency** | [DONE] Excellent (append-only) | [FAILED] Slow (transaction overhead) |
+| **Queryable** | [FAILED] Linear scan | [DONE] Excellent (indexed queries) |
+| **FDA audit** | [DONE] Immutable text | [DONE] Structured + signatures |
+| **Real-time** | [DONE] Fast writes | WARNING: Slower inserts |
+| **Post-analysis** | [FAILED] Hard to query | [DONE] SQL queries |
+| **Backup** | [DONE] Copy file | [DONE] Export + verify |
 
 **Solution:** Use both for different purposes
 
@@ -181,10 +181,10 @@ def log_event(
 ```
 
 **Benefits:**
-- ✅ One event per line (easy to parse)
-- ✅ Append-only (immutable)
-- ✅ Human-readable (can grep/tail)
-- ✅ Timestamped (high precision)
+- [DONE] One event per line (easy to parse)
+- [DONE] Append-only (immutable)
+- [DONE] Human-readable (can grep/tail)
+- [DONE] Timestamped (high precision)
 
 3. **Database Schema:**
 ```sql
@@ -207,9 +207,9 @@ CREATE INDEX idx_safety_log_session_id ON safety_log(session_id);
 ```
 
 **Benefits:**
-- ✅ Fast queries (indexed timestamps, event types)
-- ✅ Relational (links to sessions, technicians)
-- ✅ Structured (SQL schema validation)
+- [DONE] Fast queries (indexed timestamps, event types)
+- [DONE] Relational (links to sessions, technicians)
+- [DONE] Structured (SQL schema validation)
 
 ---
 
@@ -265,17 +265,17 @@ class SafetyWidget(QWidget):
 
 **TOSCA Compliance:**
 
-✅ **Secure:** JSONL file is append-only (cannot modify past events)
+[DONE] **Secure:** JSONL file is append-only (cannot modify past events)
 
-✅ **Computer-Generated:** Automatic logging (no manual entry)
+[DONE] **Computer-Generated:** Automatic logging (no manual entry)
 
-✅ **Time-Stamped:** ISO 8601 timestamps with microsecond precision
+[DONE] **Time-Stamped:** ISO 8601 timestamps with microsecond precision
 
-✅ **Independent:** EventLogger runs independently of business logic
+[DONE] **Independent:** EventLogger runs independently of business logic
 
-✅ **Record Actions:** All operator actions logged (user_action events)
+[DONE] **Record Actions:** All operator actions logged (user_action events)
 
-✅ **Create/Modify/Delete:** Session start/end, parameter changes logged
+[DONE] **Create/Modify/Delete:** Session start/end, parameter changes logged
 
 ### Immutability
 
@@ -345,10 +345,10 @@ event_logger.log_event(
 ```
 
 **Result:**
-- ✅ Written to JSONL: `data/logs/events.jsonl`
-- ✅ Written to database: `safety_log` table
-- ✅ Displayed in UI: SafetyWidget event log
-- ✅ Audit trail: Immutable record created
+- [DONE] Written to JSONL: `data/logs/events.jsonl`
+- [DONE] Written to database: `safety_log` table
+- [DONE] Displayed in UI: SafetyWidget event log
+- [DONE] Audit trail: Immutable record created
 
 ### Example 2: Log Treatment Event
 

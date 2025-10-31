@@ -327,7 +327,7 @@ Multiple widgets were accessing `protocol.name` which caused AttributeError cras
 
 ```python
 # BROKEN CODE
-self.status_label.setText(f"✓ Loaded: {protocol.name}")
+self.status_label.setText(f"[DONE] Loaded: {protocol.name}")
 # AttributeError: Protocol object has no attribute 'name'
 ```
 
@@ -341,7 +341,7 @@ The `Protocol` class uses `protocol_name` as the attribute name, not `name`. Thi
 
 ```python
 # FIXED CODE
-self.status_label.setText(f"✓ Loaded: {protocol.protocol_name}")
+self.status_label.setText(f"[DONE] Loaded: {protocol.protocol_name}")
 ```
 
 #### Prevention
@@ -403,13 +403,13 @@ Hardware widgets were self-instantiating controllers inside UI event handlers, c
 class LaserWidget(QWidget):
     def __init__(self):
         super().__init__()
-        self.controller = None  # ❌ No dependency injection
+        self.controller = None  # [FAILED] No dependency injection
 
     def _on_connect_clicked(self):
-        # ❌ Controller created inside UI event
+        # [FAILED] Controller created inside UI event
         self.controller = LaserController()
         self.controller.connect("COM10")
-        # ❌ Signal connections inside event handler
+        # [FAILED] Signal connections inside event handler
         self.controller.connection_changed.connect(...)
 ```
 
@@ -431,15 +431,15 @@ Widgets evolved independently without architectural consistency. ActuatorConnect
 class LaserWidget(QWidget):
     def __init__(self, controller: Optional[LaserController] = None) -> None:
         super().__init__()
-        self.controller = controller  # ✅ Injected from MainWindow
+        self.controller = controller  # [DONE] Injected from MainWindow
         self._init_ui()
 
-        # ✅ Conditional signal connection
+        # [DONE] Conditional signal connection
         if self.controller:
             self._connect_controller_signals()
 
     def _connect_controller_signals(self) -> None:
-        """✅ Extracted for clarity and testability"""
+        """[DONE] Extracted for clarity and testability"""
         if not self.controller:
             return
         self.controller.connection_changed.connect(...)
@@ -452,13 +452,13 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        # ✅ Single instantiation point
+        # [DONE] Single instantiation point
         self.laser_controller = LaserController()
         self.gpio_controller = GPIOController()
         self.tec_controller = TECController()
         self.camera_controller = CameraController(event_logger=self.event_logger)
 
-        # ✅ Inject controllers into widgets
+        # [DONE] Inject controllers into widgets
         self.laser_widget = LaserWidget(controller=self.laser_controller)
         self.gpio_widget = GPIOWidget(controller=self.gpio_controller)
 ```
@@ -466,25 +466,25 @@ class MainWindow(QMainWindow):
 #### Benefits
 
 **Testability:**
-- ✅ All controllers mockable for unit tests
-- ✅ Widgets testable in isolation with mock controllers
-- ✅ Signal connections verifiable
+- [DONE] All controllers mockable for unit tests
+- [DONE] Widgets testable in isolation with mock controllers
+- [DONE] Signal connections verifiable
 
 **Architectural Consistency:**
-- ✅ All 5 hardware widgets follow identical pattern
-- ✅ Clear ownership model (MainWindow owns controllers)
-- ✅ Hollywood Principle: "Don't call us, we'll call you"
+- [DONE] All 5 hardware widgets follow identical pattern
+- [DONE] Clear ownership model (MainWindow owns controllers)
+- [DONE] Hollywood Principle: "Don't call us, we'll call you"
 
 **Medical Device Compliance:**
-- ✅ **IEC 62304:** Simplified validation (single lifecycle pattern)
-- ✅ **Selective Shutdown:** Safety watchdog can disable laser while keeping monitoring active
-- ✅ **Traceability:** Clear dependency graph for requirements mapping
-- ✅ **FDA 510(k):** Simpler Design History File (single controller management pattern)
+- [DONE] **IEC 62304:** Simplified validation (single lifecycle pattern)
+- [DONE] **Selective Shutdown:** Safety watchdog can disable laser while keeping monitoring active
+- [DONE] **Traceability:** Clear dependency graph for requirements mapping
+- [DONE] **FDA 510(k):** Simpler Design History File (single controller management pattern)
 
 **Maintainability:**
-- ✅ Single source of truth for controller instantiation
-- ✅ Explicit dependencies (visible in constructor signature)
-- ✅ Easier refactoring (change MainWindow, not 5 widgets)
+- [DONE] Single source of truth for controller instantiation
+- [DONE] Explicit dependencies (visible in constructor signature)
+- [DONE] Easier refactoring (change MainWindow, not 5 widgets)
 
 #### Prevention
 - **Always use constructor injection** for dependencies
@@ -846,7 +846,7 @@ def _on_camera_frame_ready(self, pixmap):
 **Date:** 2025-10-29
 **Severity:** 🟡 Medium
 **Category:** Camera/Video Performance
-**Status:** ⚠️ Partial Implementation (Hardware binning removed, software downsampling working)
+**Status:** WARNING: Partial Implementation (Hardware binning removed, software downsampling working)
 
 #### Problem
 Allied Vision 1800 U-158c camera running at only 1.6 FPS at full resolution (1456×1088), making real-time monitoring difficult. Needed to increase frame rate for smooth video feedback during laser positioning.
@@ -874,16 +874,16 @@ if self.display_scale < 1.0:
 ```
 
 **Benefits:**
-- ✅ Simple and reliable (no hardware configuration complexity)
-- ✅ Works across all camera models
-- ✅ Can change scale during streaming
-- ✅ Captured images still use full resolution
-- ✅ Negligible CPU overhead (<1ms for 4× downsampling)
+- [DONE] Simple and reliable (no hardware configuration complexity)
+- [DONE] Works across all camera models
+- [DONE] Can change scale during streaming
+- [DONE] Captured images still use full resolution
+- [DONE] Negligible CPU overhead (<1ms for 4× downsampling)
 
 **Trade-offs:**
-- ⚠️ Uses CPU instead of hardware sensor binning
-- ⚠️ Doesn't improve actual camera frame rate (still limited by sensor readout)
-- ⚠️ Transfers full resolution frames over USB before downsampling
+- WARNING: Uses CPU instead of hardware sensor binning
+- WARNING: Doesn't improve actual camera frame rate (still limited by sensor readout)
+- WARNING: Transfers full resolution frames over USB before downsampling
 
 #### Future Investigation: Hardware Binning
 Hardware binning **should** work with Allied Vision cameras and could provide better performance:
@@ -962,10 +962,10 @@ def frame_callback(cam, stream, frame):
 
     # Create QPixmap for display
     pixmap = QPixmap.fromImage(QImage(...))
-    self.pixmap_ready.emit(pixmap)  # ✅ Fast (Qt implicit sharing)
+    self.pixmap_ready.emit(pixmap)  # [DONE] Fast (Qt implicit sharing)
 
     # Also emit numpy array
-    self.frame_ready.emit(frame_rgb)  # ❌ SLOW! 300KB per frame!
+    self.frame_ready.emit(frame_rgb)  # [FAILED] SLOW! 300KB per frame!
 ```
 
 **Key Discovery:** The FPS drop was NOT caused by processing overhead, but by **data transfer overhead** from emitting 300KB numpy arrays at 30 FPS:
@@ -1001,14 +1001,14 @@ def frame_callback(cam, stream, frame):
 
     # Create QPixmap and emit ONLY this (Qt implicit sharing = fast)
     pixmap = QPixmap.fromImage(QImage(...))
-    self.controller.pixmap_ready.emit(pixmap)  # ✅ Only signal emission
+    self.controller.pixmap_ready.emit(pixmap)  # [DONE] Only signal emission
 ```
 
 **Key Changes:**
-1. ✅ **Removed frame_ready signal emission** during live view
-2. ✅ **Direct video recording** in camera thread (no signal required)
-3. ✅ **Single QPixmap emission** using Qt implicit sharing
-4. ✅ **Store latest_frame** in controller for image capture (thread-safe with RLock)
+1. [DONE] **Removed frame_ready signal emission** during live view
+2. [DONE] **Direct video recording** in camera thread (no signal required)
+3. [DONE] **Single QPixmap emission** using Qt implicit sharing
+4. [DONE] **Store latest_frame** in controller for image capture (thread-safe with RLock)
 
 **Results:**
 - **Live view FPS:** Stable 30 FPS (no degradation)
@@ -1018,8 +1018,8 @@ def frame_callback(cam, stream, frame):
 #### Key Insights
 
 **1. Data Transfer Bottleneck vs Processing Bottleneck:**
-- ❌ **Wrong assumption:** "FPS drops mean processing is too slow"
-- ✅ **Reality:** Signal serialization can be the bottleneck, not processing
+- [FAILED] **Wrong assumption:** "FPS drops mean processing is too slow"
+- [DONE] **Reality:** Signal serialization can be the bottleneck, not processing
 
 **2. Qt Implicit Sharing is Powerful:**
 - QPixmap uses copy-on-write (COW) semantics
@@ -1059,9 +1059,9 @@ if emission_time > processing_time:
 ```
 
 **2. Choose Signal Type Carefully:**
-- ✅ Use QPixmap/QImage for GUI display (implicit sharing)
-- ❌ Avoid emitting large numpy arrays across threads
-- ✅ Use direct access with locks for data-heavy operations
+- [DONE] Use QPixmap/QImage for GUI display (implicit sharing)
+- [FAILED] Avoid emitting large numpy arrays across threads
+- [DONE] Use direct access with locks for data-heavy operations
 
 **3. Emit Only What's Needed:**
 - Display: QPixmap signal only

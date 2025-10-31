@@ -108,7 +108,7 @@ ax4.set_title("Calibration Statistics", fontsize=14, pad=20)
 
 plt.tight_layout()
 plt.savefig("motor_calibration_plots.png", dpi=300, bbox_inches="tight")
-print("✓ Saved: motor_calibration_plots.png")
+print("# [DONE] Saved: motor_calibration_plots.png")
 
 # Create individual plots for better detail
 
@@ -142,7 +142,7 @@ plt.grid(True, alpha=0.3)
 plt.legend()
 plt.tight_layout()
 plt.savefig("voltage_vs_vibration.png", dpi=300, bbox_inches="tight")
-print("✓ Saved: voltage_vs_vibration.png")
+print("# [DONE] Saved: voltage_vs_vibration.png")
 
 # Individual plot 2: PWM vs Vibration with error bars
 plt.figure(figsize=(10, 6))
@@ -170,7 +170,7 @@ plt.grid(True, alpha=0.3)
 plt.legend()
 plt.tight_layout()
 plt.savefig("pwm_vs_vibration.png", dpi=300, bbox_inches="tight")
-print("✓ Saved: pwm_vs_vibration.png")
+print("# [DONE] Saved: pwm_vs_vibration.png")
 
 print("\n📊 All plots generated successfully!")
 print(f"Total data points: {len(df)}")

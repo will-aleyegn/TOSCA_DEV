@@ -45,7 +45,7 @@ def test_position_control() -> None:  # noqa: C901
     )
     controller.status_changed.connect(lambda status: print(f"Status: {status}"))
     controller.position_changed.connect(lambda pos: print(f"  Position: {pos:.2f} µm"))
-    controller.position_reached.connect(lambda pos: print(f"  ✓ Target reached: {pos:.2f} µm"))
+    controller.position_reached.connect(lambda pos: print(f"  # [DONE] Target reached: {pos:.2f} µm"))
     controller.error_occurred.connect(lambda err: print(f"ERROR: {err}"))
 
     def run_tests() -> None:
@@ -73,7 +73,7 @@ def test_position_control() -> None:  # noqa: C901
             return
 
         test_results["homing"] = True
-        print("✓ Actuator homed and ready")
+        print("# [DONE] Actuator homed and ready")
 
         # Get current position
         current_pos = controller.get_position()
@@ -102,12 +102,12 @@ def test_position_control() -> None:  # noqa: C901
         print(f"Error: {error:.2f} µm")
 
         if error <= 5.0:  # ±5 µm tolerance
-            print("✓ Position reached within tolerance")
+            print("# [DONE] Position reached within tolerance")
             test_results["absolute"] = True
             # Continue to relative movement test
             QTimer.singleShot(1000, test_relative_movement)
         else:
-            print("✗ Position error exceeds tolerance")
+            print("# [FAILED] Position error exceeds tolerance")
             cleanup()
 
     def test_relative_movement() -> None:
@@ -139,12 +139,12 @@ def test_position_control() -> None:  # noqa: C901
         print(f"Error: {error:.2f} µm")
 
         if error <= 5.0:
-            print("✓ Relative step successful")
+            print("# [DONE] Relative step successful")
             test_results["relative"] = True
             # Test negative step
             QTimer.singleShot(1000, test_negative_step)
         else:
-            print("✗ Relative step error exceeds tolerance")
+            print("# [FAILED] Relative step error exceeds tolerance")
             cleanup()
 
     def test_negative_step() -> None:
@@ -169,9 +169,9 @@ def test_position_control() -> None:  # noqa: C901
         print(f"Error: {error:.2f} µm")
 
         if error <= 5.0:
-            print("✓ Negative step successful")
+            print("# [DONE] Negative step successful")
         else:
-            print("✗ Negative step error exceeds tolerance")
+            print("# [FAILED] Negative step error exceeds tolerance")
 
         # All tests complete
         print_results()
@@ -180,13 +180,13 @@ def test_position_control() -> None:  # noqa: C901
     def print_results() -> None:
         """Print test results summary."""
         print("\n=== Test Results ===")
-        print(f"Connection:           {'✓ PASS' if test_results['connection'] else '✗ FAIL'}")
-        print(f"Homing:              {'✓ PASS' if test_results['homing'] else '✗ FAIL'}")
-        print(f"Absolute Positioning: {'✓ PASS' if test_results['absolute'] else '✗ FAIL'}")
-        print(f"Relative Movement:    {'✓ PASS' if test_results['relative'] else '✗ FAIL'}")
+        print(f"Connection:           {'# [DONE] PASS' if test_results['connection'] else '# [FAILED] FAIL'}")
+        print(f"Homing:              {'# [DONE] PASS' if test_results['homing'] else '# [FAILED] FAIL'}")
+        print(f"Absolute Positioning: {'# [DONE] PASS' if test_results['absolute'] else '# [FAILED] FAIL'}")
+        print(f"Relative Movement:    {'# [DONE] PASS' if test_results['relative'] else '# [FAILED] FAIL'}")
 
         all_passed = all(test_results.values())
-        print(f"\nOverall: {'✓ ALL TESTS PASSED' if all_passed else '✗ SOME TESTS FAILED'}")
+        print(f"\nOverall: {'# [DONE] ALL TESTS PASSED' if all_passed else '# [FAILED] SOME TESTS FAILED'}")
 
     def cleanup() -> None:
         """Cleanup and exit."""

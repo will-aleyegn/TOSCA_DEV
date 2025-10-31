@@ -2,18 +2,18 @@
 
 **Document Version:** 1.0
 **Last Updated:** 2025-10-26
-**Status:** Implemented - Phase 5 ⚠️ **Videos NOT Encrypted** (Encryption planned Phase 6)
+**Status:** Implemented - Phase 5 WARNING: **Videos NOT Encrypted** (Encryption planned Phase 6)
 **Priority:** HIGH - Required for treatment documentation
 
 ---
 
-> **⚠️ WARNING - Videos Stored Unencrypted:**
+> **WARNING: WARNING - Videos Stored Unencrypted:**
 >
 > **Current Implementation:** Video recordings are stored as **plaintext MP4 files** without encryption.
 >
-> - ❌ Videos are **NOT encrypted** (HIPAA vulnerability)
-> - ❌ PHI/PII visible in video (patient faces, treatment areas)
-> - ❌ DO NOT use for clinical trials (encryption required)
+> - [FAILED] Videos are **NOT encrypted** (HIPAA vulnerability)
+> - [FAILED] PHI/PII visible in video (patient faces, treatment areas)
+> - [FAILED] DO NOT use for clinical trials (encryption required)
 >
 > **Future Implementation (Phase 6):** AES-256-GCM encryption (see section below)
 
@@ -283,9 +283,9 @@ def frame_callback(cam, stream, frame):
 - **File Format:** `[12-byte nonce][encrypted video][16-byte auth tag]`
 
 **Benefits:**
-- ✅ Protects PHI (patient video is sensitive data)
-- ✅ Tamper-evident (authentication tag)
-- ✅ HIPAA compliant (encryption at rest)
+- [DONE] Protects PHI (patient video is sensitive data)
+- [DONE] Tamper-evident (authentication tag)
+- [DONE] HIPAA compliant (encryption at rest)
 
 **Implementation:**
 ```python

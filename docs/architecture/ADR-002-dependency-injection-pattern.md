@@ -1,6 +1,6 @@
 # ADR-002: Complete Dependency Injection Pattern for Hardware Controllers
 
-**Status:** ✅ Accepted
+**Status:** [DONE] Accepted
 **Date:** 2025-10-30
 **Deciders:** Development Team
 **Technical Story:** Phase 4 - Architectural Consistency & Medical Device Compliance
@@ -52,18 +52,18 @@ This inconsistency created several problems:
 **Maintain mixed instantiation: DI for actuator, self-instantiation for others**
 
 **Pros:**
-- ✅ No refactoring required
-- ✅ Zero risk of breaking existing code
-- ✅ Minimal testing effort
+- [DONE] No refactoring required
+- [DONE] Zero risk of breaking existing code
+- [DONE] Minimal testing effort
 
 **Cons:**
-- ❌ Architectural inconsistency confuses developers
-- ❌ Poor testability for 4/5 hardware widgets
-- ❌ Lifecycle management ambiguous
-- ❌ Harder to document for FDA validation
-- ❌ Code review flagged as HIGH priority issue
+- [FAILED] Architectural inconsistency confuses developers
+- [FAILED] Poor testability for 4/5 hardware widgets
+- [FAILED] Lifecycle management ambiguous
+- [FAILED] Harder to document for FDA validation
+- [FAILED] Code review flagged as HIGH priority issue
 
-**Decision:** ❌ **Rejected** - Architectural consistency outweighs refactoring cost
+**Decision:** [FAILED] **Rejected** - Architectural consistency outweighs refactoring cost
 
 ---
 
@@ -71,17 +71,17 @@ This inconsistency created several problems:
 **Use central registry for controller lookup**
 
 **Pros:**
-- ✅ Decouples widgets from MainWindow
-- ✅ Flexible controller retrieval
-- ✅ Easy to swap implementations
+- [DONE] Decouples widgets from MainWindow
+- [DONE] Flexible controller retrieval
+- [DONE] Easy to swap implementations
 
 **Cons:**
-- ❌ Hidden dependencies (not obvious from constructor)
-- ❌ Runtime failure if controller not registered
-- ❌ More complex than needed for our use case
-- ❌ Anti-pattern in modern Python (implicit dependencies)
+- [FAILED] Hidden dependencies (not obvious from constructor)
+- [FAILED] Runtime failure if controller not registered
+- [FAILED] More complex than needed for our use case
+- [FAILED] Anti-pattern in modern Python (implicit dependencies)
 
-**Decision:** ❌ **Rejected** - Adds unnecessary complexity, hides dependencies
+**Decision:** [FAILED] **Rejected** - Adds unnecessary complexity, hides dependencies
 
 ---
 
@@ -89,19 +89,19 @@ This inconsistency created several problems:
 **Extend DI pattern to all hardware widgets, centralize controller management**
 
 **Pros:**
-- ✅ **Architectural Consistency:** All 5 widgets follow identical pattern
-- ✅ **Testability:** All controllers mockable for unit tests
-- ✅ **Lifecycle Clarity:** MainWindow owns all controller lifecycles
-- ✅ **Hollywood Principle:** Inversion of control properly implemented
-- ✅ **Medical Device Compliance:** Single instantiation point simplifies validation
-- ✅ **Explicit Dependencies:** Constructor signatures show exactly what's needed
+- [DONE] **Architectural Consistency:** All 5 widgets follow identical pattern
+- [DONE] **Testability:** All controllers mockable for unit tests
+- [DONE] **Lifecycle Clarity:** MainWindow owns all controller lifecycles
+- [DONE] **Hollywood Principle:** Inversion of control properly implemented
+- [DONE] **Medical Device Compliance:** Single instantiation point simplifies validation
+- [DONE] **Explicit Dependencies:** Constructor signatures show exactly what's needed
 
 **Cons:**
-- ⚠️ Refactoring required for 4 widgets (~4 hours)
-- ⚠️ Signal connection logic needs extraction (~2 hours)
-- ⚠️ Risk of breaking existing widget functionality (mitigated by thorough testing)
+- WARNING: Refactoring required for 4 widgets (~4 hours)
+- WARNING: Signal connection logic needs extraction (~2 hours)
+- WARNING: Risk of breaking existing widget functionality (mitigated by thorough testing)
 
-**Decision:** ✅ **ACCEPTED** - Benefits significantly outweigh refactoring cost
+**Decision:** [DONE] **ACCEPTED** - Benefits significantly outweigh refactoring cost
 
 ---
 
@@ -119,7 +119,7 @@ This inconsistency created several problems:
 
 ### Implementation Strategy
 
-#### Phase 4A: Widget Constructor Injection ✅ COMPLETE
+#### Phase 4A: Widget Constructor Injection [DONE] COMPLETE
 **Modified Widgets:**
 1. **LaserWidget:** Accept `LaserController` via constructor parameter
 2. **GPIOWidget:** Accept `GPIOController` via constructor parameter
@@ -131,7 +131,7 @@ This inconsistency created several problems:
 **Risk:** Low (widgets remain functional during transition)
 **Result:** All 5 widgets accept controllers via constructor
 
-#### Phase 4B: MainWindow Centralization ✅ COMPLETE
+#### Phase 4B: MainWindow Centralization [DONE] COMPLETE
 **Centralized Controller Instantiation:**
 ```python
 # src/ui/main_window.py lines 75-87
@@ -146,7 +146,7 @@ self.camera_controller = CameraController(event_logger=self.event_logger)
 **Risk:** Medium (requires careful signal rewiring)
 **Result:** Single source of truth for all hardware controllers
 
-#### Phase 4C: Signal Extraction ✅ COMPLETE
+#### Phase 4C: Signal Extraction [DONE] COMPLETE
 **Extracted `_connect_controller_signals()` methods:**
 - Separates signal connection from constructor logic
 - Called conditionally when controller is injected
@@ -156,7 +156,7 @@ self.camera_controller = CameraController(event_logger=self.event_logger)
 **Risk:** Low (signal connections tested via GUI smoke test)
 **Result:** Clean separation of concerns
 
-#### Phase 4D: Public Connection API ✅ COMPLETE
+#### Phase 4D: Public Connection API [DONE] COMPLETE
 **Added Public Methods:**
 - `connect_device()` → Programmatic connection without UI events
 - `disconnect_device()` → Programmatic disconnection
@@ -198,15 +198,15 @@ self.camera_controller = CameraController(event_logger=self.event_logger)
 class LaserWidget(QWidget):
     def __init__(self) -> None:
         super().__init__()
-        self.controller = None  # ❌ Not injected
+        self.controller = None  # [FAILED] Not injected
         self._init_ui()
 
     def _on_connect_clicked(self) -> None:
-        # ❌ Self-instantiation - bad for testing
+        # [FAILED] Self-instantiation - bad for testing
         self.controller = LaserController()
         success = self.controller.connect("COM10")
         if success:
-            # ❌ Signal connection inside event handler
+            # [FAILED] Signal connection inside event handler
             self.controller.connection_changed.connect(...)
 ```
 
@@ -215,22 +215,22 @@ class LaserWidget(QWidget):
 class LaserWidget(QWidget):
     def __init__(self, controller: Optional[LaserController] = None) -> None:
         super().__init__()
-        self.controller = controller  # ✅ Injected from MainWindow
+        self.controller = controller  # [DONE] Injected from MainWindow
         self._init_ui()
 
-        # ✅ Conditional signal connection
+        # [DONE] Conditional signal connection
         if self.controller:
             self._connect_controller_signals()
 
     def _connect_controller_signals(self) -> None:
-        """✅ Extracted for clarity and testability"""
+        """[DONE] Extracted for clarity and testability"""
         if not self.controller:
             return
         self.controller.connection_changed.connect(...)
         logger.debug("LaserWidget signals connected to LaserController")
 
     def connect_device(self) -> bool:
-        """✅ Public API for programmatic control"""
+        """[DONE] Public API for programmatic control"""
         if self.is_connected:
             logger.warning("Laser already connected")
             return True
@@ -244,20 +244,20 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        # ✅ Centralized controller instantiation
+        # [DONE] Centralized controller instantiation
         self.actuator_controller = ActuatorController()
         self.laser_controller = LaserController()
         self.tec_controller = TECController()
         self.gpio_controller = GPIOController()
         self.camera_controller = CameraController(event_logger=self.event_logger)
 
-        # ✅ Constructor injection to widgets
+        # [DONE] Constructor injection to widgets
         self.laser_widget = LaserWidget(controller=self.laser_controller)
         self.gpio_widget = GPIOWidget(controller=self.gpio_controller)
         self.tec_widget = TECWidget(controller=self.tec_controller)
         self.camera_widget = CameraWidget(camera_controller=self.camera_controller)
 
-        # ✅ Protocol engine uses MainWindow controllers directly
+        # [DONE] Protocol engine uses MainWindow controllers directly
         self.protocol_engine = ProtocolEngine(
             actuator_controller=self.actuator_controller,
             laser_controller=self.laser_controller,
@@ -272,51 +272,51 @@ class MainWindow(QMainWindow):
 ### Medical Device Software (IEC 62304)
 
 **Positive Impact:**
-- ✅ **Reduced Complexity:** Single instantiation pattern simplifies Class B validation
-- ✅ **Clear Ownership:** Unambiguous controller lifecycle management
-- ✅ **Testability:** Unit tests can verify controller behavior in isolation
-- ✅ **Traceability:** Clear dependency graph for requirements mapping
+- [DONE] **Reduced Complexity:** Single instantiation pattern simplifies Class B validation
+- [DONE] **Clear Ownership:** Unambiguous controller lifecycle management
+- [DONE] **Testability:** Unit tests can verify controller behavior in isolation
+- [DONE] **Traceability:** Clear dependency graph for requirements mapping
 
 **Risk Management (ISO 14971):**
-- ✅ **Centralized Control:** Single shutdown point enables systematic safety response
-- ✅ **Lifecycle Predictability:** Clear startup/shutdown sequence reduces failure modes
-- ✅ **Selective Shutdown:** DI pattern enables safety watchdog to disable laser while keeping monitoring active
+- [DONE] **Centralized Control:** Single shutdown point enables systematic safety response
+- [DONE] **Lifecycle Predictability:** Clear startup/shutdown sequence reduces failure modes
+- [DONE] **Selective Shutdown:** DI pattern enables safety watchdog to disable laser while keeping monitoring active
 
 ### FDA 510(k) Preparation
 
 **Documentation Benefits:**
-- ✅ Simpler Design History File (DHF) - single controller management pattern
-- ✅ Clearer software architecture diagram (single ownership model)
-- ✅ Reduced architectural complexity in submission materials
+- [DONE] Simpler Design History File (DHF) - single controller management pattern
+- [DONE] Clearer software architecture diagram (single ownership model)
+- [DONE] Reduced architectural complexity in submission materials
 
 ---
 
 ## Validation Plan
 
-### Pre-Implementation Validation ✅ COMPLETE
-1. ✅ Code review identified HIGH priority issue (comprehensive review)
-2. ✅ Documented all widget controller patterns
-3. ✅ Created comprehensive refactoring plan (Phase 4A-4D)
-4. ✅ Wrote ADR-002 (this document)
+### Pre-Implementation Validation [DONE] COMPLETE
+1. [DONE] Code review identified HIGH priority issue (comprehensive review)
+2. [DONE] Documented all widget controller patterns
+3. [DONE] Created comprehensive refactoring plan (Phase 4A-4D)
+4. [DONE] Wrote ADR-002 (this document)
 
-### Phase 4A-4B Validation ✅ COMPLETE
-1. ✅ Syntax validation: All modified files pass `python -m py_compile`
-2. ✅ Import validation: No broken imports
-3. ✅ Signal connection verification: Extracted methods tested
-4. ✅ GUI smoke test: All widgets display and function correctly
+### Phase 4A-4B Validation [DONE] COMPLETE
+1. [DONE] Syntax validation: All modified files pass `python -m py_compile`
+2. [DONE] Import validation: No broken imports
+3. [DONE] Signal connection verification: Extracted methods tested
+4. [DONE] GUI smoke test: All widgets display and function correctly
 
-### Phase 4C-4D Validation ✅ COMPLETE
-1. ✅ Public API testing: `connect_device()` / `disconnect_device()` work correctly
-2. ✅ MainWindow integration: Connect/Disconnect All buttons functional
-3. ✅ Error message improvements: User-friendly guidance implemented
-4. ✅ Documentation updates: WORK_LOG.md and REFACTORING_LOG.md updated
+### Phase 4C-4D Validation [DONE] COMPLETE
+1. [DONE] Public API testing: `connect_device()` / `disconnect_device()` work correctly
+2. [DONE] MainWindow integration: Connect/Disconnect All buttons functional
+3. [DONE] Error message improvements: User-friendly guidance implemented
+4. [DONE] Documentation updates: WORK_LOG.md and REFACTORING_LOG.md updated
 
-### Future Phase 5 Validation (Unit Tests) ⏳ PENDING
-1. ⏳ Create mocked controller fixtures
-2. ⏳ Unit test widgets with mocked controllers
-3. ⏳ Verify signal connections
-4. ⏳ Test error handling paths
-5. ⏳ Coverage target: 80%+ for all hardware widgets
+### Future Phase 5 Validation (Unit Tests) [PENDING] PENDING
+1. [PENDING] Create mocked controller fixtures
+2. [PENDING] Unit test widgets with mocked controllers
+3. [PENDING] Verify signal connections
+4. [PENDING] Test error handling paths
+5. [PENDING] Coverage target: 80%+ for all hardware widgets
 
 ---
 
@@ -334,9 +334,9 @@ class MainWindow(QMainWindow):
 
 | Option | Pros | Cons | Decision |
 |--------|------|------|----------|
-| **1. Keep Hybrid** | No refactoring | Architectural inconsistency, poor testability | ❌ Rejected |
-| **2. Service Locator** | Flexible | Hidden dependencies, anti-pattern | ❌ Rejected |
-| **3. Complete DI** | Consistency, testability, clear ownership | Requires refactoring (8 hours) | ✅ **Accepted** |
+| **1. Keep Hybrid** | No refactoring | Architectural inconsistency, poor testability | [FAILED] Rejected |
+| **2. Service Locator** | Flexible | Hidden dependencies, anti-pattern | [FAILED] Rejected |
+| **3. Complete DI** | Consistency, testability, clear ownership | Requires refactoring (8 hours) | [DONE] **Accepted** |
 
 ---
 
@@ -361,8 +361,8 @@ class MainWindow(QMainWindow):
 
 ---
 
-**ADR Status:** ✅ Accepted
-**Implementation Status:** ✅ COMPLETE - All 4 Phases Finished
+**ADR Status:** [DONE] Accepted
+**Implementation Status:** [DONE] COMPLETE - All 4 Phases Finished
 **Document Owner:** Development Team
 **Last Updated:** 2025-10-30
 **Implementation Completed:** 2025-10-30

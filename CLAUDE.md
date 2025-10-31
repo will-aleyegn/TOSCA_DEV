@@ -58,9 +58,9 @@ TOSCA is a **medical device laser control system** combining:
 
 ### Selective Shutdown Policy
 **CRITICAL:** When safety fault occurs:
-- ✅ **DISABLE:** Treatment laser only (immediate power-off)
-- ✅ **PRESERVE:** Camera, actuator, monitoring, aiming laser
-- ✅ **RATIONALE:** Allow diagnosis while maintaining safety
+- [DONE] **DISABLE:** Treatment laser only (immediate power-off)
+- [DONE] **PRESERVE:** Camera, actuator, monitoring, aiming laser
+- [DONE] **RATIONALE:** Allow diagnosis while maintaining safety
 
 Reference: `docs/architecture/SAFETY_SHUTDOWN_POLICY.md`
 
@@ -147,7 +147,7 @@ src/
 **Focus:** Code quality validation, architecture assessment, security hardening roadmap
 
 ### Recent Milestones (October 2025)
-1. ✅ **Comprehensive Architecture Analysis** (Oct 30)
+1. [DONE] **Comprehensive Architecture Analysis** (Oct 30)
    - **Overall Grade: A (Excellent)** - Production-ready architecture
    - 10 core files analyzed in depth (safety, hardware, protocol, UI layers)
    - Safety-critical design validated (selective shutdown, state machine)
@@ -158,23 +158,23 @@ src/
    - **Key Finding:** No significant overengineering, appropriate complexity for medical device
    - **Recommendation:** Database encryption + authentication before clinical use
 
-2. ✅ **Camera Thread Safety** (Oct 30)
+2. [DONE] **Camera Thread Safety** (Oct 30)
    - Thread-safe exposure/gain controls with RLock
    - Hardware feedback loop (emit actual camera values)
    - Signal-based UI updates to prevent infinite loops
 
-3. ✅ **Allied Vision API Compliance** (Oct 30)
+3. [DONE] **Allied Vision API Compliance** (Oct 30)
    - Explicit pixel format configuration (Bgr8 > Rgb8 > Mono8 priority)
    - Fixed enum naming (Rgb8/Bgr8 not RGB8)
    - Context manager cleanup on connection failures
    - 30 FPS hardware frame rate control working
 
-3. ✅ **TEC/Laser Integration** (Oct 29)
+3. [DONE] **TEC/Laser Integration** (Oct 29)
    - Separated TEC and laser driver controllers
    - Dual-device architecture (COM9 + COM10)
    - Protocol builder with laser power ramping
 
-4. ✅ **UI/UX Redesign** (Oct 27-28)
+4. [DONE] **UI/UX Redesign** (Oct 27-28)
    - Global toolbar with E-Stop button
    - Treatment Dashboard with consolidated status
    - Protocol selector with visual library browser
@@ -476,10 +476,10 @@ SAFE → ARMED → TREATING
 
 ### 4. Selective Shutdown
 When safety fault occurs, only treatment laser is disabled:
-- Camera: ✅ Keep running (visual feedback)
-- Actuator: ✅ Keep running (controlled retraction)
-- Monitoring: ✅ Keep running (diagnosis)
-- Laser: ❌ Disable immediately (safety)
+- Camera: [DONE] Keep running (visual feedback)
+- Actuator: [DONE] Keep running (controlled retraction)
+- Monitoring: [DONE] Keep running (diagnosis)
+- Laser: [FAILED] Disable immediately (safety)
 
 ### 5. Two-Tier Logging
 Events are logged to both:
@@ -491,27 +491,27 @@ Events are logged to both:
 ## Important Notes for AI Assistants
 
 ### DO:
-- ✅ Always use type hints on functions
-- ✅ Add docstrings to safety-critical code
-- ✅ Use threading.RLock for hardware controllers
-- ✅ Emit PyQt6 signals on state changes
-- ✅ Copy numpy arrays before QImage construction
-- ✅ Use signal/slot for widget communication
-- ✅ Block signals during hardware-triggered UI updates
-- ✅ Log safety events immutably
-- ✅ Clarify requirements before implementation
-- ✅ Test thread safety for hardware operations
+- [DONE] Always use type hints on functions
+- [DONE] Add docstrings to safety-critical code
+- [DONE] Use threading.RLock for hardware controllers
+- [DONE] Emit PyQt6 signals on state changes
+- [DONE] Copy numpy arrays before QImage construction
+- [DONE] Use signal/slot for widget communication
+- [DONE] Block signals during hardware-triggered UI updates
+- [DONE] Log safety events immutably
+- [DONE] Clarify requirements before implementation
+- [DONE] Test thread safety for hardware operations
 
 ### DON'T:
-- ❌ Never reparent widgets between components
-- ❌ Never bypass safety interlocks in production
-- ❌ Never use QThread.run() override (use QRunnable instead)
-- ❌ Never mix asyncio and QThread directly
-- ❌ Never skip type hints on public functions
-- ❌ Never hardcode COM ports (use config or UI selection)
-- ❌ Never use blocking operations in GUI thread
-- ❌ Never modify safety events after creation (immutability)
-- ❌ Never commit without running pre-commit hooks (unless --no-verify is justified)
+- [FAILED] Never reparent widgets between components
+- [FAILED] Never bypass safety interlocks in production
+- [FAILED] Never use QThread.run() override (use QRunnable instead)
+- [FAILED] Never mix asyncio and QThread directly
+- [FAILED] Never skip type hints on public functions
+- [FAILED] Never hardcode COM ports (use config or UI selection)
+- [FAILED] Never use blocking operations in GUI thread
+- [FAILED] Never modify safety events after creation (immutability)
+- [FAILED] Never commit without running pre-commit hooks (unless --no-verify is justified)
 
 ### Medical Device Context:
 - This is **FDA-regulated medical device software**

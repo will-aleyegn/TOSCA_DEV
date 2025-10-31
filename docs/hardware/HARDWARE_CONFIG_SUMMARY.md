@@ -1,6 +1,6 @@
 # TOSCA Hardware Configuration Summary
 **Date**: 2025-10-27
-**Status**: ✅ Configured for actual hardware (PWM motor + I2C accelerometer)
+**Status**: [DONE] Configured for actual hardware (PWM motor + I2C accelerometer)
 
 ---
 
@@ -180,14 +180,14 @@ The accelerometer can provide:
 
 | Component | Hardware | Firmware | Config | Python | GUI | Status |
 |-----------|----------|----------|--------|--------|-----|--------|
-| **PWM Motor** | ✅ | ✅ | ✅ | ⏳ | ⏳ | Ready for upload |
-| **I2C Accelerometer** | ✅ | ✅ | ✅ | ⏳ | ⏳ | Ready for upload |
-| **Photodiode** | ✅ | ✅ | ✅ | ⏳ | ⏳ | Existing (no changes) |
-| **Aiming Laser** | ⏳ | ✅ | ✅ | ⏳ | ⏳ | Ready (if hardware connected) |
-| **Footpedal** | ❌ | ✅ | ✅ | ❌ | ❌ | Reserved for future |
-| **Watchdog** | ✅ | ✅ | ✅ | ✅ | ✅ | Fully functional |
+| **PWM Motor** | [DONE] | [DONE] | [DONE] | [PENDING] | [PENDING] | Ready for upload |
+| **I2C Accelerometer** | [DONE] | [DONE] | [DONE] | [PENDING] | [PENDING] | Ready for upload |
+| **Photodiode** | [DONE] | [DONE] | [DONE] | [PENDING] | [PENDING] | Existing (no changes) |
+| **Aiming Laser** | [PENDING] | [DONE] | [DONE] | [PENDING] | [PENDING] | Ready (if hardware connected) |
+| **Footpedal** | [FAILED] | [DONE] | [DONE] | [FAILED] | [FAILED] | Reserved for future |
+| **Watchdog** | [DONE] | [DONE] | [DONE] | [DONE] | [DONE] | Fully functional |
 
-**Legend**: ✅ Done | ⏳ Needs update | ❌ Not started
+**Legend**: [DONE] Done | [PENDING] Needs update | [FAILED] Not started
 
 ---
 
@@ -213,12 +213,12 @@ All existing safety features remain functional:
 ## 📝 **Configuration Files Modified**
 
 ```
-✅ firmware/arduino_watchdog/arduino_watchdog_v2.ino (NEW)
-✅ firmware/arduino_watchdog/NEW_PIN_CONFIG.md (NEW)
-✅ firmware/arduino_watchdog/UPLOAD_INSTRUCTIONS.md (NEW)
-✅ config.yaml (UPDATED - GPIO section)
-⏳ src/hardware/gpio_controller.py (NEEDS UPDATE)
-⏳ src/ui/widgets/gpio_widget.py (NEEDS UPDATE)
+[DONE] firmware/arduino_watchdog/arduino_watchdog_v2.ino (NEW)
+[DONE] firmware/arduino_watchdog/NEW_PIN_CONFIG.md (NEW)
+[DONE] firmware/arduino_watchdog/UPLOAD_INSTRUCTIONS.md (NEW)
+[DONE] config.yaml (UPDATED - GPIO section)
+[PENDING] src/hardware/gpio_controller.py (NEEDS UPDATE)
+[PENDING] src/ui/widgets/gpio_widget.py (NEEDS UPDATE)
 ```
 
 ---

@@ -425,7 +425,7 @@ Record actual gain range from camera:
 
 **Objective:** Verify graceful error handling
 
-**⚠️ WARNING:** This test intentionally causes an error
+**WARNING: WARNING:** This test intentionally causes an error
 
 **Steps:**
 1. Start streaming

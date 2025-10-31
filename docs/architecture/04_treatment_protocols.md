@@ -1,6 +1,6 @@
 # TOSCA Laser Control System - Treatment Protocol Engine
 
-> ⚠️ **DEPRECATED DOCUMENT**
+> WARNING: **DEPRECATED DOCUMENT**
 >
 > This document describes an older step-based protocol model that has been superseded.
 >
@@ -750,9 +750,9 @@ calibration_points = [
 │       0s    30s   60s   90s  120s  150s                    │
 ├─────────────────────────────────────────────────────────────┤
 │ Safety Check:                                               │
-│   ✓ All steps within power limits (max 10W)                │
-│   ✓ Total duration 150s (within 300s limit)                │
-│   ✓ Ring sizes within range (2-5mm)                        │
+│   [DONE] All steps within power limits (max 10W)                │
+│   [DONE] Total duration 150s (within 300s limit)                │
+│   [DONE] Ring sizes within range (2-5mm)                        │
 │   Total Energy: 675 Joules                                 │
 ├─────────────────────────────────────────────────────────────┤
 │  [Cancel]  [Save Protocol]  [Test Run]  [Apply to Session] │
