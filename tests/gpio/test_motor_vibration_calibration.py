@@ -8,7 +8,7 @@ from datetime import datetime
 
 import serial
 
-COM_PORT = "COM6"
+COM_PORT = "COM12"  # Arduino GPIO controller
 
 # Voltage range - INCLUDING 0V (motor off)
 voltages = [0.0, 1.5, 2.0, 2.5, 3.0]

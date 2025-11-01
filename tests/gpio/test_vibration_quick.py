@@ -6,7 +6,7 @@ import time
 
 import serial
 
-COM_PORT = "COM6"
+COM_PORT = "COM12"  # Arduino GPIO controller
 
 
 def send_heartbeat(ser):
