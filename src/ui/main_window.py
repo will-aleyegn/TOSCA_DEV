@@ -154,6 +154,14 @@ class MainWindow(QMainWindow):
 
         logger.info("All hardware controllers instantiated in MainWindow")
 
+        # Connect hardware connection signals to update Disconnect All button
+        self.camera_controller.connection_changed.connect(
+            lambda: self._update_hardware_button_states()
+        )
+        self.actuator_controller.connection_changed.connect(
+            lambda: self._update_hardware_button_states()
+        )
+
         # SAFETY-CRITICAL: Initialize watchdog early (before GPIO connection)
         # GPIO controller will be attached later in _connect_safety_system()
         self.safety_watchdog = SafetyWatchdog(
@@ -934,10 +942,16 @@ class MainWindow(QMainWindow):
                     logger.info("Safety watchdog started (500ms heartbeat, 1000ms timeout)")
                 else:
                     logger.error("CRITICAL: Safety watchdog failed to start!")
+
+            # Update disconnect button state
+            self._update_hardware_button_states()
         else:
             # GPIO disconnected - stop heartbeat
             self.safety_watchdog.stop()
             logger.info("Safety watchdog stopped (GPIO disconnected)")
+
+            # Update disconnect button state
+            self._update_hardware_button_states()
 
     def _init_protocol_engine(self) -> None:
         """Initialize protocol engine and wire to hardware controllers."""
@@ -1169,6 +1183,34 @@ class MainWindow(QMainWindow):
             self.global_estop_btn.setEnabled(False)
             self.global_estop_btn.setText("🛑 E-STOP ACTIVE")
 
+    def _update_hardware_button_states(self) -> None:
+        """Update Connect All / Disconnect All button states based on hardware connections."""
+        # Check if ANY hardware is connected
+        any_connected = False
+
+        # Check GPIO
+        if hasattr(self, "safety_widget") and hasattr(self.safety_widget, "gpio_widget"):
+            if self.safety_widget.gpio_widget and self.safety_widget.gpio_widget.is_connected:
+                any_connected = True
+
+        # Check Camera
+        if hasattr(self, "camera_controller") and self.camera_controller:
+            if self.camera_controller.is_connected:
+                any_connected = True
+
+        # Check Laser
+        if hasattr(self, "laser_widget") and self.laser_widget:
+            if hasattr(self.laser_widget, "is_connected") and self.laser_widget.is_connected:
+                any_connected = True
+
+        # Check Actuator
+        if hasattr(self, "actuator_controller") and self.actuator_controller:
+            if self.actuator_controller.is_connected:
+                any_connected = True
+
+        # Update button states
+        self.disconnect_all_btn.setEnabled(any_connected)
+
     def _on_connect_all_clicked(self) -> None:
         """Handle Connect All button click."""
         logger.info("Connecting to all hardware...")
@@ -1202,8 +1244,7 @@ class MainWindow(QMainWindow):
                     self.actuator_connection_widget._on_connect_clicked()
 
         # Update button states
-        self.connect_all_btn.setEnabled(False)
-        self.disconnect_all_btn.setEnabled(True)
+        self._update_hardware_button_states()
         logger.info("Connect All completed")
 
     def _on_disconnect_all_clicked(self) -> None:
@@ -1239,8 +1280,7 @@ class MainWindow(QMainWindow):
                     self.actuator_connection_widget._on_disconnect_clicked()
 
         # Update button states
-        self.connect_all_btn.setEnabled(True)
-        self.disconnect_all_btn.setEnabled(False)
+        self._update_hardware_button_states()
         logger.info("Disconnect All completed")
 
     def _on_test_all_clicked(self) -> None:
