@@ -113,11 +113,12 @@ def test_rotation_filename_format(event_logger, temp_log_dir):
     # Find rotated files
     rotated_files = list(temp_log_dir.glob("events_20*.jsonl"))
     if rotated_files:
-        # Verify timestamp format: events_YYYY-MM-DD_HH-MM-SS.jsonl
+        # Verify timestamp format: events_YYYY-MM-DD_HH-MM-SS-MICROSECONDS.jsonl
         for rotated_file in rotated_files:
             filename = rotated_file.stem
             parts = filename.split("_")
-            assert len(parts) >= 4, f"Invalid filename format: {filename}"
+            # Should have at least 3 parts: events, YYYY-MM-DD, HH-MM-SS[-MICROSECONDS]
+            assert len(parts) >= 3, f"Invalid filename format: {filename}"
 
             # Verify date part (YYYY-MM-DD)
             date_part = parts[1]

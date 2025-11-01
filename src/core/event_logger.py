@@ -36,7 +36,7 @@ from typing import Any, Optional
 
 from PyQt6.QtCore import QObject, pyqtSignal
 
-from src.database.db_manager import DatabaseManager
+from database.db_manager import DatabaseManager
 
 logger = logging.getLogger(__name__)
 
@@ -207,6 +207,10 @@ class EventLogger(QObject):
             action_taken: Optional action taken in response
             details: Optional additional details (will be JSON-encoded)
         """
+        # Check and rotate log file if needed (before writing)
+        if self.enable_rotation:
+            self._check_and_rotate_log()
+
         # Log to database
         try:
             self.db_manager.log_safety_event(
@@ -405,8 +409,8 @@ class EventLogger(QObject):
             size_mb = size_bytes / (1024 * 1024)
 
             if size_mb >= self.rotation_size_mb:
-                # Rotate log file
-                timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+                # Rotate log file with microseconds to prevent collisions
+                timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S-%f")  # Added microseconds
                 rotated_name = f"{self.log_file.stem}_{timestamp}{self.log_file.suffix}"
                 rotated_path = self.log_file.parent / rotated_name
 
@@ -449,13 +453,21 @@ class EventLogger(QObject):
             for log_path in rotated_logs:
                 try:
                     # Extract timestamp from filename
-                    # Format: events_YYYY-MM-DD_HH-MM-SS.jsonl
+                    # Format: events_YYYY-MM-DD_HH-MM-SS[-MICROSECONDS].jsonl
                     filename = log_path.stem  # Remove .jsonl
                     parts = filename.split("_")
-                    if len(parts) >= 4:  # events_YYYY_MM_DD_HH_MM_SS
-                        # Parse date from filename
+
+                    # Need at least: events, YYYY-MM-DD, HH-MM-SS
+                    if len(parts) >= 3:
+                        # Parse date from filename (second part)
                         date_str = parts[1]  # YYYY-MM-DD
-                        file_date = datetime.strptime(date_str, "%Y-%m-%d")
+
+                        # Handle both date formats (with and without microseconds)
+                        try:
+                            file_date = datetime.strptime(date_str, "%Y-%m-%d")
+                        except ValueError:
+                            # Skip if date format is invalid
+                            continue
 
                         # Delete if older than retention period
                         if file_date < cutoff_date:
