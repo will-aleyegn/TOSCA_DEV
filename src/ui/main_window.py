@@ -722,8 +722,8 @@ class MainWindow(QMainWindow):
 
                 self.event_logger.log_event(
                     EventType.USER_OVERRIDE,
-                    EventSeverity.CRITICAL,
                     "Developer mode ENABLED - Safety bypasses active",
+                    EventSeverity.CRITICAL,
                 )
         else:
             # Disable developer mode
@@ -741,8 +741,8 @@ class MainWindow(QMainWindow):
 
                 self.event_logger.log_event(
                     EventType.USER_OVERRIDE,
-                    EventSeverity.INFO,
                     "Developer mode DISABLED",
+                    EventSeverity.INFO,
                 )
 
         # Emit signal for other widgets
