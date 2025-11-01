@@ -4,10 +4,12 @@ Subject selection widget.
 
 import logging
 import re
+from datetime import datetime
 from typing import Optional
 
 from PyQt6.QtCore import pyqtSignal, pyqtSlot
 from PyQt6.QtWidgets import (
+    QComboBox,
     QGroupBox,
     QHBoxLayout,
     QLabel,
@@ -68,10 +70,29 @@ class SubjectWidget(QWidget):
         group = QGroupBox("Subject Selection")
         layout = QVBoxLayout()
 
-        layout.addWidget(QLabel("Subject ID:"))
+        # Subject ID with auto-fill prefix
+        layout.addWidget(QLabel("Subject ID (last 4 digits):"))
+
+        # Horizontal layout for prefix label + input
+        id_layout = QHBoxLayout()
+
+        # Auto-filled prefix (P-YYYY-)
+        current_year = datetime.now().year
+        self.subject_id_prefix = f"P-{current_year}-"
+
+        prefix_label = QLabel(self.subject_id_prefix)
+        prefix_label.setStyleSheet("font-weight: bold; font-size: 14px;")
+        id_layout.addWidget(prefix_label)
+
+        # Input for last 4 digits only
         self.subject_id_input = QLineEdit()
-        self.subject_id_input.setPlaceholderText("Enter subject ID (e.g., P-2025-0001)...")
-        layout.addWidget(self.subject_id_input)
+        self.subject_id_input.setPlaceholderText("0001")
+        self.subject_id_input.setMaxLength(4)  # Only 4 digits
+        self.subject_id_input.setFixedWidth(80)
+        id_layout.addWidget(self.subject_id_input)
+        id_layout.addStretch()
+
+        layout.addLayout(id_layout)
 
         self.search_button = QPushButton("Search Subject")
         self.search_button.clicked.connect(self._on_search_subject)
@@ -99,9 +120,18 @@ class SubjectWidget(QWidget):
         group = QGroupBox("Start Treatment Session")
         layout = QVBoxLayout()
 
-        layout.addWidget(QLabel("Technician ID:"))
-        self.technician_id_input = QLineEdit()
-        self.technician_id_input.setPlaceholderText("Enter technician ID (e.g., admin)...")
+        # Technician dropdown
+        layout.addWidget(QLabel("Technician:"))
+        self.technician_id_input = QComboBox()
+        self.technician_id_input.setEditable(False)  # Dropdown only, no manual entry
+
+        # Add technician options
+        self.technician_id_input.addItem("Select Technician...", "")  # Default placeholder
+        self.technician_id_input.addItem("Admin", "admin")
+        self.technician_id_input.addItem("Will", "will")
+        self.technician_id_input.addItem("Operator 1", "operator1")
+        self.technician_id_input.addItem("Operator 2", "operator2")
+
         layout.addWidget(self.technician_id_input)
 
         # Create button layout
@@ -149,19 +179,22 @@ class SubjectWidget(QWidget):
             self.subject_info_display.setText("Error: Database not initialized")
             return
 
-        subject_code = self.subject_id_input.text().strip()
-        if not subject_code:
-            self.subject_info_display.setText("Please enter a subject ID")
+        # Get last 4 digits and construct full subject code
+        last_four = self.subject_id_input.text().strip()
+        if not last_four:
+            self.subject_info_display.setText("Please enter the last 4 digits of subject ID")
             return
 
-        # Validate subject code format
-        if not SUBJECT_CODE_PATTERN.match(subject_code):
+        # Validate it's exactly 4 digits
+        if not re.match(r"^\d{4}$", last_four):
             QMessageBox.warning(
                 self,
                 "Invalid Format",
-                "Subject ID must be in format 'P-YYYY-NNNN'\n\nExample: P-2025-0001",
+                "Subject ID must be exactly 4 digits\n\nExample: 0001",
             )
             return
+
+        subject_code = self.subject_id_prefix + last_four
 
         try:
             subject = self.db_manager.get_subject_by_code(subject_code)
@@ -203,27 +236,30 @@ class SubjectWidget(QWidget):
             self.subject_info_display.setText("Error: Database not initialized")
             return
 
-        subject_code = self.subject_id_input.text().strip()
-        if not subject_code:
-            self.subject_info_display.setText("Please enter a subject ID")
+        # Get last 4 digits and construct full subject code
+        last_four = self.subject_id_input.text().strip()
+        if not last_four:
+            self.subject_info_display.setText("Please enter the last 4 digits of subject ID")
             return
 
-        # Validate subject code format
-        if not SUBJECT_CODE_PATTERN.match(subject_code):
+        # Validate it's exactly 4 digits
+        if not re.match(r"^\d{4}$", last_four):
             QMessageBox.warning(
                 self,
                 "Invalid Format",
-                "Subject ID must be in format 'P-YYYY-NNNN'\n\nExample: P-2025-0001",
+                "Subject ID must be exactly 4 digits\n\nExample: 0001",
             )
             return
 
+        subject_code = self.subject_id_prefix + last_four
+
         # Require technician ID before creating subject (fixes audit trail)
-        tech_username = self.technician_id_input.text().strip()
+        tech_username = self.technician_id_input.currentData()  # Get username from combobox
         if not tech_username:
             QMessageBox.warning(
                 self,
                 "Technician Required",
-                "Please enter Technician ID before creating subjects.\n\n"
+                "Please select a Technician before creating subjects.\n\n"
                 "This ensures proper audit trail for regulatory compliance.",
             )
             return
@@ -282,9 +318,9 @@ class SubjectWidget(QWidget):
             self.subject_info_display.setText("Please select or create a subject first")
             return
 
-        tech_username = self.technician_id_input.text().strip()
+        tech_username = self.technician_id_input.currentData()  # Get username from combobox
         if not tech_username:
-            self.subject_info_display.setText("Please enter technician ID")
+            self.subject_info_display.setText("Please select a technician")
             return
 
         try:
@@ -378,6 +414,7 @@ class SubjectWidget(QWidget):
                 self.create_button.setEnabled(True)
                 self.subject_id_input.setEnabled(True)
                 self.technician_id_input.setEnabled(True)
+                self.technician_id_input.setCurrentIndex(0)  # Reset to "Select Technician..."
                 self.start_session_button.setEnabled(True if self.current_subject else False)
 
                 # Disable end session button
