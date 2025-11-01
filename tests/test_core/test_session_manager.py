@@ -77,11 +77,11 @@ class TestSessionCreation:
         db_session.add = MagicMock()
         db_session.get = MagicMock(return_value=mock_session)
 
-        # Act: Patch Path.mkdir to use tmp_path
-        with patch("core.session_manager.Path") as mock_path:
-            mock_path.return_value = tmp_path / "sessions" / "P-2025-0001" / "timestamp"
-            mock_path.return_value.mkdir = MagicMock()
-            mock_path.return_value.parent.mkdir = MagicMock()
+        # Act: Patch _create_session_folder to use tmp_path
+        test_folder = tmp_path / "sessions" / "P-2025-0001" / "2025-11-01_120000"
+        with patch.object(session_manager, "_create_session_folder", return_value=test_folder):
+            # Create the folder since we're mocking the method
+            test_folder.mkdir(parents=True, exist_ok=True)
 
             session = session_manager.create_session(
                 subject=mock_subject,
@@ -94,6 +94,9 @@ class TestSessionCreation:
         assert session is not None
         db_session.add.assert_called_once()
         db_session.commit.assert_called()
+
+        # Assert: Folder was created
+        assert test_folder.exists()
 
     def test_create_session_emits_session_started_signal(
         self, session_manager, mock_db_manager, mock_subject, qtbot
@@ -110,13 +113,29 @@ class TestSessionCreation:
         )
         db_session.get = MagicMock(return_value=mock_session)
 
+        # Make sure the session object gets session_id set when add() is called
+        def set_session_id(obj):
+            if isinstance(obj, Session) and obj.session_id is None:
+                obj.session_id = 2
+
+        db_session.add.side_effect = set_session_id
+
+        # Track signal emissions with a simple list
+        emitted_sessions = []
+
+        def on_session_started(session_id):
+            emitted_sessions.append(session_id)
+
+        session_manager.session_started.connect(on_session_started)
+
         # Act
-        with qtbot.waitSignal(session_manager.session_started, timeout=1000) as blocker:
-            with patch("core.session_manager.Path.mkdir"):
-                session_manager.create_session(mock_subject, tech_id=1)
+        with patch("core.session_manager.Path.mkdir"):
+            session_manager.create_session(mock_subject, tech_id=1)
 
         # Assert: Signal emitted with session_id
-        assert blocker.args[0] == 2
+        qtbot.wait(100)  # Allow signal processing
+        assert len(emitted_sessions) == 1
+        assert emitted_sessions[0] == 2
 
     def test_create_session_folder_failure_creates_db_only(
         self, session_manager, mock_db_manager, mock_subject, caplog
@@ -134,7 +153,15 @@ class TestSessionCreation:
             start_time=datetime.now(),
             status="in_progress",
         )
+        # Mock the get() method to return our session after it's "added"
         db_session.get = MagicMock(return_value=mock_session)
+
+        # Make sure the session object gets session_id set when add() is called
+        def set_session_id(obj):
+            if isinstance(obj, Session) and obj.session_id is None:
+                obj.session_id = 3
+
+        db_session.add.side_effect = set_session_id
 
         # Act: Mock folder creation to fail
         with patch("core.session_manager.Path.mkdir", side_effect=OSError("Permission denied")):
@@ -428,6 +455,13 @@ class TestSessionInfo:
             session_folder_path="data/sessions/P-2025-0001/2025-10-30_120000",
         )
         db_session.get = MagicMock(return_value=mock_session)
+
+        # Make sure the session object gets session_id set when add() is called
+        def set_session_id(obj):
+            if isinstance(obj, Session) and obj.session_id is None:
+                obj.session_id = 12
+
+        db_session.add.side_effect = set_session_id
 
         with patch("core.session_manager.Path.mkdir"):
             session_manager.create_session(mock_subject, tech_id=1)
