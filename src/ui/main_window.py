@@ -44,8 +44,9 @@ logger = logging.getLogger(__name__)
 # ============================================================================
 
 
-from PyQt6.QtCore import QObject, QRunnable, pyqtSignal
 import asyncio
+
+from PyQt6.QtCore import QObject, QRunnable, pyqtSignal
 
 
 class LineProtocolWorkerSignals(QObject):
@@ -75,9 +76,7 @@ class LineProtocolWorker(QRunnable):
         try:
             # Create new asyncio event loop for this thread
             success, message = asyncio.run(
-                self.engine.execute_protocol(
-                    self.protocol, record=True, stop_on_error=True
-                )
+                self.engine.execute_protocol(self.protocol, record=True, stop_on_error=True)
             )
 
             # Emit finished signal
@@ -668,9 +667,7 @@ class MainWindow(QMainWindow):
             "Never use for actual patient treatment.\n\n"
             "All actions will be logged for audit trail."
         )
-        msg.setStandardButtons(
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-        )
+        msg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
         msg.setDefaultButton(QMessageBox.StandardButton.No)
 
         return msg.exec() == QMessageBox.StandardButton.Yes
@@ -686,7 +683,7 @@ class MainWindow(QMainWindow):
             # Status bar warning (persistent)
             self.statusBar().showMessage(
                 "⚠️ DEVELOPER MODE: Safety Bypasses Active - FOR TESTING ONLY",
-                0  # Timeout = 0 means persistent
+                0,  # Timeout = 0 means persistent
             )
             self.statusBar().setStyleSheet(
                 "background-color: #FF0000; color: white; font-weight: bold;"
@@ -721,10 +718,10 @@ class MainWindow(QMainWindow):
 
             # Log event
             if hasattr(self, "event_logger"):
-                from core.event_logger import EventType, EventSeverity
+                from core.event_logger import EventSeverity, EventType
 
                 self.event_logger.log_event(
-                    EventType.SYSTEM,
+                    EventType.USER_OVERRIDE,
                     EventSeverity.CRITICAL,
                     "Developer mode ENABLED - Safety bypasses active",
                 )
@@ -740,10 +737,10 @@ class MainWindow(QMainWindow):
 
             # Log event
             if hasattr(self, "event_logger"):
-                from core.event_logger import EventType, EventSeverity
+                from core.event_logger import EventSeverity, EventType
 
                 self.event_logger.log_event(
-                    EventType.SYSTEM,
+                    EventType.USER_OVERRIDE,
                     EventSeverity.INFO,
                     "Developer mode DISABLED",
                 )
@@ -1131,9 +1128,7 @@ class MainWindow(QMainWindow):
         """Callback when protocol line starts execution."""
         logger.info(f"Line {line_number} started (Loop {loop_iteration})")
         # Update UI status (could show in status bar or dedicated widget)
-        self.statusBar().showMessage(
-            f"Executing Line {line_number} (Loop {loop_iteration})", 2000
-        )
+        self.statusBar().showMessage(f"Executing Line {line_number} (Loop {loop_iteration})", 2000)
 
     def _on_protocol_line_complete(self, line_number: int, loop_iteration: int) -> None:
         """Callback when protocol line completes execution."""
