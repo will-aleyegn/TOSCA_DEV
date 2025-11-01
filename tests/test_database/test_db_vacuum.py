@@ -30,15 +30,16 @@ def test_vacuum_reduces_size(temp_db):
     """Test that vacuum reduces database file size after fragmentation."""
     # Add and delete data to create fragmentation
     with temp_db.get_session() as session:
+        from datetime import datetime
+
         from database.models import Subject
 
         # Create many subjects
         for i in range(100):
             subject = Subject(
-                first_name=f"Test{i}",
-                last_name=f"Subject{i}",
-                date_of_birth="2000-01-01",
-                medical_record_number=f"MRN{i:06d}",
+                subject_code=f"P-2025-{i:04d}",
+                date_of_birth=datetime(2000, 1, 1),
+                gender="M" if i % 2 == 0 else "F",
             )
             session.add(subject)
         session.commit()
@@ -77,13 +78,14 @@ def test_vacuum_statistics_accurate(temp_db):
     """Test vacuum statistics calculation is accurate."""
     # Add some data
     with temp_db.get_session() as session:
+        from datetime import datetime
+
         from database.models import Subject
 
         subject = Subject(
-            first_name="Test",
-            last_name="Subject",
-            date_of_birth="2000-01-01",
-            medical_record_number="MRN000001",
+            subject_code="P-2025-0001",
+            date_of_birth=datetime(2000, 1, 1),
+            gender="M",
         )
         session.add(subject)
         session.commit()
@@ -114,14 +116,15 @@ def test_vacuum_preserves_data(temp_db):
     """Test that vacuum doesn't lose data."""
     # Add data
     with temp_db.get_session() as session:
+        from datetime import datetime
+
         from database.models import Subject
 
         for i in range(10):
             subject = Subject(
-                first_name=f"Test{i}",
-                last_name=f"Subject{i}",
-                date_of_birth="2000-01-01",
-                medical_record_number=f"MRN{i:06d}",
+                subject_code=f"P-2025-{i:04d}",
+                date_of_birth=datetime(2000, 1, 1),
+                gender="M" if i % 2 == 0 else "F",
             )
             session.add(subject)
         session.commit()
