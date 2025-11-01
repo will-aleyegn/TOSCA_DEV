@@ -426,7 +426,7 @@ class EventLogger(QObject):
         except Exception as e:
             logger.error(f"Log rotation failed: {e}")
 
-    def _cleanup_old_logs(self) -> None:
+    def _cleanup_old_logs(self) -> None:  # noqa: C901
         """
         Clean up log files older than retention_days.
 
@@ -437,6 +437,9 @@ class EventLogger(QObject):
         File deletion is atomic at the OS level.
 
         NOT SAFE FOR: Multi-process concurrent cleanup. Would require coordination.
+
+        NOTE: Complexity justified for medical device audit trail cleanup.
+        Multiple validation steps ensure data integrity.
         """
         try:
             log_dir = self.log_file.parent

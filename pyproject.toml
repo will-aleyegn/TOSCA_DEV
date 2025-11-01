@@ -87,6 +87,8 @@ testpaths = ["tests"]
 python_files = ["test_*.py", "*_test.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+# Exclude manual hardware test scripts from collection
+norecursedirs = ["tests/actuator"]
 addopts = [
     "-v",
     "--strict-markers",

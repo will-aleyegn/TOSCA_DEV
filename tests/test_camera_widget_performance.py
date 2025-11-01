@@ -6,14 +6,15 @@ Tests QPixmap rendering, signal connections, and GUI responsiveness.
 
 import time
 from unittest.mock import MagicMock, Mock
+
 import numpy as np
 import pytest
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import QApplication
 
-from hardware.camera_controller import CameraController
-from ui.widgets.camera_widget import CameraWidget
+from src.hardware.camera_controller import CameraController
+from src.ui.widgets.camera_widget import CameraWidget
 
 
 class TestCameraWidgetPerformance:
@@ -54,6 +55,7 @@ class TestCameraWidgetPerformance:
         # Create test pixmap
         test_image = np.zeros((272, 364, 3), dtype=np.uint8)
         from PyQt6.QtGui import QImage
+
         q_image = QImage(test_image.data, 364, 272, 364 * 3, QImage.Format.Format_RGB888)
         pixmap = QPixmap.fromImage(q_image)
 
@@ -153,6 +155,7 @@ class TestCameraWidgetPerformance:
         # Create and process test pixmap
         test_image = np.zeros((272, 364, 3), dtype=np.uint8)
         from PyQt6.QtGui import QImage
+
         q_image = QImage(test_image.data, 364, 272, 364 * 3, QImage.Format.Format_RGB888)
         pixmap = QPixmap.fromImage(q_image)
 
@@ -194,6 +197,7 @@ class TestCameraWidgetUIResponsiveness:
         # Simulate rapid frame updates (30 FPS)
         test_image = np.zeros((272, 364, 3), dtype=np.uint8)
         from PyQt6.QtGui import QImage
+
         q_image = QImage(test_image.data, 364, 272, 364 * 3, QImage.Format.Format_RGB888)
         pixmap = QPixmap.fromImage(q_image)
 

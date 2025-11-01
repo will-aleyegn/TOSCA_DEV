@@ -14,7 +14,7 @@ from PyQt6.QtCore import QTimer
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import QApplication
 
-from hardware.camera_controller import CameraController, CameraStreamThread
+from src.hardware.camera_controller import CameraController, CameraStreamThread
 
 
 class TestCameraPerformance:
