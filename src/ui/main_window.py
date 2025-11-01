@@ -1541,6 +1541,27 @@ class MainWindow(QMainWindow):
             self.safety_watchdog.stop()
             logger.info("Safety watchdog stopped")
 
+        # Force disconnect camera if still connected (prevents hang on exit)
+        if hasattr(self, "camera_controller") and self.camera_controller:
+            if self.camera_controller.is_connected or self.camera_controller.is_streaming:
+                logger.info("Auto-disconnecting camera on shutdown")
+                try:
+                    if self.camera_controller.is_streaming:
+                        self.camera_controller.stop_streaming()
+                    if self.camera_controller.is_connected:
+                        self.camera_controller.disconnect()
+                except Exception as e:
+                    logger.warning(f"Error during camera auto-disconnect: {e}")
+
+        # Force disconnect actuator if still connected (prevents hang on exit)
+        if hasattr(self, "actuator_controller") and self.actuator_controller:
+            if self.actuator_controller.is_connected:
+                logger.info("Auto-disconnecting actuator on shutdown")
+                try:
+                    self.actuator_controller.disconnect()
+                except Exception as e:
+                    logger.warning(f"Error during actuator auto-disconnect: {e}")
+
         # Cleanup camera
         if hasattr(self, "camera_widget") and self.camera_live_view:
             self.camera_live_view.cleanup()

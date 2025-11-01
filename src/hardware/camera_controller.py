@@ -698,7 +698,15 @@ class CameraController(QObject):
         with self._lock:
             if self.stream_thread:
                 self.stream_thread.stop()
-                self.stream_thread.wait()
+
+                # Wait with timeout to prevent app hang on exit
+                if not self.stream_thread.wait(2000):  # 2 second timeout
+                    logger.warning(
+                        "Camera stream thread did not stop gracefully, forcing termination"
+                    )
+                    self.stream_thread.terminate()
+                    self.stream_thread.wait(500)  # Brief wait after terminate
+
                 self.stream_thread = None
 
             self.is_streaming = False
