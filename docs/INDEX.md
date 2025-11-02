@@ -9,8 +9,7 @@
 
 **New to TOSCA?** Start here:
 1. [README.md](../README.md) - Project overview, installation, hardware setup
-2. [CLAUDE.md](../CLAUDE.md) - AI assistant context and development guidelines
-3. [docs/TASK_COMPLETION_REPORT.md](TASK_COMPLETION_REPORT.md) - Recent completion status
+2. [docs/TASK_COMPLETION_REPORT.md](TASK_COMPLETION_REPORT.md) - Recent completion status
 
 ---
 
@@ -18,7 +17,6 @@
 
 ### Root Level
 - **[README.md](../README.md)** - Project overview, installation instructions, hardware configuration
-- **[CLAUDE.md](../CLAUDE.md)** - Comprehensive AI assistant context, development guidelines, project history
 - **[LESSONS_LEARNED.md](../LESSONS_LEARNED.md)** - Critical bugs, solutions, and prevention strategies
 - **[todos.md](../todos.md)** - Active development task tracking
 
@@ -105,13 +103,6 @@ Located in `tests/test_hardware/`:
 
 ---
 
-## Task Master Integration
-
-Located in `.taskmaster/`:
-- **[CLAUDE.md](../.taskmaster/CLAUDE.md)** - Task Master commands and workflow (imported by main CLAUDE.md)
-
----
-
 ## Historical Documentation (Archive)
 
 **Location:** `docs/archive/`
@@ -181,7 +172,6 @@ See individual archive README files for details.
 ---
 
 **Need Help?**
-- For AI assistants: See CLAUDE.md
 - For developers: See README.md
 - For regulators: See docs/regulatory/
 - For testing: See tests/mocks/README.md

@@ -26,9 +26,7 @@
 | File | Last Modified | Category | Action | Notes |
 |------|---------------|----------|--------|-------|
 | README.md | 2025-11-01 | ETERNAL | KEEP | Core project overview - UPDATE |
-| CLAUDE.md | 2025-11-01 | ETERNAL | KEEP | AI context - UPDATE with Tasks 19-20 |
 | LESSONS_LEARNED.md | 2025-10-31 | LIVING | KEEP | Active bug/solution catalog |
-| GEMINI.md | Unknown | ORPHANED | DELETE | Duplicate of CLAUDE.md? Check purpose |
 | todos.md | Current | TEMPORAL | KEEP | Active task tracking |
 
 ---
@@ -129,14 +127,6 @@
 
 ---
 
-## .TASKMASTER/ (1 file)
-
-| File | Last Modified | Category | Action | Notes |
-|------|---------------|----------|--------|-------|
-| CLAUDE.md | 2025-10-31 | ETERNAL | KEEP | Task Master docs - verify import works |
-
----
-
 ## Summary Statistics
 
 **By Category:**
@@ -158,9 +148,8 @@
 
 ### Immediate Updates Needed (Step 4)
 1. README.md - Update to v0.9.12-alpha, add Task 19-20 summary
-2. CLAUDE.md - Add November 2025 achievements section
-3. docs/architecture/01_system_overview.md - Update with current state
-4. docs/architecture/09_test_architecture.md - Add Tasks 19-20 details
+2. docs/architecture/01_system_overview.md - Update with current state
+3. docs/architecture/09_test_architecture.md - Add Tasks 19-20 details
 
 ### Archive Candidates (Step 5)
 1. docs/CODE_REVIEW_ACTION_PLAN.md → archive/planning-docs/
@@ -179,9 +168,8 @@
 14. docs/REFACTORING_LOG.md → archive/2025-11-pre-completion/
 
 ### Investigation Needed
-1. GEMINI.md - Check if duplicate of CLAUDE.md or serves different purpose
-2. docs/hardware_controller_base_usage.md - Check for duplication with architecture docs
-3. docs/architecture/00_IMPLEMENTATION_STATUS.md - Consider consolidating into PROJECT_STATUS.md
+1. docs/hardware_controller_base_usage.md - Check for duplication with architecture docs
+2. docs/architecture/00_IMPLEMENTATION_STATUS.md - Consider consolidating into PROJECT_STATUS.md
 
 ---
 
@@ -189,7 +177,7 @@
 
 **High Cross-Reference Count** (Referenced frequently, do NOT archive):
 - SAFETY_SHUTDOWN_POLICY.md - Referenced by source code
-- 01_system_overview.md - Referenced by CLAUDE.md, README.md
+- 01_system_overview.md - Referenced by README.md
 - 09_test_architecture.md - Referenced by test files
 
 **Low Cross-Reference Count** (Safe to archive if temporal):
