@@ -65,6 +65,14 @@ class LaserController(QObject):
 
         logger.info("Laser controller initialized (thread-safe)")
 
+    def __del__(self) -> None:
+        """Destructor: Ensure serial connection is closed when object is destroyed."""
+        try:
+            if hasattr(self, "ser") and self.ser is not None:
+                self.disconnect()
+        except Exception:
+            pass  # Ignore errors during cleanup
+
     def connect(self, com_port: str = "COM10", baudrate: int = 38400) -> bool:
         """
         Connect to Arroyo laser driver.

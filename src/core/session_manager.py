@@ -140,16 +140,15 @@ class SessionManager(QObject):
         try:
             # Check if dev subject exists, create if not
             with self.db_manager.get_session() as db_session:
-                dev_subject = db_session.query(Subject).filter_by(subject_code="DEV-SUBJECT").first()
+                dev_subject = (
+                    db_session.query(Subject).filter_by(subject_code="DEV-SUBJECT").first()
+                )
 
                 if not dev_subject:
                     logger.info("Creating DEV-SUBJECT for developer mode")
                     dev_subject = Subject(
                         subject_code="DEV-SUBJECT",
-                        name="Developer Testing (No Subject)",
                         notes="Auto-created for developer mode testing",
-                        dob=None,
-                        contact_info=None,
                     )
                     db_session.add(dev_subject)
                     db_session.commit()
@@ -159,7 +158,9 @@ class SessionManager(QObject):
 
             with self.db_manager.get_session() as db_session:
                 # Get the dev subject
-                dev_subject = db_session.query(Subject).filter_by(subject_code="DEV-SUBJECT").first()
+                dev_subject = (
+                    db_session.query(Subject).filter_by(subject_code="DEV-SUBJECT").first()
+                )
 
                 if not dev_subject:
                     logger.error("Failed to create/retrieve DEV-SUBJECT")

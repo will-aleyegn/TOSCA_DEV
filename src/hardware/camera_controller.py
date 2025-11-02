@@ -456,6 +456,14 @@ class CameraController(QObject):
 
         logger.info("Camera controller initialized (thread-safe)")
 
+    def __del__(self) -> None:
+        """Destructor: Ensure camera is disconnected when object is destroyed."""
+        try:
+            if hasattr(self, "camera") and self.camera is not None:
+                self.disconnect()
+        except Exception:
+            pass  # Ignore errors during cleanup
+
     def connect(self, camera_id: Optional[str] = None) -> bool:
         """
         Connect to camera.

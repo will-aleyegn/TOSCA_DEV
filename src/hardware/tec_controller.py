@@ -64,6 +64,14 @@ class TECController(HardwareControllerBase):
 
         logger.info("TEC controller initialized (thread-safe)")
 
+    def __del__(self) -> None:
+        """Destructor: Ensure serial connection is closed when object is destroyed."""
+        try:
+            if hasattr(self, "ser") and self.ser is not None:
+                self.disconnect()
+        except Exception:
+            pass  # Ignore errors during cleanup
+
     def connect(self, com_port: str = "COM9", baudrate: int = 38400) -> bool:
         """
         Connect to Arroyo TEC controller.

@@ -101,6 +101,14 @@ class ActuatorController(QObject):
 
         logger.info("Actuator controller initialized (thread-safe)")
 
+    def __del__(self) -> None:
+        """Destructor: Ensure controller is disconnected when object is destroyed."""
+        try:
+            if hasattr(self, "controller") and self.controller is not None:
+                self.disconnect()
+        except Exception:
+            pass  # Ignore errors during cleanup
+
     def connect(self, com_port: str = "COM3", baudrate: int = 9600, auto_home: bool = True) -> bool:
         """
         Connect to Xeryon actuator.

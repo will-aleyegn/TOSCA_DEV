@@ -1602,6 +1602,33 @@ class MainWindow(QMainWindow):
                 except Exception as e:
                     logger.warning(f"Error during actuator auto-disconnect: {e}")
 
+        # Force disconnect GPIO controller (Arduino)
+        if hasattr(self, "gpio_controller") and self.gpio_controller:
+            if self.gpio_controller.is_connected:
+                logger.info("Auto-disconnecting GPIO controller on shutdown")
+                try:
+                    self.gpio_controller.disconnect()
+                except Exception as e:
+                    logger.warning(f"Error during GPIO auto-disconnect: {e}")
+
+        # Force disconnect laser controller (COM10)
+        if hasattr(self, "laser_controller") and self.laser_controller:
+            if self.laser_controller.is_connected:
+                logger.info("Auto-disconnecting laser controller on shutdown")
+                try:
+                    self.laser_controller.disconnect()
+                except Exception as e:
+                    logger.warning(f"Error during laser auto-disconnect: {e}")
+
+        # Force disconnect TEC controller (COM9)
+        if hasattr(self, "tec_controller") and self.tec_controller:
+            if self.tec_controller.is_connected:
+                logger.info("Auto-disconnecting TEC controller on shutdown")
+                try:
+                    self.tec_controller.disconnect()
+                except Exception as e:
+                    logger.warning(f"Error during TEC auto-disconnect: {e}")
+
         # Cleanup camera
         if hasattr(self, "camera_widget") and self.camera_live_view:
             self.camera_live_view.cleanup()

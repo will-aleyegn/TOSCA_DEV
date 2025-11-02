@@ -13,6 +13,7 @@ Comprehensive test suite covering:
 Target: 100% code coverage for src/core/safety.py
 """
 
+import os
 import sys
 from pathlib import Path
 from unittest.mock import MagicMock
@@ -20,12 +21,15 @@ from unittest.mock import MagicMock
 import pytest
 from PyQt6.QtCore import QCoreApplication
 
+# Enable TestSafetyManager import
+os.environ["TOSCA_ENABLE_TEST_SAFETY"] = "1"
+
 # Add project root to path
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root / "src"))
 
-from core.safety import SafetyManager, SafetyState, TestSafetyManager
-
+from core.safety import SafetyManager, SafetyState
+from tests.test_safety_manager import TestSafetyManager
 
 # ==============================================================================
 # FIXTURES
@@ -512,7 +516,9 @@ def test_signal_emission_on_interlock_changes(safety_manager, qtbot):
 def test_no_redundant_signal_emissions(safety_manager):
     """Test signals not emitted when state doesn't change."""
     signal_count = 0
-    safety_manager.safety_state_changed.connect(lambda state: setattr(self, 'signal_count', getattr(self, 'signal_count', 0) + 1))
+    safety_manager.safety_state_changed.connect(
+        lambda state: setattr(self, "signal_count", getattr(self, "signal_count", 0) + 1)
+    )
 
     # Set same state twice
     safety_manager.set_gpio_interlock_status(True)

@@ -120,6 +120,14 @@ class GPIOController(QObject):
 
         logger.info("GPIO controller initialized (custom serial protocol, thread-safe)")
 
+    def __del__(self) -> None:
+        """Destructor: Ensure serial connection is closed when object is destroyed."""
+        try:
+            if hasattr(self, "serial") and self.serial is not None:
+                self.disconnect()
+        except Exception:
+            pass  # Ignore errors during cleanup
+
     def connect(self, port: str = "COM4") -> bool:
         """
         Connect to Arduino Nano and initialize GPIO pins.
