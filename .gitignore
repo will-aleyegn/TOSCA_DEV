@@ -110,8 +110,12 @@ safety_report.json
 *.bandit
 *.safety
 
-# AI Configuration (required in root for Claude Code/MCP)
+# AI Development Tools - NOT FOR MEDICAL DEVICE REPOSITORY
+# These files contain AI assistant configurations and development context
+# Keep them locally but do NOT commit to git for regulatory compliance
 .claude/
+.gemini/
+.taskmaster/
 .mcp.json
 CLAUDE.md
 presubmit/
