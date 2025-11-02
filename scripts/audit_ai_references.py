@@ -60,6 +60,12 @@ EXCLUDED_PATHS = [
     ".gemini/",
 ]
 
+# Files to exclude (policy documentation that legitimately contains AI references)
+EXCLUDED_FILES = [
+    "DEVELOPMENT_STANDARDS.md",
+    "QUARTERLY_AUDIT_CHECKLIST.md",
+]
+
 # Whitelisted phrases (legitimate uses)
 WHITELIST_PATTERNS = [
     r"main\s+function",
@@ -91,6 +97,11 @@ def should_check_file(filepath: str) -> bool:
     path = Path(filepath)
     # Convert to forward slashes for consistent comparison (Windows/Unix)
     path_str = str(path).replace("\\", "/")
+
+    # Exclude specific policy documentation files
+    for excluded_file in EXCLUDED_FILES:
+        if path.name == excluded_file or path_str.endswith(excluded_file):
+            return False
 
     # Exclude development/test paths
     for excluded in EXCLUDED_PATHS:
