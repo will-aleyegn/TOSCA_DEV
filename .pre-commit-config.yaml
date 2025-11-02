@@ -10,6 +10,14 @@ repos:
         stages: [pre-commit]
         verbose: true
 
+      - id: detect-ai-references
+        name: Detect AI Tool References
+        entry: python .pre-commit-hooks/detect-ai-references.py
+        language: system
+        types: [text]
+        stages: [pre-commit]
+        pass_filenames: true
+
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
     hooks:
