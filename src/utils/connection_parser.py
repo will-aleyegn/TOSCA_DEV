@@ -4,7 +4,7 @@ PyQt6 Signal/Slot Connection Parser
 AST-based parser for analyzing .connect() calls in Python source code
 to map signal/slot connections across the TOSCA codebase.
 
-Author: AI Assistant (Task 4.2)
+Author: TOSCA Development Team (Task 4.2)
 Created: 2025-11-01
 """
 

@@ -161,7 +161,7 @@ All 20 development tasks have been completed for the TOSCA laser control system.
 ### Priority 4: Documentation & Deployment
 
 **Documentation Updates:**
-1. Update `CLAUDE.md` with Task 19 & 20 accomplishments
+1. Update development documentation with Task 19 & 20 accomplishments
 2. Create deployment guide for production environment
 3. Document hardware calibration procedures
 4. Create user training materials

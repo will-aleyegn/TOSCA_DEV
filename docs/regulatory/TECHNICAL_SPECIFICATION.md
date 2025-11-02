@@ -567,7 +567,7 @@ Source: Development milestones
 **Hardware:**
 - Footpedal integration completion
 - Additional laser wavelengths support
-- AI-assisted targeting (future scope)
+- Computer-assisted targeting (future scope)
 
 **Software:**
 - Protocol pause/resume functionality

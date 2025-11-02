@@ -4,7 +4,7 @@ PyQt6 Signal/Slot Introspection Utilities
 Tools for analyzing PyQt6 signal/slot architecture, validating connections,
 and generating connection documentation for the TOSCA medical device system.
 
-Author: AI Assistant (Task 4.1)
+Author: TOSCA Development Team (Task 4.1)
 Created: 2025-11-01
 """
 

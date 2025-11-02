@@ -135,7 +135,7 @@ See individual archive README files for details.
 **Hardware:**
 - hardware/HARDWARE_CONFIG_SUMMARY.md
 - architecture/hardware_controller_base_usage.md
-- CLAUDE.md (Hardware Configuration section)
+- README.md (Hardware Configuration section)
 
 **Protocol Development:**
 - architecture/04_treatment_protocols.md
