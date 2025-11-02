@@ -1,8 +1,8 @@
 # TOSCA Laser Control System
 
-Version: 0.9.11-alpha
+Version: 0.9.12-alpha
 Status: RESEARCH MODE - NOT for Clinical Use
-Date: 2025-10-31
+Date: 2025-11-02
 
 ## RESEARCH MODE WARNING
 
@@ -38,6 +38,20 @@ TOSCA is a laser control system integrating:
 - Multi-layer safety architecture with hardware interlocks
 - Comprehensive session and event logging
 - Configurable treatment protocols with automated execution
+
+### Recent Achievements (November 2025)
+
+**Hardware-Free Testing Infrastructure Complete:**
+- 5 comprehensive mock controllers (Camera, Laser, TEC, Actuator, GPIO)
+- 148+ tests across all hardware subsystems (85% pass rate)
+- 9 failure simulation modes for robustness testing
+- Complete test documentation (1,255 lines in tests/mocks/README.md)
+- **Impact:** Continuous integration enabled, no physical hardware required for testing
+
+**Documentation Unified:**
+- All core documentation updated to v0.9.12-alpha
+- Historical content archived to docs/archive/
+- Comprehensive task completion report (20/20 tasks done)
 
 ---
 
