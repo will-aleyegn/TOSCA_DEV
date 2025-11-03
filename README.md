@@ -2,18 +2,17 @@
 
 Version: 0.9.12-alpha
 Status: RESEARCH MODE - NOT for Clinical Use
-Date: 2025-11-02
 
 ## RESEARCH MODE WARNING
 
 This system is configured for RESEARCH USE ONLY.
 
 CRITICAL WARNINGS:
-- This software is NOT FDA-cleared or approved for clinical use
+- This software is NOT cleared or approved for clinical use
 - Database encryption is NOT implemented - all data stored in plaintext
 - User authentication is NOT implemented - no access controls
 - NOT suitable for protected health information (PHI)
-- NOT suitable for patient treatment
+- NOT suitable for subject treatment
 
 This system is intended for:
 - Research and development
@@ -22,7 +21,7 @@ This system is intended for:
 - Educational purposes
 
 Do NOT use this system for:
-- Clinical patient treatment
+- Clinical subject treatment
 - Protected health information (PHI) storage
 - Production medical device operation
 - Any regulated medical environment
@@ -39,19 +38,17 @@ TOSCA is a laser control system integrating:
 - Comprehensive session and event logging
 - Configurable treatment protocols with automated execution
 
-### Recent Achievements (November 2025)
+### Key Features
 
-**Hardware-Free Testing Infrastructure Complete:**
-- 5 comprehensive mock controllers (Camera, Laser, TEC, Actuator, GPIO)
-- 148+ tests across all hardware subsystems (85% pass rate)
-- 9 failure simulation modes for robustness testing
-- Complete test documentation (1,255 lines in tests/mocks/README.md)
-- **Impact:** Continuous integration enabled, no physical hardware required for testing
+**Testing Infrastructure:**
+- Comprehensive mock controllers for hardware-independent testing
+- 148+ automated tests across all subsystems
+- Continuous integration enabled
 
-**Documentation Unified:**
-- All core documentation updated to v0.9.12-alpha
-- Historical content archived to docs/archive/
-- Comprehensive task completion report (20/20 tasks done)
+**Documentation:**
+- Complete architecture documentation
+- Hardware configuration guides
+- Test framework documentation
 
 ---
 
@@ -102,121 +99,121 @@ Key Libraries:
 
 ```
 TOSCA-dev/
-│
-├── src/
-│   ├── ui/
-│   │   ├── main_window.py
-│   │   ├── dialogs/
-│   │   └── widgets/
-│   │       ├── subject_widget.py
-│   │       ├── camera_widget.py
-│   │       ├── camera_hardware_panel.py
-│   │       ├── treatment_setup_widget.py
-│   │       ├── active_treatment_widget.py
-│   │       ├── laser_widget.py
-│   │       ├── tec_widget.py
-│   │       ├── actuator_connection_widget.py
-│   │       ├── safety_widget.py
-│   │       ├── gpio_widget.py
-│   │       ├── interlocks_widget.py
-│   │       ├── smoothing_status_widget.py
-│   │       ├── protocol_selector_widget.py
-│   │       ├── protocol_builder_widget.py
-│   │       ├── line_protocol_builder.py
-│   │       ├── config_display_widget.py
-│   │       └── view_sessions_dialog.py
-│   │
-│   ├── core/
-│   │   ├── protocol.py
-│   │   ├── protocol_line.py
-│   │   ├── protocol_engine.py
-│   │   ├── safety.py
-│   │   ├── safety_watchdog.py
-│   │   ├── session.py
-│   │   ├── session_manager.py
-│   │   └── event_logger.py
-│   │
-│   ├── hardware/
-│   │   ├── hardware_controller_base.py
-│   │   ├── camera_controller.py
-│   │   ├── laser_controller.py
-│   │   ├── tec_controller.py
-│   │   ├── actuator_controller.py
-│   │   ├── actuator_sequence.py
-│   │   └── gpio_controller.py
-│   │
-│   ├── database/
-│   │   ├── models.py
-│   │   └── db_manager.py
-│   │
-│   ├── config/
-│   │   ├── models.py
-│   │   └── config_loader.py
-│   │
-│   └── image_processing/
-│       ├── ring_detector.py (not implemented)
-│       ├── focus_measure.py (not implemented)
-│       └── video_recorder.py (implemented in camera_controller)
-│
-├── tests/
-│   ├── mocks/
-│   │   ├── mock_hardware_base.py
-│   │   ├── mock_camera_controller.py
-│   │   ├── mock_laser_controller.py
-│   │   ├── mock_actuator_controller.py
-│   │   └── mock_gpio_controller.py
-│   ├── hardware/
-│   ├── actuator/
-│   ├── gpio/
-│   ├── test_thread_safety.py
-│   └── test_realtime_safety_monitoring.py
-│
-├── firmware/
-│   └── arduino_watchdog/
-│       └── arduino_watchdog.ino
-│
-├── docs/
-│   ├── regulatory/
-│   │   ├── PRODUCT_REQUIREMENTS_DOCUMENT.md
-│   │   └── TECHNICAL_SPECIFICATION.md
-│   └── architecture/
-│       ├── 01_system_overview.md
-│       ├── 02_database_schema.md
-│       ├── 03_safety_system.md
-│       ├── 04_treatment_protocols.md
-│       ├── 06_protocol_builder.md
-│       ├── 07_safety_watchdog.md
-│       ├── 09_test_architecture.md
-│       ├── 10_concurrency_model.md
-│       ├── SAFETY_SHUTDOWN_POLICY.md
-│       ├── ADR-001-protocol-consolidation.md
-│       └── ADR-002-dependency-injection-pattern.md
-│
-├── data/
-│   ├── tosca.db
-│   ├── logs/
-│   │   └── events_YYYYMMDD.jsonl
-│   ├── images/
-│   │   └── capture_YYYYMMDD_HHMMSS.png
-│   ├── videos/
-│   │   └── recording_YYYYMMDD_HHMMSS.mp4
-│   └── protocols/
-│       └── [protocol_name].json
-│
-├── review_reports/
-│   ├── README.md
-│   ├── 01_EXECUTIVE_SUMMARY.md
-│   ├── 02_PHASE1_ARCHITECTURE_CODE_QUALITY.md
-│   ├── 03_PHASE2_SECURITY_PERFORMANCE.md
-│   ├── 04_ACTION_PLAN_RECOMMENDATIONS.md
-│   ├── NON_SECURITY_TODO_LIST.md
-│   ├── RESEARCH_MODE_ROADMAP.md
-│   └── CLINICAL_DEPLOYMENT_ROADMAP.md
-│
-├── config.yaml
-├── requirements.txt
-├── pyproject.toml
-└── README.md
+|
+|-- src/
+|   |-- ui/
+|   |   |-- main_window.py
+|   |   |-- dialogs/
+|   |   +-- widgets/
+|   |       |-- subject_widget.py
+|   |       |-- camera_widget.py
+|   |       |-- camera_hardware_panel.py
+|   |       |-- treatment_setup_widget.py
+|   |       |-- active_treatment_widget.py
+|   |       |-- laser_widget.py
+|   |       |-- tec_widget.py
+|   |       |-- actuator_connection_widget.py
+|   |       |-- safety_widget.py
+|   |       |-- gpio_widget.py
+|   |       |-- interlocks_widget.py
+|   |       |-- smoothing_status_widget.py
+|   |       |-- protocol_selector_widget.py
+|   |       |-- protocol_builder_widget.py
+|   |       |-- line_protocol_builder.py
+|   |       |-- config_display_widget.py
+|   |       +-- view_sessions_dialog.py
+|   |
+|   |-- core/
+|   |   |-- protocol.py
+|   |   |-- protocol_line.py
+|   |   |-- protocol_engine.py
+|   |   |-- safety.py
+|   |   |-- safety_watchdog.py
+|   |   |-- session.py
+|   |   |-- session_manager.py
+|   |   +-- event_logger.py
+|   |
+|   |-- hardware/
+|   |   |-- hardware_controller_base.py
+|   |   |-- camera_controller.py
+|   |   |-- laser_controller.py
+|   |   |-- tec_controller.py
+|   |   |-- actuator_controller.py
+|   |   |-- actuator_sequence.py
+|   |   +-- gpio_controller.py
+|   |
+|   |-- database/
+|   |   |-- models.py
+|   |   +-- db_manager.py
+|   |
+|   |-- config/
+|   |   |-- models.py
+|   |   +-- config_loader.py
+|   |
+|   +-- image_processing/
+|       |-- ring_detector.py (not implemented)
+|       |-- focus_measure.py (not implemented)
+|       +-- video_recorder.py (implemented in camera_controller)
+|
+|-- tests/
+|   |-- mocks/
+|   |   |-- mock_hardware_base.py
+|   |   |-- mock_camera_controller.py
+|   |   |-- mock_laser_controller.py
+|   |   |-- mock_actuator_controller.py
+|   |   +-- mock_gpio_controller.py
+|   |-- hardware/
+|   |-- actuator/
+|   |-- gpio/
+|   |-- test_thread_safety.py
+|   +-- test_realtime_safety_monitoring.py
+|
+|-- firmware/
+|   +-- arduino_watchdog/
+|       +-- arduino_watchdog.ino
+|
+|-- docs/
+|   |-- regulatory/
+|   |   |-- PRODUCT_REQUIREMENTS_DOCUMENT.md
+|   |   +-- TECHNICAL_SPECIFICATION.md
+|   +-- architecture/
+|       |-- 01_system_overview.md
+|       |-- 02_database_schema.md
+|       |-- 03_safety_system.md
+|       |-- 04_treatment_protocols.md
+|       |-- 06_protocol_builder.md
+|       |-- 07_safety_watchdog.md
+|       |-- 09_test_architecture.md
+|       |-- 10_concurrency_model.md
+|       |-- SAFETY_SHUTDOWN_POLICY.md
+|       |-- ADR-001-protocol-consolidation.md
+|       +-- ADR-002-dependency-injection-pattern.md
+|
+|-- data/
+|   |-- tosca.db
+|   |-- logs/
+|   |   +-- events_YYYYMMDD.jsonl
+|   |-- images/
+|   |   +-- capture_YYYYMMDD_HHMMSS.png
+|   |-- videos/
+|   |   +-- recording_YYYYMMDD_HHMMSS.mp4
+|   +-- protocols/
+|       +-- [protocol_name].json
+|
+|-- review_reports/
+|   |-- README.md
+|   |-- 01_EXECUTIVE_SUMMARY.md
+|   |-- 02_PHASE1_ARCHITECTURE_CODE_QUALITY.md
+|   |-- 03_PHASE2_SECURITY_PERFORMANCE.md
+|   |-- 04_ACTION_PLAN_RECOMMENDATIONS.md
+|   |-- NON_SECURITY_TODO_LIST.md
+|   |-- RESEARCH_MODE_ROADMAP.md
+|   +-- CLINICAL_DEPLOYMENT_ROADMAP.md
+|
+|-- config.yaml
+|-- requirements.txt
+|-- pyproject.toml
++-- README.md
 ```
 
 ---
@@ -267,7 +264,7 @@ TOSCA-dev/
 - [x] SQLAlchemy ORM models (Subject, Session, SafetyLog, TechUser)
 - [x] Database manager with CRUD operations
 - [x] Dual logging (SQLite + JSONL)
-- [ ] Database encryption (NOT IMPLEMENTED - planned Phase 6)
+- [ ] Database encryption (NOT IMPLEMENTED)
 
 ### Configuration Management
 - [x] Pydantic configuration models
@@ -312,11 +309,11 @@ TOSCA-dev/
 - [x] Video recording (implemented in camera_controller)
 
 ### Security
-- [ ] Database encryption (NOT IMPLEMENTED - planned Phase 6)
-- [ ] User authentication (NOT IMPLEMENTED - planned Phase 6)
-- [ ] Video encryption (NOT IMPLEMENTED - planned Phase 6)
-- [ ] Audit trail integrity (HMAC signatures NOT IMPLEMENTED - planned Phase 6)
-- [ ] Protocol file signatures (NOT IMPLEMENTED - planned Phase 6)
+- [ ] Database encryption (NOT IMPLEMENTED)
+- [ ] User authentication (NOT IMPLEMENTED)
+- [ ] Video encryption (NOT IMPLEMENTED)
+- [ ] Audit trail integrity (HMAC signatures NOT IMPLEMENTED)
+- [ ] Protocol file signatures (NOT IMPLEMENTED)
 
 ---
 
@@ -423,15 +420,15 @@ Directory: data/
 Structure:
 ```
 data/
-├── tosca.db (SQLite database, unencrypted)
-├── logs/
-│   └── events_YYYYMMDD.jsonl (daily event logs)
-├── images/
-│   └── capture_YYYYMMDD_HHMMSS.png (captured images)
-├── videos/
-│   └── recording_YYYYMMDD_HHMMSS.mp4 (recorded videos)
-└── protocols/
-    └── [protocol_name].json (protocol definitions)
+|-- tosca.db (SQLite database, unencrypted)
+|-- logs/
+|   +-- events_YYYYMMDD.jsonl (daily event logs)
+|-- images/
+|   +-- capture_YYYYMMDD_HHMMSS.png (captured images)
+|-- videos/
+|   +-- recording_YYYYMMDD_HHMMSS.mp4 (recorded videos)
++-- protocols/
+    +-- [protocol_name].json (protocol definitions)
 ```
 
 ---
@@ -505,7 +502,7 @@ GUI Settings:
 
 ### Development Status
 - Alpha version (active development, breaking changes possible)
-- Not FDA-cleared (no regulatory submissions planned until Phase 6+)
+- Not cleared for clinical use (research mode only)
 - Test coverage incomplete (some modules <80% coverage)
 
 ---

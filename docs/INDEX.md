@@ -1,6 +1,5 @@
 # TOSCA Documentation Index
 
-**Last Updated:** 2025-11-02
 **Version:** v0.9.12-alpha
 
 ---
@@ -40,7 +39,7 @@ Located in `docs/architecture/`:
 5. **[05_image_processing.md](architecture/05_image_processing.md)** - Camera processing pipeline
 6. **[06_protocol_builder.md](architecture/06_protocol_builder.md)** - Protocol builder UI and workflow
 7. **[07_safety_watchdog.md](architecture/07_safety_watchdog.md)** - Hardware watchdog implementation
-8. **[08_security_architecture.md](architecture/08_security_architecture.md)** - Security design (Phase 6 readiness)
+8. **[08_security_architecture.md](architecture/08_security_architecture.md)** - Security design
 9. **[09_test_architecture.md](architecture/09_test_architecture.md)** - Testing infrastructure and patterns
 10. **[10_concurrency_model.md](architecture/10_concurrency_model.md)** - Thread safety and async patterns
 11. **[11_event_logging.md](architecture/11_event_logging.md)** - Event logging system
@@ -107,12 +106,12 @@ Located in `tests/test_hardware/`:
 
 **Location:** `docs/archive/`
 
-Preserved for audit trail and FDA compliance. Not actively maintained.
+Preserved for audit trail and regulatory compliance. Not actively maintained.
 
 ### Archive Categories:
-- **[2025-11-pre-completion/](archive/2025-11-pre-completion/)** - Pre-Task-20 completion documents
 - **[code-reviews/](archive/code-reviews/)** - Historical code review reports
 - **[planning-docs/](archive/planning-docs/)** - Historical planning documents
+- **[historical/](archive/)** - Historical project documents
 
 See individual archive README files for details.
 
@@ -150,8 +149,6 @@ See individual archive README files for details.
 ## Documentation Standards
 
 **Version Format:** v0.9.12-alpha
-**Date Format:** 2025-11-02
-**All Dates Updated:** 2025-11-02
 
 **File Naming:**
 - Numbered architecture docs: 01_topic_name.md through 13_topic_name.md
@@ -163,11 +160,10 @@ See individual archive README files for details.
 
 ## Contributing to Documentation
 
-1. Update dates to current when making changes
-2. Maintain version consistency (v0.9.12-alpha currently)
-3. Add to this index when creating new documentation
-4. Archive temporal documents (reports, plans) when superseded
-5. Preserve git history for FDA compliance (use `git mv`, not manual moves)
+1. Maintain version consistency (v0.9.12-alpha currently)
+2. Add to this index when creating new documentation
+3. Archive temporal documents (reports, plans) when superseded
+4. Preserve git history for regulatory compliance (use `git mv`, not manual moves)
 
 ---
 
@@ -175,5 +171,3 @@ See individual archive README files for details.
 - For developers: See README.md
 - For regulators: See docs/regulatory/
 - For testing: See tests/mocks/README.md
-
-**Last Cleanup:** 2025-11-02 (Tasks 19-20 completion)

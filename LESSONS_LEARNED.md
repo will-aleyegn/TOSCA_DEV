@@ -1,6 +1,5 @@
 # TOSCA Lessons Learned
 
-**Last Updated:** 2025-10-30
 **Project:** TOSCA Laser Control System
 
 ---
@@ -16,7 +15,7 @@ This document captures critical lessons, bugs, and solutions discovered during T
 ### 15. Missing Exception Handling in Database Operations
 
 **Date:** 2025-10-30
-**Severity:** 🔴 Critical
+**Severity:** [CRITICAL] Critical
 **Category:** Error Handling + Database
 
 #### Problem
@@ -73,7 +72,7 @@ except Exception as e:
 ### 16. Transaction Ordering: Filesystem Before Database Commit
 
 **Date:** 2025-10-30
-**Severity:** 🟠 High
+**Severity:** [HIGH] High
 **Category:** Data Integrity + Transaction Management
 
 #### Problem
@@ -139,7 +138,7 @@ except Exception as e:
 ### 17. Hardcoded Admin User ID Breaks Audit Trail
 
 **Date:** 2025-10-30
-**Severity:** 🟠 High
+**Severity:** [HIGH] High
 **Category:** Medical Device Compliance + Audit Trail
 
 #### Problem
@@ -196,7 +195,7 @@ subject = self.db_manager.create_subject(
 ### 18. Missing Input Validation for Subject Codes
 
 **Date:** 2025-10-30
-**Severity:** 🟡 Medium
+**Severity:** [MEDIUM] Medium
 **Category:** Input Validation + Data Quality
 
 #### Problem
@@ -237,7 +236,7 @@ if not SUBJECT_CODE_PATTERN.match(subject_code):
 ### 1. QImage Memory Lifetime Bug with NumPy Arrays
 
 **Date:** 2025-10-29
-**Severity:** 🔴 Critical
+**Severity:** [CRITICAL] Critical
 **Category:** PyQt6 + NumPy Integration
 
 #### Problem
@@ -278,7 +277,7 @@ def _on_frame_received(self, frame: np.ndarray) -> None:
 ### 2. QSlider Type Conversion Error
 
 **Date:** 2025-10-29
-**Severity:** 🟡 Medium
+**Severity:** [MEDIUM] Medium
 **Category:** PyQt6 Signal/Slot Type Mismatch
 
 #### Problem
@@ -319,7 +318,7 @@ self.current_spinbox.valueChanged.connect(
 ### 3. Protocol Object Attribute Naming Confusion
 
 **Date:** 2025-10-29
-**Severity:** 🟡 Medium
+**Severity:** [MEDIUM] Medium
 **Category:** API Design
 
 #### Problem
@@ -361,7 +360,7 @@ self.status_label.setText(f"[DONE] Loaded: {protocol.protocol_name}")
 ### 4. Requirements Clarification Before Implementation
 
 **Date:** 2025-10-29
-**Severity:** 🟢 Low
+**Severity:** [LOW] Low
 **Category:** Requirements Management
 
 #### Problem
@@ -392,7 +391,7 @@ Jumped to implementation without fully clarifying the user's intent. The phrase 
 ### 5. Dependency Injection for Hardware Controllers
 
 **Date:** 2025-10-30
-**Severity:** 🔴 Critical (Architectural)
+**Severity:** [CRITICAL] Critical (Architectural)
 **Category:** Design Pattern, Testing, Medical Device Compliance
 
 #### Problem
@@ -512,7 +511,7 @@ class MainWindow(QMainWindow):
 ### 6. Serial Port COM Port Changes
 
 **Date:** 2025-10-29
-**Severity:** 🟢 Low
+**Severity:** [LOW] Low
 **Category:** Hardware Configuration
 
 #### Problem
@@ -549,7 +548,7 @@ def connect(self, com_port: str = "COM10", baudrate: int = 38400) -> bool:
 ### 6. MyPy Import Errors with Duplicate Module Paths
 
 **Date:** 2025-10-29
-**Severity:** 🟢 Low
+**Severity:** [LOW] Low
 **Category:** Type Checking
 
 #### Problem
@@ -583,7 +582,7 @@ git commit --no-verify -m "commit message"
 ### 7. Camera Display Debugging Strategy
 
 **Date:** 2025-10-29
-**Severity:** 🟡 Medium
+**Severity:** [MEDIUM] Medium
 **Category:** Debugging Methodology
 
 #### Problem
@@ -631,7 +630,7 @@ This allows binary search through pipeline to identify exact failure point.
 ### 8. Combined Movement + Laser Control Actions
 
 **Date:** 2025-10-29
-**Severity:** 🟢 Low
+**Severity:** [LOW] Low
 **Category:** API Design
 
 #### Problem
@@ -671,7 +670,7 @@ This allows single action to specify both movement and laser power.
 ### 9. Dropdown vs Text Input for Protocol Metadata
 
 **Date:** 2025-10-29
-**Severity:** 🟡 Medium
+**Severity:** [MEDIUM] Medium
 **Category:** User Experience
 
 #### Problem
@@ -710,7 +709,7 @@ self.author_input.setPlaceholderText("Your name...")
 ### 10. Debug Logging Strategy
 
 **Date:** 2025-10-29
-**Severity:** 🟢 Low
+**Severity:** [LOW] Low
 **Category:** Observability
 
 #### Problem
@@ -748,7 +747,7 @@ This provides diagnostic information without flooding logs during normal operati
 ### 11. Safety-Critical Code Review Requirements
 
 **Date:** 2025-10-29
-**Severity:** 🔴 Critical
+**Severity:** [CRITICAL] Critical
 **Category:** Safety & Compliance
 
 #### Problem
@@ -794,7 +793,7 @@ Medical device software requires higher standards of code review and validation 
 ### 12. Widget Reparenting Anti-Pattern in Qt
 
 **Date:** 2025-10-29
-**Severity:** 🔴 Critical
+**Severity:** [CRITICAL] Critical
 **Category:** Qt Architecture
 
 #### Problem
@@ -844,12 +843,12 @@ def _on_camera_frame_ready(self, pixmap):
 ### 13. Hardware Camera Binning vs Software Downsampling
 
 **Date:** 2025-10-29
-**Severity:** 🟡 Medium
+**Severity:** [MEDIUM] Medium
 **Category:** Camera/Video Performance
 **Status:** WARNING: Partial Implementation (Hardware binning removed, software downsampling working)
 
 #### Problem
-Allied Vision 1800 U-158c camera running at only 1.6 FPS at full resolution (1456×1088), making real-time monitoring difficult. Needed to increase frame rate for smooth video feedback during laser positioning.
+Allied Vision 1800 U-158c camera running at only 1.6 FPS at full resolution (1456x1088), making real-time monitoring difficult. Needed to increase frame rate for smooth video feedback during laser positioning.
 
 #### Attempted Solution 1: Hardware Binning (Failed)
 Implemented hardware binning control using VmbPy `BinningHorizontal` and `BinningVertical` features:
@@ -860,7 +859,7 @@ self.camera.get_feature_by_name("BinningHorizontal").set(binning_factor)
 self.camera.get_feature_by_name("BinningVertical").set(binning_factor)
 ```
 
-**Result:** Corrupted frames with wrong resolution (1756×136 instead of expected values). Display showed colorful noise pattern. Likely a configuration issue - possibly one axis was set incorrectly or mismatch between horizontal/vertical binning.
+**Result:** Corrupted frames with wrong resolution (1756x136 instead of expected values). Display showed colorful noise pattern. Likely a configuration issue - possibly one axis was set incorrectly or mismatch between horizontal/vertical binning.
 
 #### Current Solution: Software Downsampling (Working)
 Capture at full resolution, downsample in software before display:
@@ -878,7 +877,7 @@ if self.display_scale < 1.0:
 - [DONE] Works across all camera models
 - [DONE] Can change scale during streaming
 - [DONE] Captured images still use full resolution
-- [DONE] Negligible CPU overhead (<1ms for 4× downsampling)
+- [DONE] Negligible CPU overhead (<1ms for 4x downsampling)
 
 **Trade-offs:**
 - WARNING: Uses CPU instead of hardware sensor binning
@@ -907,14 +906,14 @@ print(f"Current: H={binning_h.get()}, V={binning_v.get()}")
 # Check resulting resolution after binning
 width = cam.get_feature_by_name("Width").get()
 height = cam.get_feature_by_name("Height").get()
-print(f"Resolution after binning: {width}×{height}")
+print(f"Resolution after binning: {width}x{height}")
 ```
 
 **Expected Benefits if Fixed:**
-- 🚀 **Hardware-level speed:** 2×2 binning → ~4× faster (6-8 FPS)
-- 🚀 **4×4 binning:** ~15× faster (25-30 FPS)
-- 💾 **Reduced bandwidth:** Less USB data transfer
-- 🔆 **Better low-light:** Binning improves SNR (signal-to-noise ratio)
+- [PERF] **Hardware-level speed:** 2x2 binning → ~4x faster (6-8 FPS)
+- [PERF] **4x4 binning:** ~15x faster (25-30 FPS)
+- [DATA] **Reduced bandwidth:** Less USB data transfer
+- [VISUAL] **Better low-light:** Binning improves SNR (signal-to-noise ratio)
 
 #### Prevention
 - Test hardware features thoroughly before deployment
@@ -935,7 +934,7 @@ print(f"Resolution after binning: {width}×{height}")
 ### 14. PyQt Signal Serialization Overhead vs Processing Bottleneck
 
 **Date:** 2025-10-30
-**Severity:** 🔴 Critical
+**Severity:** [CRITICAL] Critical
 **Category:** Performance Optimization, Qt Architecture
 
 #### Problem
@@ -947,7 +946,7 @@ Camera live view FPS dropped from 30 FPS → 16 FPS → 2 FPS during streaming, 
 - After 30 seconds: 2-5 FPS
 - CPU usage normal, no memory leak
 - Frame processing time <5ms per frame
-- Issue occurred even with downsampled frames (364×272 pixels)
+- Issue occurred even with downsampled frames (364x272 pixels)
 
 #### Root Cause
 **Signal Bandwidth Bottleneck:**
@@ -972,7 +971,7 @@ def frame_callback(cam, stream, frame):
 
 - **QPixmap serialization:** ~10KB per frame (Qt implicit sharing, copy-on-write)
 - **Numpy array serialization:** ~300KB per frame (deep copy across threads)
-- **Total bandwidth:** 30 FPS × 300KB = **9 MB/s signal overhead**
+- **Total bandwidth:** 30 FPS x 300KB = **9 MB/s signal overhead**
 
 This signal serialization caused the Qt event queue to become congested, progressively delaying frame delivery and reducing effective FPS.
 
@@ -1012,7 +1011,7 @@ def frame_callback(cam, stream, frame):
 
 **Results:**
 - **Live view FPS:** Stable 30 FPS (no degradation)
-- **Signal bandwidth:** 30 FPS × 10KB = 300 KB/s (97% reduction)
+- **Signal bandwidth:** 30 FPS x 10KB = 300 KB/s (97% reduction)
 - **Recording FPS:** 17 FPS → 8 FPS → 5 FPS → 2 FPS (expected CPU-bound behavior)
 
 #### Key Insights
@@ -1032,7 +1031,7 @@ def frame_callback(cam, stream, frame):
 - Prefer direct access with locks over signal emission for large data
 
 **4. Recording-Induced FPS Drop is Expected:**
-- Video encoding is CPU-intensive (H.264 at 1456×1088)
+- Video encoding is CPU-intensive (H.264 at 1456x1088)
 - 17 FPS → 2 FPS drop during recording is EXPECTED behavior
 - Not a bug - just CPU-bound encoding overhead
 - Medical device context: Recording is not time-critical, so acceptable
@@ -1168,7 +1167,7 @@ class CameraStreamThread(QThread):
    - Verify resolution constraints (width/height divisibility)
    - Test different pixel formats for binning compatibility
    - Document VmbPy API patterns for hardware features
-   - Could provide 4-15× frame rate improvement if working correctly
+   - Could provide 4-15x frame rate improvement if working correctly
 
 ---
 
