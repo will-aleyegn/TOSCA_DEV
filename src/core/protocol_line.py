@@ -264,7 +264,9 @@ class ProtocolLine:
         else:
             dwell_str = "--"
         
-        return f"Line {self.line_number}:  {move_str}  |  {laser_str}  |  {dwell_str}"
+        # Add loop indicator if line loops more than once
+        loop_str = f" x{self.loop_count}" if self.loop_count > 1 else ""
+        return f"Line {self.line_number}:  {move_str}  |  {laser_str}  |  {dwell_str}{loop_str}"
 
     def validate(self, safety_limits: "SafetyLimits") -> tuple[bool, str]:
         """
