@@ -52,6 +52,16 @@ TOSCA is a laser control system integrating:
 
 ### Recent Updates (2025-11-03)
 
+**Milliwatt/Milliamp Control and Dual-Axis Graphing:**
+- **Units Standardization:** UI now uses milliwatts (mW) instead of Watts - matches hardware expectations and improves precision (0-10,000 mW range)
+- **Current Control Mode:** Added milliamp (mA) control option with radio button toggle - supports both power (mW) and current (mA) modes (0-2,000 mA range)
+- **Dual-Axis Graph:** Position graph now displays laser power on right Y-axis (mW) synchronized with position (mm) on left Y-axis
+- **Backward Compatibility:** Conversion layer at save/load boundaries ensures existing protocols (stored in W) work correctly with new mW UI
+- **3-Column Layout:** Protocol builder restructured with dedicated graph column for always-visible visualization
+
+**Technical:** mW ↔ W conversion at boundaries, radio button control mode toggle, pyqtgraph dual ViewBox implementation
+**Commit:** `70e703f`
+
 **Line Protocol Builder UX Enhancements:**
 - **Total Energy Calculation:** Real-time display of total laser energy delivery (Joules) with accounting for ramping and all loop levels - critical for medical safety
 - **Duplicate Line Button:** Quick line copying with auto-save and automatic renumbering - improves protocol creation productivity
@@ -323,11 +333,14 @@ TOSCA-dev/
 - Operator identification logging
 
 ### Laser Control
-- Power setting: 0.0 to 10.0W in 0.1W increments
+- Power control mode: 0 to 10,000 mW (0-10W) in 10 mW increments
+- Current control mode: 0 to 2,000 mA in 10 mA increments
+- Power/Current mode toggle via radio buttons
 - Laser enable/disable control
 - Real-time power monitoring (500ms intervals)
 - Power limit enforcement (configurable maximum)
 - Treatment laser and TEC controller operate independently
+- Protocol builder supports both constant power and ramped power modes
 
 ### Positioning Control
 - Position range: 0.0 to 20.0mm
@@ -449,6 +462,8 @@ Laser Settings:
 - baudrate: 38400
 - timeout_s: 1.0
 - monitor_timer_ms: 500
+- max_current_ma: 2000.0
+- min_current_ma: 0.0
 
 TEC Settings:
 - com_port: COM9
