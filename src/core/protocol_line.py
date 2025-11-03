@@ -28,6 +28,8 @@ class MoveParams:
     target_position_mm: float
     speed_mm_per_s: float
     move_type: MoveType = MoveType.ABSOLUTE
+    acceleration_mm_per_s2: float = 5.0  # Default acceleration
+    deceleration_mm_per_s2: float = 5.0  # Default deceleration
 
     def validate(
         self, min_position: float, max_position: float, max_speed: float
@@ -44,6 +46,11 @@ class MoveParams:
         if self.speed_mm_per_s > max_speed:
             return False, f"Speed {self.speed_mm_per_s}mm/s exceeds limit {max_speed}mm/s"
 
+        if self.acceleration_mm_per_s2 <= 0:
+            return False, "Acceleration must be positive"
+        if self.deceleration_mm_per_s2 <= 0:
+            return False, "Deceleration must be positive"
+
         return True, ""
 
     def to_dict(self) -> Dict[str, Any]:
@@ -52,6 +59,8 @@ class MoveParams:
             "target_position_mm": self.target_position_mm,
             "speed_mm_per_s": self.speed_mm_per_s,
             "move_type": self.move_type.value,
+            "acceleration_mm_per_s2": self.acceleration_mm_per_s2,
+            "deceleration_mm_per_s2": self.deceleration_mm_per_s2,
         }
 
     @staticmethod
@@ -61,6 +70,8 @@ class MoveParams:
             target_position_mm=data["target_position_mm"],
             speed_mm_per_s=data["speed_mm_per_s"],
             move_type=MoveType(data.get("move_type", "absolute")),
+            acceleration_mm_per_s2=data.get("acceleration_mm_per_s2", 5.0),
+            deceleration_mm_per_s2=data.get("deceleration_mm_per_s2", 5.0),
         )
 
 
@@ -69,6 +80,8 @@ class HomeParams:
     """Parameters for homing operation."""
 
     speed_mm_per_s: float = 2.0  # Default homing speed
+    acceleration_mm_per_s2: float = 5.0  # Default acceleration
+    deceleration_mm_per_s2: float = 5.0  # Default deceleration
 
     def validate(self, max_speed: float) -> tuple[bool, str]:
         """Validate homing parameters."""
@@ -76,6 +89,10 @@ class HomeParams:
             return False, "Homing speed must be positive"
         if self.speed_mm_per_s > max_speed:
             return False, f"Homing speed {self.speed_mm_per_s}mm/s exceeds limit {max_speed}mm/s"
+        if self.acceleration_mm_per_s2 <= 0:
+            return False, "Acceleration must be positive"
+        if self.deceleration_mm_per_s2 <= 0:
+            return False, "Deceleration must be positive"
         return True, ""
 
     def to_dict(self) -> Dict[str, Any]:

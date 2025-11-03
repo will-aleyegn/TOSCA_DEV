@@ -10,7 +10,7 @@ import logging
 from pathlib import Path
 from typing import Optional
 
-from PyQt6.QtCore import pyqtSignal
+from PyQt6.QtCore import pyqtSignal, Qt
 from PyQt6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -25,6 +25,7 @@ from PyQt6.QtWidgets import (
     QMessageBox,
     QPushButton,
     QRadioButton,
+    QSlider,
     QSpinBox,
     QVBoxLayout,
     QWidget,
@@ -335,6 +336,34 @@ class LineProtocolBuilderWidget(QWidget):
         speed_layout.addStretch()
         pos_layout.addLayout(speed_layout)
 
+        # Acceleration
+        accel_layout = QHBoxLayout()
+        accel_layout.addWidget(QLabel("Accel (mm/s²):"))
+        self.move_accel_spin = QDoubleSpinBox()
+        self.move_accel_spin.setRange(0.1, 20.0)
+        self.move_accel_spin.setDecimals(1)
+        self.move_accel_spin.setSingleStep(0.5)
+        self.move_accel_spin.setValue(5.0)
+        self.move_accel_spin.setToolTip("Acceleration rate for movement")
+        self.move_accel_spin.valueChanged.connect(self._on_line_params_changed)
+        accel_layout.addWidget(self.move_accel_spin)
+        accel_layout.addStretch()
+        pos_layout.addLayout(accel_layout)
+
+        # Deceleration
+        decel_layout = QHBoxLayout()
+        decel_layout.addWidget(QLabel("Decel (mm/s²):"))
+        self.move_decel_spin = QDoubleSpinBox()
+        self.move_decel_spin.setRange(0.1, 20.0)
+        self.move_decel_spin.setDecimals(1)
+        self.move_decel_spin.setSingleStep(0.5)
+        self.move_decel_spin.setValue(5.0)
+        self.move_decel_spin.setToolTip("Deceleration rate for movement")
+        self.move_decel_spin.valueChanged.connect(self._on_line_params_changed)
+        decel_layout.addWidget(self.move_decel_spin)
+        decel_layout.addStretch()
+        pos_layout.addLayout(decel_layout)
+
         # Move type (Absolute/Relative)
         move_type_layout = QHBoxLayout()
         move_type_layout.addWidget(QLabel("Type:"))
@@ -364,6 +393,34 @@ class LineProtocolBuilderWidget(QWidget):
         home_speed_layout.addWidget(self.home_speed_spin)
         home_speed_layout.addStretch()
         home_layout.addLayout(home_speed_layout)
+
+        # Acceleration
+        home_accel_layout = QHBoxLayout()
+        home_accel_layout.addWidget(QLabel("Accel (mm/s²):"))
+        self.home_accel_spin = QDoubleSpinBox()
+        self.home_accel_spin.setRange(0.1, 20.0)
+        self.home_accel_spin.setDecimals(1)
+        self.home_accel_spin.setSingleStep(0.5)
+        self.home_accel_spin.setValue(5.0)
+        self.home_accel_spin.setToolTip("Acceleration rate for homing")
+        self.home_accel_spin.valueChanged.connect(self._on_line_params_changed)
+        home_accel_layout.addWidget(self.home_accel_spin)
+        home_accel_layout.addStretch()
+        home_layout.addLayout(home_accel_layout)
+
+        # Deceleration
+        home_decel_layout = QHBoxLayout()
+        home_decel_layout.addWidget(QLabel("Decel (mm/s²):"))
+        self.home_decel_spin = QDoubleSpinBox()
+        self.home_decel_spin.setRange(0.1, 20.0)
+        self.home_decel_spin.setDecimals(1)
+        self.home_decel_spin.setSingleStep(0.5)
+        self.home_decel_spin.setValue(5.0)
+        self.home_decel_spin.setToolTip("Deceleration rate for homing")
+        self.home_decel_spin.valueChanged.connect(self._on_line_params_changed)
+        home_decel_layout.addWidget(self.home_decel_spin)
+        home_decel_layout.addStretch()
+        home_layout.addLayout(home_decel_layout)
 
         self.home_params_widget.setLayout(home_layout)
         self.home_params_widget.setVisible(False)  # Hidden by default
@@ -501,6 +558,67 @@ class LineProtocolBuilderWidget(QWidget):
         group.setLayout(layout)
         return group
 
+    def _create_slider_spinbox_combo(
+        self, label: str, min_val: float, max_val: float, default: float,
+        decimals: int = 2, step: float = 0.1, unit: str = ""
+    ) -> tuple:
+        """Create a slider+spinbox combination with visual feedback.
+        
+        Returns: (layout, spinbox, slider)
+        """
+        layout = QHBoxLayout()
+        layout.addWidget(QLabel(f"{label}:"))
+        
+        # Spinbox
+        spinbox = QDoubleSpinBox()
+        spinbox.setRange(min_val, max_val)
+        spinbox.setDecimals(decimals)
+        spinbox.setSingleStep(step)
+        spinbox.setValue(default)
+        if unit:
+            spinbox.setSuffix(f" {unit}")
+        spinbox.setMinimumWidth(100)
+        
+        # Slider
+        slider = QSlider()
+        slider.setOrientation(Qt.Orientation.Horizontal)
+        slider.setMinimum(int(min_val * (10 ** decimals)))
+        slider.setMaximum(int(max_val * (10 ** decimals)))
+        slider.setValue(int(default * (10 ** decimals)))
+        slider.setMinimumWidth(150)
+        
+        # Bidirectional sync with visual feedback
+        def spinbox_changed(value):
+            slider.blockSignals(True)
+            slider.setValue(int(value * (10 ** decimals)))
+            slider.blockSignals(False)
+            # Color feedback based on proximity to limits
+            range_pct = (value - min_val) / (max_val - min_val) if max_val > min_val else 0.5
+            if range_pct < 0.2 or range_pct > 0.8:
+                slider.setStyleSheet("QSlider::handle:horizontal { background: #FF9800; }")  # Orange
+            elif range_pct < 0.1 or range_pct > 0.9:
+                slider.setStyleSheet("QSlider::handle:horizontal { background: #F44336; }")  # Red
+            else:
+                slider.setStyleSheet("QSlider::handle:horizontal { background: #4CAF50; }")  # Green
+        
+        def slider_changed(value):
+            spinbox.blockSignals(True)
+            spinbox.setValue(value / (10 ** decimals))
+            spinbox.blockSignals(False)
+        
+        spinbox.valueChanged.connect(spinbox_changed)
+        slider.valueChanged.connect(slider_changed)
+        spinbox.valueChanged.connect(self._on_line_params_changed)
+        
+        layout.addWidget(spinbox)
+        layout.addWidget(slider)
+        layout.addStretch()
+        
+        # Initial color
+        spinbox_changed(default)
+        
+        return layout, spinbox, slider
+
     def _create_action_buttons(self) -> QHBoxLayout:
         """Create bottom action buttons (New, Save, Load, Execute)."""
         layout = QHBoxLayout()
@@ -580,9 +698,15 @@ class LineProtocolBuilderWidget(QWidget):
                     target_position_mm=self.target_position_spin.value(),
                     speed_mm_per_s=self.move_speed_spin.value(),
                     move_type=move_type,
+                    acceleration_mm_per_s2=self.move_accel_spin.value(),
+                    deceleration_mm_per_s2=self.move_decel_spin.value(),
                 )
             else:
-                line.movement = HomeParams(speed_mm_per_s=self.home_speed_spin.value())
+                line.movement = HomeParams(
+                    speed_mm_per_s=self.home_speed_spin.value(),
+                    acceleration_mm_per_s2=self.home_accel_spin.value(),
+                    deceleration_mm_per_s2=self.home_decel_spin.value(),
+                )
         else:
             line.movement = None
         
@@ -839,9 +963,15 @@ class LineProtocolBuilderWidget(QWidget):
                     target_position_mm=self.target_position_spin.value(),
                     speed_mm_per_s=self.move_speed_spin.value(),
                     move_type=move_type,
+                    acceleration_mm_per_s2=self.move_accel_spin.value(),
+                    deceleration_mm_per_s2=self.move_decel_spin.value(),
                 )
             else:
-                line.movement = HomeParams(speed_mm_per_s=self.home_speed_spin.value())
+                line.movement = HomeParams(
+                    speed_mm_per_s=self.home_speed_spin.value(),
+                    acceleration_mm_per_s2=self.home_accel_spin.value(),
+                    deceleration_mm_per_s2=self.home_decel_spin.value(),
+                )
         else:
             line.movement = None
 
@@ -1070,12 +1200,31 @@ class LineProtocolBuilderWidget(QWidget):
         # Clear and rebuild
         self.sequence_list.clear()
 
-        # Add line summaries
+        # Add line summaries with validation status
         for i, line in enumerate(self.current_protocol.lines):
+            # Validate line
+            valid, error_msg = line.validate(self.safety_limits)
+            
+            # Add status indicator
+            if valid:
+                status_icon = "[OK]"
+            else:
+                status_icon = "[!]"
+            
             # Calculate current position for duration calculation
             # (simplified: assume starting from 0)
             summary = line.get_summary(current_position_mm=0.0)
-            item = QListWidgetItem(summary)
+            item_text = f"{status_icon} {summary}"
+            item = QListWidgetItem(item_text)
+            
+            # Color code based on validation
+            if not valid:
+                item.setForeground(Qt.GlobalColor.red)
+                item.setToolTip(f"Validation Error: {error_msg}")
+            else:
+                item.setForeground(Qt.GlobalColor.darkGreen)
+                item.setToolTip("Line validated successfully")
+            
             self.sequence_list.addItem(item)
 
         # Restore selection
@@ -1172,12 +1321,16 @@ class LineProtocolBuilderWidget(QWidget):
                 self.move_position_radio.setChecked(True)
                 self.target_position_spin.setValue(line.movement.target_position_mm)
                 self.move_speed_spin.setValue(line.movement.speed_mm_per_s)
+                self.move_accel_spin.setValue(line.movement.acceleration_mm_per_s2)
+                self.move_decel_spin.setValue(line.movement.deceleration_mm_per_s2)
                 self.move_type_combo.setCurrentIndex(
                     0 if line.movement.move_type == MoveType.ABSOLUTE else 1
                 )
             elif isinstance(line.movement, HomeParams):
                 self.move_home_radio.setChecked(True)
                 self.home_speed_spin.setValue(line.movement.speed_mm_per_s)
+                self.home_accel_spin.setValue(line.movement.acceleration_mm_per_s2)
+                self.home_decel_spin.setValue(line.movement.deceleration_mm_per_s2)
         else:
             self.movement_enable_check.setChecked(False)
 
