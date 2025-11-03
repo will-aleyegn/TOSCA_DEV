@@ -11,10 +11,17 @@ repos:
         verbose: true
 
       - id: detect-ai-references
-        name: Detect AI Tool References
+        name: Detect AI Tool References and Emojis
         entry: python .pre-commit-hooks/detect-ai-references.py
         language: system
         types: [text]
+        stages: [pre-commit]
+        pass_filenames: true
+
+      - id: validate-file-paths
+        name: Validate File Paths (Whitelist)
+        entry: python .pre-commit-hooks/validate-file-paths.py
+        language: system
         stages: [pre-commit]
         pass_filenames: true
 
