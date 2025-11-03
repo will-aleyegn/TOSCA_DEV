@@ -7,11 +7,11 @@
 ## 🎯 What We Accomplished
 
 ### 1. Defined Actual Hardware ✅
-- **Smoothing Motor**: DC motor (1.5-3.0V) with **PWM variable speed control**
+- **Laser Spot Smoothing Module**: DC motor (1.5-3.0V) with **PWM variable speed control**
 - **Vibration Sensor**: I2C accelerometer (ADXL345 or MPU6050) with **data logging**
-- **Photodiode**: Laser power monitoring (0-5V analog)
+- **photodiode laser pickoff measurement**: Laser power monitoring (0-5V analog)
 - **Aiming Laser**: Red 650nm alignment laser
-- **Footpedal**: Reserved for future (D5, not yet implemented)
+- **dead man's switch footpedal**: Reserved for future (D5, not yet implemented)
 
 ### 2. Updated Arduino Firmware ✅
 - **Created**: `firmware/arduino_watchdog/arduino_watchdog_v2.ino`
@@ -45,9 +45,9 @@
 | Pin | Function | Type | Device | Voltage/Signal |
 |-----|----------|------|--------|----------------|
 | **D4** | Aiming Laser | OUTPUT | Red laser control | Digital 0/5V |
-| **D5** | Footpedal (future) | INPUT_PULLUP | Safety switch | Active LOW |
+| **D5** | dead man's switch footpedal (future) | INPUT_PULLUP | Safety switch | Active LOW |
 | **D9** | **Motor Control** | **PWM OUTPUT** | **Smoothing motor** | **PWM 1.5-3.0V** |
-| **A0** | Photodiode | ANALOG IN | Laser power sensor | 0-5V analog |
+| **A0** | photodiode laser pickoff measurement | ANALOG IN | Laser power sensor | 0-5V analog |
 | **A4** | **SDA** | **I2C DATA** | **Accelerometer** | **I2C protocol** |
 | **A5** | **SCL** | **I2C CLOCK** | **Accelerometer** | **I2C protocol** |
 
@@ -104,8 +104,8 @@ ACCEL_SET_THRESHOLD:val Set vibration detection threshold
 WDT_RESET               Reset watchdog (heartbeat)
 LASER_ON                Enable aiming laser
 LASER_OFF               Disable aiming laser
-GET_PHOTODIODE          Read photodiode voltage
-GET_FOOTPEDAL           Read footpedal state (future)
+GET_PHOTODIODE          Read photodiode laser pickoff measurement voltage
+GET_FOOTPEDAL           Read dead man's switch footpedal state (future)
 GET_STATUS              Get all sensor states
 ```
 
@@ -143,7 +143,7 @@ The accelerometer can provide:
 2. **Connect hardware** (if not already):
    - Motor to D9 + GND
    - Accelerometer to 5V, GND, A4, A5
-   - Photodiode to A0
+   - photodiode laser pickoff measurement to A0
    - Aiming laser to D4 (optional)
 
 3. **Test in Serial Monitor**:
@@ -182,9 +182,9 @@ The accelerometer can provide:
 |-----------|----------|----------|--------|--------|-----|--------|
 | **PWM Motor** | [DONE] | [DONE] | [DONE] | [PENDING] | [PENDING] | Ready for upload |
 | **I2C Accelerometer** | [DONE] | [DONE] | [DONE] | [PENDING] | [PENDING] | Ready for upload |
-| **Photodiode** | [DONE] | [DONE] | [DONE] | [PENDING] | [PENDING] | Existing (no changes) |
+| **photodiode laser pickoff measurement** | [DONE] | [DONE] | [DONE] | [PENDING] | [PENDING] | Existing (no changes) |
 | **Aiming Laser** | [PENDING] | [DONE] | [DONE] | [PENDING] | [PENDING] | Ready (if hardware connected) |
-| **Footpedal** | [FAILED] | [DONE] | [DONE] | [FAILED] | [FAILED] | Reserved for future |
+| **dead man's switch footpedal** | [FAILED] | [DONE] | [DONE] | [FAILED] | [FAILED] | Reserved for future |
 | **Watchdog** | [DONE] | [DONE] | [DONE] | [DONE] | [DONE] | Fully functional |
 
 **Legend**: [DONE] Done | [PENDING] Needs update | [FAILED] Not started

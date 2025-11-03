@@ -3,7 +3,7 @@ Consolidated interlock status widget for Treatment Dashboard.
 
 Displays all laser prerequisite interlocks in a compact format:
 - Session Valid
-- GPIO Interlock (smoothing motor + photodiode)
+- GPIO Interlock (laser spot smoothing module + photodiode laser pickoff measurement)
 - Power Limit
 - Final Laser Enable Permission
 """

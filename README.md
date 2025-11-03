@@ -42,7 +42,7 @@ TOSCA is a laser control system integrating:
 
 **Testing Infrastructure:**
 - Comprehensive mock controllers for hardware-independent testing
-- 148+ automated tests across all subsystems
+- Automated test suites across all subsystems
 - Continuous integration enabled
 
 **Documentation:**
@@ -68,10 +68,10 @@ TOSCA is a laser control system integrating:
 
 | Component | Connection | Specification |
 |-----------|------------|---------------|
-| Footpedal | Arduino D5 (planned) | Normally-open momentary switch |
-| Smoothing Motor | Arduino D9 (PWM) | DC coreless motor 7x25mm, 0-153 PWM (0-3.0V max) |
+| dead man's switch footpedal | Arduino D5 (planned) | Normally-open momentary switch |
+| Laser Spot Smoothing Module | Arduino D9 (PWM) | DC coreless motor 7x25mm, 0-153 PWM (0-3.0V max) |
 | Accelerometer | Arduino I2C (A4/A5) | MPU6050 at 0x68 or ADXL345 at 0x53 |
-| Photodiode | Arduino A0 (ADC) | 0-5V analog voltage, 10-bit ADC |
+| photodiode laser pickoff measurement | Arduino A0 (ADC) | 0-5V analog voltage, 10-bit ADC |
 | Aiming Laser | Arduino D4 | 650nm red laser diode |
 
 ---
@@ -200,16 +200,6 @@ TOSCA-dev/
 |   +-- protocols/
 |       +-- [protocol_name].json
 |
-|-- review_reports/
-|   |-- README.md
-|   |-- 01_EXECUTIVE_SUMMARY.md
-|   |-- 02_PHASE1_ARCHITECTURE_CODE_QUALITY.md
-|   |-- 03_PHASE2_SECURITY_PERFORMANCE.md
-|   |-- 04_ACTION_PLAN_RECOMMENDATIONS.md
-|   |-- NON_SECURITY_TODO_LIST.md
-|   |-- RESEARCH_MODE_ROADMAP.md
-|   +-- CLINICAL_DEPLOYMENT_ROADMAP.md
-|
 |-- config.yaml
 |-- requirements.txt
 |-- pyproject.toml
@@ -273,15 +263,15 @@ TOSCA-dev/
 
 ### Safety Features
 - [x] Multi-layer safety architecture
-- [x] Hardware interlocks (smoothing motor + vibration + photodiode + watchdog)
+- [x] Hardware interlocks (laser spot smoothing module + vibration + photodiode laser pickoff measurement + watchdog)
 - [x] Software interlocks (E-stop, power limits, session validation, state machine)
 - [x] Selective shutdown policy (laser only, preserve diagnostics)
 - [x] Safety state machine (SAFE, ARMED, TREATING, UNSAFE, EMERGENCY_STOP) - 5 states
 - [x] Emergency stop functionality
 - [x] Hardware watchdog timer (1000ms timeout, 500ms heartbeat)
 - [x] Vibration detection (0.8g threshold, 5.7x safety margin)
-- [x] Photodiode power monitoring (continuous)
-- [ ] Footpedal integration (hardware pin assigned, software not implemented)
+- [x] photodiode laser pickoff measurement power monitoring (continuous)
+- [ ] dead man's switch footpedal integration (hardware pin assigned, software not implemented)
 
 ### Thread Safety
 - [x] RLock pattern in all hardware controllers
@@ -293,15 +283,12 @@ TOSCA-dev/
 ### Testing Infrastructure
 - [x] Mock hardware base pattern
 - [x] Hardware controller mocks (camera, laser, actuator, GPIO)
-- [x] Thread safety tests (7 tests)
-- [x] Realtime safety monitoring tests (6 tests)
+- [x] Thread safety tests
+- [x] Realtime safety monitoring tests
 - [x] Hardware abstraction tests
 - [x] Actuator HAL tests
 - [x] GPIO calibration tests
 - [x] Integration tests
-- [ ] Safety state machine unit tests (NOT IMPLEMENTED - planned)
-- [ ] Protocol engine safety tests (NOT IMPLEMENTED - planned)
-- [ ] 72-hour soak test (NOT IMPLEMENTED - planned)
 
 ### Image Processing
 - [ ] Ring detection algorithm (stub exists, NOT IMPLEMENTED)
@@ -356,7 +343,7 @@ TOSCA-dev/
 - Automated multi-action sequences
 
 ### Safety Monitoring
-- GPIO interlock status (motor + vibration + photodiode)
+- GPIO interlock status (motor + vibration + photodiode laser pickoff measurement)
 - Hardware watchdog heartbeat (500ms intervals)
 - Emergency stop availability
 - Safety state display (SAFE/ARMED/TREATING/UNSAFE/EMERGENCY_STOP)
@@ -487,7 +474,7 @@ GUI Settings:
 - NOT suitable for clinical use
 
 ### Hardware
-- Footpedal not yet integrated (Arduino pin assigned, software ready)
+- dead man's switch footpedal not yet integrated (Arduino pin assigned, software ready)
 - Camera frame rate drops during video recording (30→17→8→5→2 FPS due to H.264 encoding)
 - UI thread blocks for 2 seconds during GPIO connection
 - Only supports Allied Vision cameras (VmbPy SDK dependency)

@@ -25,7 +25,7 @@ class SafetyWidget(QWidget):
     System Diagnostics interface for engineering and troubleshooting.
 
     Provides comprehensive technical information and diagnostic tools:
-    - GPIO hardware controls and monitoring (smoothing device, photodiode, accelerometer)
+    - GPIO hardware controls and monitoring (laser spot smoothing module, photodiode laser pickoff measurement, accelerometer)
     - Software interlock status and E-stop controls
     - Comprehensive safety event log with filtering
     - Hardware connection diagnostics

@@ -4,7 +4,7 @@ GPIO hardware abstraction layer for Arduino Nano safety interlocks.
 
 Provides PyQt6-integrated GPIO control for:
 - Smoothing device control and monitoring
-- Photodiode laser power monitoring
+- photodiode laser pickoff measurement laser power monitoring
 - Aiming laser control
 - Hardware watchdog timer heartbeat
 - Thread-safe serial communication
@@ -13,14 +13,14 @@ Arduino Nano Pin Configuration:
 - Digital Pin 2: Smoothing motor control (output)
 - Digital Pin 3: Smoothing vibration sensor (input with pullup)
 - Digital Pin 4: Aiming laser control (output)
-- Analog Pin A0: Photodiode laser power monitoring (0-5V)
+- Analog Pin A0: photodiode laser pickoff measurement laser power monitoring (0-5V)
 
 Serial Protocol (9600 baud, ASCII text commands):
 - WDT_RESET: Reset watchdog timer (heartbeat)
-- MOTOR_ON/MOTOR_OFF: Control smoothing motor
+- MOTOR_ON/MOTOR_OFF: Control laser spot smoothing module
 - LASER_ON/LASER_OFF: Control aiming laser
 - GET_VIBRATION: Read vibration sensor
-- GET_PHOTODIODE: Read photodiode voltage
+- GET_PHOTODIODE: Read photodiode laser pickoff measurement voltage
 - GET_STATUS: Get complete system status
 """
 
@@ -55,7 +55,7 @@ class GPIOController(QObject):
     Manages safety interlocks:
     - Smoothing device motor control (digital output)
     - Smoothing device vibration sensor (digital input)
-    - Photodiode laser power monitoring (analog input)
+    - photodiode laser pickoff measurement laser power monitoring (analog input)
     - Aiming laser control (digital output)
     - Hardware watchdog heartbeat
     """
@@ -276,7 +276,7 @@ class GPIOController(QObject):
             - motor_enabled (bool): Smoothing motor state
             - vibration_detected (bool): Vibration sensor state
             - aiming_laser_enabled (bool): Aiming laser state
-            - photodiode_voltage (float): Photodiode voltage in V
+            - photodiode_voltage (float): photodiode laser pickoff measurement voltage in V
             - photodiode_power_mw (float): Calculated power in mW
             - safety_ok (bool): Overall safety interlock status
         """
@@ -403,7 +403,7 @@ class GPIOController(QObject):
 
     def start_smoothing_motor(self) -> bool:
         """
-        Start smoothing device motor.
+        Start laser spot smoothing module motor.
 
         Returns:
             True if motor started successfully
@@ -446,7 +446,7 @@ class GPIOController(QObject):
 
     def stop_smoothing_motor(self) -> bool:
         """
-        Stop smoothing device motor.
+        Stop laser spot smoothing module motor.
 
         Returns:
             True if motor stopped successfully
@@ -487,7 +487,7 @@ class GPIOController(QObject):
 
     def set_motor_speed(self, pwm: int) -> bool:
         """
-        Set smoothing motor speed using PWM (0-153).
+        Set laser spot smoothing module speed using PWM (0-153).
 
         PWM Range:
             0   = Motor OFF (0V)
@@ -800,9 +800,9 @@ class GPIOController(QObject):
                 # Update safety interlock status
                 self._update_safety_status()
 
-                # Read photodiode voltage
-                response = self._send_command("GET_PHOTODIODE", expected_prefix="PHOTODIODE:")
-                if "PHOTODIODE:" in response:
+                # Read photodiode laser pickoff measurement voltage
+                response = self._send_command("GET_PHOTODIODE", expected_prefix="photodiode laser pickoff measurement:")
+                if "photodiode laser pickoff measurement:" in response:
                     voltage_str = response.split(":")[1].strip()
                     self.photodiode_voltage = float(voltage_str)
                     self.photodiode_voltage_changed.emit(self.photodiode_voltage)
@@ -839,7 +839,7 @@ class GPIOController(QObject):
 
     def get_photodiode_voltage(self) -> float:
         """
-        Get current photodiode voltage.
+        Get current photodiode laser pickoff measurement voltage.
 
         Returns:
             Voltage in V (0-5V)
@@ -849,7 +849,7 @@ class GPIOController(QObject):
 
     def get_photodiode_power(self) -> float:
         """
-        Get calculated laser power from photodiode.
+        Get calculated laser power from photodiode laser pickoff measurement.
 
         Returns:
             Power in mW
