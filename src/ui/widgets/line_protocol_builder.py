@@ -224,13 +224,8 @@ class LineProtocolBuilderWidget(QWidget):
         notes_layout.addWidget(self.notes_input)
         layout.addLayout(notes_layout)
 
-        # Apply changes button
-        self.apply_changes_btn = QPushButton("Apply Changes to Line")
-        self.apply_changes_btn.setStyleSheet(
-            "background-color: #4CAF50; color: white; font-weight: bold; padding: 8px;"
-        )
-        self.apply_changes_btn.clicked.connect(self._on_apply_changes)
-        layout.addWidget(self.apply_changes_btn)
+        # Apply changes button (REMOVED - auto-save enabled)
+        # Auto-save happens when switching lines or closing editor
 
         layout.addStretch()
 
@@ -238,7 +233,7 @@ class LineProtocolBuilderWidget(QWidget):
         self.movement_group.setEnabled(False)
         self.laser_group.setEnabled(False)
         self.dwell_group.setEnabled(False)
-        self.apply_changes_btn.setEnabled(False)
+        # Auto-save enabled
 
         group.setLayout(layout)
         return group
@@ -487,9 +482,10 @@ class LineProtocolBuilderWidget(QWidget):
 
         layout.addStretch()
 
-        self.execute_protocol_btn = QPushButton("▶ Execute Protocol")
+        self.execute_protocol_btn = QPushButton("▶▶ EXECUTE PROTOCOL ◀◀")
         self.execute_protocol_btn.setStyleSheet(
-            "background-color: #2196F3; color: white; font-weight: bold; padding: 10px;"
+            "background-color: #2196F3; color: white; font-weight: bold; "
+            "padding: 15px; font-size: 14px; min-height: 45px;"
         )
         self.execute_protocol_btn.clicked.connect(self._on_execute_protocol)
         self.execute_protocol_btn.setEnabled(False)
@@ -515,8 +511,65 @@ class LineProtocolBuilderWidget(QWidget):
     # Signal Handlers - Line Selection
     # ========================================================================
 
+    def _auto_save_current_line(self) -> None:
+        """Auto-save the currently selected line parameters."""
+        if self.current_line_index < 0 or self.current_protocol is None:
+            return
+        
+        if self.current_line_index >= len(self.current_protocol.lines):
+            return
+        
+        line = self.current_protocol.lines[self.current_line_index]
+        
+        # Apply movement parameters
+        if self.movement_enable_check.isChecked():
+            if self.move_position_radio.isChecked():
+                move_type = MoveType.ABSOLUTE if self.move_type_combo.currentIndex() == 0 else MoveType.RELATIVE
+                line.movement = MoveParams(
+                    target_position_mm=self.target_position_spin.value(),
+                    speed_mm_per_s=self.move_speed_spin.value(),
+                    move_type=move_type,
+                )
+            else:
+                line.movement = HomeParams(speed_mm_per_s=self.home_speed_spin.value())
+        else:
+            line.movement = None
+        
+        # Apply laser parameters
+        if self.laser_enable_check.isChecked():
+            if self.laser_set_radio.isChecked():
+                line.laser = LaserSetParams(power_watts=self.laser_set_power_spin.value())
+            else:
+                line.laser = LaserRampParams(
+                    start_power_watts=self.laser_start_power_spin.value(),
+                    end_power_watts=self.laser_end_power_spin.value(),
+                    duration_s=self.laser_ramp_duration_spin.value(),
+                )
+        else:
+            line.laser = None
+        
+        # Apply dwell parameters
+        if self.dwell_enable_check.isChecked():
+            line.dwell = DwellParams(duration_s=self.dwell_duration_spin.value())
+        else:
+            line.dwell = None
+        
+        # Apply notes
+        line.notes = self.notes_input.text()
+        
+        # Update sequence view to show new summary
+        self._update_sequence_view()
+        self._update_total_duration()
+
+
     def _on_line_selected(self, index: int) -> None:
-        """Handle line selection in sequence view."""
+        """Handle line selection in sequence view with auto-save."""
+        # AUTO-SAVE: Save previous line before switching
+        if (self.current_line_index >= 0 and 
+            self.current_protocol is not None and 
+            self.current_line_index < len(self.current_protocol.lines)):
+            self._auto_save_current_line()
+        
         self.current_line_index = index
 
         if index < 0 or self.current_protocol is None or index >= len(self.current_protocol.lines):
@@ -525,7 +578,6 @@ class LineProtocolBuilderWidget(QWidget):
             self.movement_group.setEnabled(False)
             self.laser_group.setEnabled(False)
             self.dwell_group.setEnabled(False)
-            self.apply_changes_btn.setEnabled(False)
             self.remove_line_btn.setEnabled(False)
             self.move_up_btn.setEnabled(False)
             self.move_down_btn.setEnabled(False)
@@ -536,11 +588,10 @@ class LineProtocolBuilderWidget(QWidget):
         self._load_line_into_editor(line)
 
         # Enable editor
-        self.editor_status_label.setText(f"Editing Line {line.line_number}")
+        self.editor_status_label.setText(f"✏️ Editing Line {line.line_number} (auto-save enabled)")
         self.movement_group.setEnabled(True)
         self.laser_group.setEnabled(True)
         self.dwell_group.setEnabled(True)
-        self.apply_changes_btn.setEnabled(True)
         self.remove_line_btn.setEnabled(True)
 
         # Enable/disable move up/down buttons

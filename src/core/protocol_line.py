@@ -238,39 +238,33 @@ class ProtocolLine:
     def get_summary(self, current_position_mm: float = 0.0) -> str:
         """
         Generate concise summary string for UI display.
-
-        Example: "Line 1: [Move] 5.0mm @ 2.0mm/s | [Laser] Set 2.0W | [Dwell] 3.0s | Duration: 3.0s"
+        
+        Format: "Line 1:  5.00mm @ 1.0mm/s  |  0.50W  |  2.0s"
+        Shows: movement | laser | dwell (using -- for disabled actions)
         """
-        parts = [f"Line {self.line_number}:"]
-
-        # Movement summary
+        # Movement part
         if isinstance(self.movement, MoveParams):
-            move_type = "Abs" if self.movement.move_type == MoveType.ABSOLUTE else "Rel"
-            parts.append(
-                f"[Move {move_type}] {self.movement.target_position_mm:.1f}mm"
-                f" @ {self.movement.speed_mm_per_s:.1f}mm/s"
-            )
+            move_str = f"{self.movement.target_position_mm:.2f}mm @ {self.movement.speed_mm_per_s:.1f}mm/s"
         elif isinstance(self.movement, HomeParams):
-            parts.append(f"[Home] @ {self.movement.speed_mm_per_s:.1f}mm/s")
-
-        # Laser summary
+            move_str = f"Home @ {self.movement.speed_mm_per_s:.1f}mm/s"
+        else:
+            move_str = "--"
+        
+        # Laser part
         if isinstance(self.laser, LaserSetParams):
-            parts.append(f"[Laser] Set {self.laser.power_watts:.1f}W")
+            laser_str = f"{self.laser.power_watts:.2f}W"
         elif isinstance(self.laser, LaserRampParams):
-            parts.append(
-                f"[Laser] Ramp {self.laser.start_power_watts:.1f}W"
-                f" → {self.laser.end_power_watts:.1f}W"
-            )
-
-        # Dwell summary
+            laser_str = f"{self.laser.start_power_watts:.2f}W→{self.laser.end_power_watts:.2f}W"
+        else:
+            laser_str = "--"
+        
+        # Dwell part
         if self.dwell is not None:
-            parts.append(f"[Dwell] {self.dwell.duration_s:.1f}s")
-
-        # Total duration
-        duration = self.calculate_duration(current_position_mm)
-        parts.append(f"Duration: {duration:.1f}s")
-
-        return " | ".join(parts)
+            dwell_str = f"{self.dwell.duration_s:.1f}s"
+        else:
+            dwell_str = "--"
+        
+        return f"Line {self.line_number}:  {move_str}  |  {laser_str}  |  {dwell_str}"
 
     def validate(self, safety_limits: "SafetyLimits") -> tuple[bool, str]:
         """
