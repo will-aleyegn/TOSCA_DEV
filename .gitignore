@@ -110,6 +110,9 @@ safety_report.json
 *.bandit
 *.safety
 
+# Local analysis reports (keep local only)
+reports/
+
 # AI Development Tools - NOT FOR MEDICAL DEVICE REPOSITORY
 # These files contain AI assistant configurations and development context
 # Keep them locally but do NOT commit to git for regulatory compliance
