@@ -1559,99 +1559,95 @@ class MainWindow(QMainWindow):
         # Update hardware tab header
         self._update_actuator_header_status(connected)
 
-    def closeEvent(self, event: QCloseEvent) -> None:
-        """Handle window close event and cleanup resources."""
-        logger.info("Application closing, cleaning up resources...")
-
-        # Auto-disable developer mode on close (safety default)
+    def _disable_dev_mode_on_close(self) -> None:
+        """Auto-disable developer mode on application close (safety default)."""
         if hasattr(self, "dev_mode_action") and self.dev_mode_action.isChecked():
             logger.info("Auto-disabling developer mode on application close")
             self.dev_mode_action.setChecked(False)
-            # This will trigger _on_dev_mode_changed_menubar which disables bypasses
 
-        # Log system shutdown
+    def _log_shutdown_event(self) -> None:
+        """Log system shutdown event."""
         if hasattr(self, "event_logger") and self.event_logger:
             self.event_logger.log_system_event(
                 EventType.SYSTEM_SHUTDOWN, "TOSCA system shutting down", EventSeverity.INFO
             )
 
-        # Stop safety watchdog FIRST (before GPIO disconnects)
-        # CRITICAL: Must stop heartbeat before disconnecting GPIO
+    def _stop_safety_watchdog(self) -> None:
+        """Stop safety watchdog before GPIO disconnect."""
         if hasattr(self, "safety_watchdog") and self.safety_watchdog:
             self.safety_watchdog.stop()
             logger.info("Safety watchdog stopped")
 
-        # Force disconnect camera if still connected (prevents hang on exit)
-        if hasattr(self, "camera_controller") and self.camera_controller:
-            if self.camera_controller.is_connected or self.camera_controller.is_streaming:
-                logger.info("Auto-disconnecting camera on shutdown")
-                try:
-                    if self.camera_controller.is_streaming:
-                        self.camera_controller.stop_streaming()
-                    if self.camera_controller.is_connected:
-                        self.camera_controller.disconnect()
-                except Exception as e:
-                    logger.warning(f"Error during camera auto-disconnect: {e}")
+    def _disconnect_hardware(self, controller_name: str, controller: Any) -> None:
+        """
+        Generic hardware disconnect with error handling.
+        
+        Args:
+            controller_name: Name for logging (e.g., "camera", "actuator")
+            controller: Hardware controller instance
+        """
+        if not hasattr(self, controller_name) or controller is None:
+            return
+            
+        if not controller.is_connected:
+            return
+            
+        logger.info(f"Auto-disconnecting {controller_name} on shutdown")
+        try:
+            # Special handling for camera (stop streaming first)
+            if controller_name == "camera_controller" and controller.is_streaming:
+                controller.stop_streaming()
+            controller.disconnect()
+        except Exception as e:
+            logger.warning(f"Error during {controller_name} auto-disconnect: {e}")
 
-        # Force disconnect actuator if still connected (prevents hang on exit)
-        if hasattr(self, "actuator_controller") and self.actuator_controller:
-            if self.actuator_controller.is_connected:
-                logger.info("Auto-disconnecting actuator on shutdown")
-                try:
-                    self.actuator_controller.disconnect()
-                except Exception as e:
-                    logger.warning(f"Error during actuator auto-disconnect: {e}")
-
-        # Force disconnect GPIO controller (Arduino)
-        if hasattr(self, "gpio_controller") and self.gpio_controller:
-            if self.gpio_controller.is_connected:
-                logger.info("Auto-disconnecting GPIO controller on shutdown")
-                try:
-                    self.gpio_controller.disconnect()
-                except Exception as e:
-                    logger.warning(f"Error during GPIO auto-disconnect: {e}")
-
-        # Force disconnect laser controller (COM10)
-        if hasattr(self, "laser_controller") and self.laser_controller:
-            if self.laser_controller.is_connected:
-                logger.info("Auto-disconnecting laser controller on shutdown")
-                try:
-                    self.laser_controller.disconnect()
-                except Exception as e:
-                    logger.warning(f"Error during laser auto-disconnect: {e}")
-
-        # Force disconnect TEC controller (COM9)
-        if hasattr(self, "tec_controller") and self.tec_controller:
-            if self.tec_controller.is_connected:
-                logger.info("Auto-disconnecting TEC controller on shutdown")
-                try:
-                    self.tec_controller.disconnect()
-                except Exception as e:
-                    logger.warning(f"Error during TEC auto-disconnect: {e}")
-
-        # Cleanup camera
-        if hasattr(self, "camera_widget") and self.camera_live_view:
+    def _cleanup_all_widgets(self) -> None:
+        """Clean up all widget resources."""
+        # Camera
+        if hasattr(self, "camera_live_view") and self.camera_live_view:
             self.camera_live_view.cleanup()
-
-        # Cleanup treatment widgets
+        
+        # Treatment widgets
         if hasattr(self, "treatment_setup_widget") and self.treatment_setup_widget:
             self.treatment_setup_widget.cleanup()
         if hasattr(self, "active_treatment_widget") and self.active_treatment_widget:
             self.active_treatment_widget.cleanup()
-
-        # Cleanup Hardware & Diagnostics (laser + GPIO)
+        
+        # Hardware & Diagnostics
         if hasattr(self, "laser_widget") and self.laser_widget:
             self.laser_widget.cleanup()
         if hasattr(self, "safety_widget") and self.safety_widget:
             self.safety_widget.cleanup()
-
-        # Cleanup Protocol Builder (actuator)
+        
+        # Protocol Builder
         if hasattr(self, "actuator_connection_widget") and self.actuator_connection_widget:
             self.actuator_connection_widget.cleanup()
 
-        # Cleanup database
+    def _close_database(self) -> None:
+        """Close database connection."""
         if hasattr(self, "db_manager") and self.db_manager:
             self.db_manager.close()
+
+
+    def closeEvent(self, event: QCloseEvent) -> None:
+        """Handle window close event and cleanup resources."""
+        logger.info("Application closing, cleaning up resources...")
+
+        # Safety: Disable dev mode, log shutdown, stop watchdog
+        self._disable_dev_mode_on_close()
+        self._log_shutdown_event()
+        self._stop_safety_watchdog()
+
+        # Disconnect all hardware controllers
+        self._disconnect_hardware("camera_controller", self.camera_controller)
+        self._disconnect_hardware("actuator_controller", self.actuator_controller)
+        self._disconnect_hardware("gpio_controller", self.gpio_controller)
+        self._disconnect_hardware("laser_controller", self.laser_controller)
+        self._disconnect_hardware("tec_controller", self.tec_controller)
+
+        # Cleanup widgets and database
+        self._cleanup_all_widgets()
+        self._close_database()
 
         logger.info("Cleanup complete")
         event.accept()
