@@ -127,15 +127,6 @@ class LineProtocolBuilderWidget(QWidget):
         self.protocol_name_input.textChanged.connect(self._on_metadata_changed)
         layout.addWidget(self.protocol_name_input, stretch=2)
 
-        # Loop count
-        layout.addWidget(QLabel("Loop Count:"))
-        self.loop_count_spin = QSpinBox()
-        self.loop_count_spin.setRange(1, 100)
-        self.loop_count_spin.setValue(1)
-        self.loop_count_spin.setToolTip("Number of times to repeat the entire protocol")
-        self.loop_count_spin.valueChanged.connect(self._on_metadata_changed)
-        layout.addWidget(self.loop_count_spin)
-
         # Total duration display
         layout.addWidget(QLabel("Total Duration:"))
         self.total_duration_label = QLabel("0.0s")
@@ -215,6 +206,20 @@ class LineProtocolBuilderWidget(QWidget):
         self.dwell_group = self._create_dwell_section()
         layout.addWidget(self.dwell_group)
 
+        # Line loop count
+        loop_layout = QHBoxLayout()
+        loop_layout.addWidget(QLabel("Repeat this line:"))
+        self.line_loop_spin = QSpinBox()
+        self.line_loop_spin.setRange(1, 100)
+        self.line_loop_spin.setValue(1)
+        self.line_loop_spin.setToolTip("Number of times to repeat this specific line")
+        self.line_loop_spin.setMinimumWidth(80)
+        self.line_loop_spin.setSuffix(" times")
+        self.line_loop_spin.valueChanged.connect(self._on_line_params_changed)
+        loop_layout.addWidget(self.line_loop_spin)
+        loop_layout.addStretch()
+        layout.addLayout(loop_layout)
+        
         # Line notes
         notes_layout = QHBoxLayout()
         notes_layout.addWidget(QLabel("Notes:"))
@@ -482,6 +487,20 @@ class LineProtocolBuilderWidget(QWidget):
 
         layout.addStretch()
 
+        # Loop count control (moved from top)
+        loop_layout = QHBoxLayout()
+        loop_layout.addWidget(QLabel("Protocol Loops:"))
+        self.loop_count_spin = QSpinBox()
+        self.loop_count_spin.setRange(1, 100)
+        self.loop_count_spin.setValue(1)
+        self.loop_count_spin.setToolTip("Number of times to repeat the entire protocol")
+        self.loop_count_spin.setMinimumWidth(80)
+        self.loop_count_spin.valueChanged.connect(self._on_metadata_changed)
+        loop_layout.addWidget(self.loop_count_spin)
+        loop_layout.addStretch()
+        layout.addLayout(loop_layout)
+        
+        # Execute button
         self.execute_protocol_btn = QPushButton("▶▶ EXECUTE PROTOCOL ◀◀")
         self.execute_protocol_btn.setStyleSheet(
             "background-color: #2196F3; color: white; font-weight: bold; "
@@ -556,6 +575,9 @@ class LineProtocolBuilderWidget(QWidget):
         
         # Apply notes
         line.notes = self.notes_input.text()
+        
+        # Apply loop count
+        line.loop_count = self.line_loop_spin.value()
         
         # Update sequence view to show new summary
         self._update_sequence_view()
@@ -1043,6 +1065,9 @@ class LineProtocolBuilderWidget(QWidget):
 
         # Notes
         self.notes_input.setText(line.notes)
+        
+        # Loop count
+        self.line_loop_spin.setValue(line.loop_count if hasattr(line, 'loop_count') else 1)
 
     def set_safety_limits(self, limits: SafetyLimits) -> None:
         """
