@@ -211,10 +211,18 @@ class LineProtocolBuilderWidget(QWidget):
         main_layout = QVBoxLayout()
         main_layout.setContentsMargins(5, 5, 5, 5)
         
-        # Editor status label (keep at top, outside scroll)
-        self.editor_status_label = QLabel("No line selected - add a line to begin")
-        self.editor_status_label.setStyleSheet("color: #888; font-style: italic; padding: 10px;")
-        main_layout.addWidget(self.editor_status_label)
+        # Quick add line button at top
+        top_layout = QHBoxLayout()
+        self.quick_add_btn = QPushButton("➕ Add New Line")
+        self.quick_add_btn.setStyleSheet("font-weight: bold; padding: 10px; background-color: #4CAF50; color: white;")
+        self.quick_add_btn.clicked.connect(self._on_quick_add_line)
+        top_layout.addWidget(self.quick_add_btn)
+        
+        self.editor_status_label = QLabel("")
+        self.editor_status_label.setStyleSheet("color: #888; font-style: italic; padding: 5px;")
+        top_layout.addWidget(self.editor_status_label)
+        top_layout.addStretch()
+        main_layout.addLayout(top_layout)
 
         # Create scroll area for editor content
         scroll = QScrollArea()
@@ -304,14 +312,10 @@ class LineProtocolBuilderWidget(QWidget):
         group = QGroupBox()
         layout = QVBoxLayout()
 
-        # Master enable checkbox
-        header_layout = QHBoxLayout()
-        self.movement_enable_check = QCheckBox("Movement")
-        self.movement_enable_check.setStyleSheet("font-weight: bold;")
-        self.movement_enable_check.toggled.connect(self._on_movement_enable_toggled)
-        header_layout.addWidget(self.movement_enable_check)
-        header_layout.addStretch()
-        layout.addLayout(header_layout)
+        # Movement header (always enabled)
+        header_label = QLabel("Movement")
+        header_label.setStyleSheet("font-weight: bold; font-size: 12px; color: #4CAF50;")
+        layout.addWidget(header_label)
 
         # Movement type radio buttons
         type_layout = QHBoxLayout()
@@ -457,14 +461,10 @@ class LineProtocolBuilderWidget(QWidget):
         group = QGroupBox()
         layout = QVBoxLayout()
 
-        # Master enable checkbox
-        header_layout = QHBoxLayout()
-        self.laser_enable_check = QCheckBox("Laser")
-        self.laser_enable_check.setStyleSheet("font-weight: bold;")
-        self.laser_enable_check.toggled.connect(self._on_laser_enable_toggled)
-        header_layout.addWidget(self.laser_enable_check)
-        header_layout.addStretch()
-        layout.addLayout(header_layout)
+        # Laser header (always enabled)
+        header_label = QLabel("Laser")
+        header_label.setStyleSheet("font-weight: bold; font-size: 12px; color: #FF9800;")
+        layout.addWidget(header_label)
 
         # Laser mode radio buttons
         type_layout = QHBoxLayout()
@@ -555,14 +555,10 @@ class LineProtocolBuilderWidget(QWidget):
         group = QGroupBox()
         layout = QVBoxLayout()
 
-        # Master enable checkbox
-        header_layout = QHBoxLayout()
-        self.dwell_enable_check = QCheckBox("Dwell (Wait)")
-        self.dwell_enable_check.setStyleSheet("font-weight: bold;")
-        self.dwell_enable_check.toggled.connect(self._on_dwell_enable_toggled)
-        header_layout.addWidget(self.dwell_enable_check)
-        header_layout.addStretch()
-        layout.addLayout(header_layout)
+        # Dwell header (always enabled)
+        header_label = QLabel("Dwell (Wait)")
+        header_label.setStyleSheet("font-weight: bold; font-size: 12px; color: #2196F3;")
+        layout.addWidget(header_label)
 
         # Dwell duration
         dwell_layout = QHBoxLayout()
@@ -713,8 +709,8 @@ class LineProtocolBuilderWidget(QWidget):
         
         line = self.current_protocol.lines[self.current_line_index]
         
-        # Apply movement parameters
-        if self.movement_enable_check.isChecked():
+        # Apply movement parameters (always save if values present)
+        if True:  # Always save movement
             if self.move_position_radio.isChecked():
                 move_type = MoveType.ABSOLUTE if self.move_type_combo.currentIndex() == 0 else MoveType.RELATIVE
                 line.movement = MoveParams(
@@ -733,8 +729,8 @@ class LineProtocolBuilderWidget(QWidget):
         else:
             line.movement = None
         
-        # Apply laser parameters
-        if self.laser_enable_check.isChecked():
+        # Apply laser parameters (always save if values present)
+        if True:  # Always save laser
             if self.laser_set_radio.isChecked():
                 line.laser = LaserSetParams(power_watts=self.laser_set_power_spin.value())
             else:
@@ -746,8 +742,8 @@ class LineProtocolBuilderWidget(QWidget):
         else:
             line.laser = None
         
-        # Apply dwell parameters
-        if self.dwell_enable_check.isChecked():
+        # Apply dwell parameters (always save if values present)
+        if True:  # Always save dwell
             line.dwell = DwellParams(duration_s=self.dwell_duration_spin.value())
         else:
             line.dwell = None
@@ -804,6 +800,25 @@ class LineProtocolBuilderWidget(QWidget):
     # ========================================================================
     # Signal Handlers - Sequence Controls
     # ========================================================================
+
+
+    def _on_quick_add_line(self) -> None:
+        """Quick add: Create new line and auto-select it."""
+        if self.current_protocol is None:
+            return
+        
+        # Create new line
+        line_number = len(self.current_protocol.lines) + 1
+        new_line = ProtocolLine(line_number=line_number)
+        self.current_protocol.lines.append(new_line)
+        
+        # Update view
+        self._update_sequence_view()
+        
+        # Auto-select the new line
+        self.sequence_list.setCurrentRow(len(self.current_protocol.lines) - 1)
+        
+        logger.info(f"Quick add: Created and selected Line {line_number}")
 
     def _on_add_line(self) -> None:
         """Add new line to protocol."""
@@ -974,8 +989,8 @@ class LineProtocolBuilderWidget(QWidget):
 
         line = self.current_protocol.lines[self.current_line_index]
 
-        # Apply movement parameters
-        if self.movement_enable_check.isChecked():
+        # Apply movement parameters (always save if values present)
+        if True:  # Always save movement
             if self.move_position_radio.isChecked():
                 move_type = (
                     MoveType.ABSOLUTE
@@ -998,8 +1013,8 @@ class LineProtocolBuilderWidget(QWidget):
         else:
             line.movement = None
 
-        # Apply laser parameters
-        if self.laser_enable_check.isChecked():
+        # Apply laser parameters (always save if values present)
+        if True:  # Always save laser
             if self.laser_set_radio.isChecked():
                 line.laser = LaserSetParams(power_watts=self.laser_set_power_spin.value())
             else:
@@ -1011,8 +1026,8 @@ class LineProtocolBuilderWidget(QWidget):
         else:
             line.laser = None
 
-        # Apply dwell parameters
-        if self.dwell_enable_check.isChecked():
+        # Apply dwell parameters (always save if values present)
+        if True:  # Always save dwell
             line.dwell = DwellParams(duration_s=self.dwell_duration_spin.value())
         else:
             line.dwell = None
@@ -1336,9 +1351,8 @@ class LineProtocolBuilderWidget(QWidget):
 
     def _load_line_into_editor(self, line: ProtocolLine) -> None:
         """Load line parameters into editor UI."""
-        # Movement
+        # Movement (no checkbox)
         if line.movement is not None:
-            self.movement_enable_check.setChecked(True)
 
             if isinstance(line.movement, MoveParams):
                 self.move_position_radio.setChecked(True)
@@ -1354,12 +1368,10 @@ class LineProtocolBuilderWidget(QWidget):
                 self.home_speed_spin.setValue(line.movement.speed_mm_per_s)
                 self.home_accel_spin.setValue(line.movement.acceleration_mm_per_s2)
                 self.home_decel_spin.setValue(line.movement.deceleration_mm_per_s2)
-        else:
-            self.movement_enable_check.setChecked(False)
+        # (Movement always visible)
 
-        # Laser
+        # Laser (no checkbox)
         if line.laser is not None:
-            self.laser_enable_check.setChecked(True)
 
             if isinstance(line.laser, LaserSetParams):
                 self.laser_set_radio.setChecked(True)
@@ -1369,15 +1381,12 @@ class LineProtocolBuilderWidget(QWidget):
                 self.laser_start_power_spin.setValue(line.laser.start_power_watts)
                 self.laser_end_power_spin.setValue(line.laser.end_power_watts)
                 self.laser_ramp_duration_spin.setValue(line.laser.duration_s)
-        else:
-            self.laser_enable_check.setChecked(False)
+        # (Laser always visible)
 
-        # Dwell
+        # Dwell (no checkbox)
         if line.dwell is not None:
-            self.dwell_enable_check.setChecked(True)
             self.dwell_duration_spin.setValue(line.dwell.duration_s)
-        else:
-            self.dwell_enable_check.setChecked(False)
+        # (Dwell always visible)
 
         # Notes
         self.notes_input.setText(line.notes)
