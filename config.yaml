@@ -1,0 +1,75 @@
+# TOSCA Laser Control System Configuration
+# Configuration values for hardware, safety, and GUI settings
+
+hardware:
+  camera:
+    gui_fps_target: 30.0  # GUI update rate limit (FPS)
+    hardware_fps: 30.0  # Camera acquisition frame rate
+    fps_update_interval: 30  # Frames between FPS calculations
+
+    # Video Recording Settings (Week 4 - Performance Optimization)
+    video_codec: "H264"  # Primary codec (H264 for best compression)
+    video_quality_crf: 28  # Constant Rate Factor (23=default, 28=good balance, 18=visually lossless)
+    video_preset: "medium"  # Encoding preset (faster=larger file, slower=smaller file)
+    video_fallback_codec: "MJPG"  # Fallback if H.264 unavailable
+
+  actuator:
+    com_port: "COM3"  # Serial port for actuator
+    baudrate: 9600  # Serial baudrate (TOSCA uses 9600, NOT 115200)
+    position_timer_ms: 100  # Position update interval (ms)
+    homing_check_initial_ms: 100  # Initial homing check delay (ms)
+    homing_check_loop_ms: 200  # Homing loop check delay (ms)
+    position_check_initial_ms: 100  # Initial position check delay (ms)
+    position_check_loop_ms: 50  # Position loop check delay (ms)
+
+  laser:
+    com_port: "COM4"  # Serial port for laser controller (NOT CONNECTED - will fail gracefully)
+    baudrate: 38400  # Serial baudrate
+    timeout_s: 1.0  # Serial read timeout (seconds)
+    write_timeout_s: 1.0  # Serial write timeout (seconds)
+    monitor_timer_ms: 500  # Status update interval (ms)
+    max_current_ma: 2000.0  # Maximum laser current (mA)
+    min_current_ma: 0.0  # Minimum laser current (mA)
+
+  gpio:
+    com_port: "COM6"  # Serial port for Arduino Uno (v2.0 firmware)
+    baudrate: 9600  # Serial baudrate
+    timeout_s: 1.0  # Serial read timeout (seconds)
+    write_timeout_s: 1.0  # Serial write timeout (seconds)
+    monitor_timer_ms: 100  # Status update interval (ms)
+    watchdog_timeout_ms: 1000  # Hardware watchdog timeout (ms)
+
+    # Hardware Pin Configuration (NEW v2.0):
+    motor_pwm_pin: 9  # Arduino PWM pin for smoothing motor (D9)
+    motor_pwm_min: 0  # Minimum PWM value (stopped)
+    motor_pwm_max: 153  # Maximum PWM value (3.0V - DO NOT EXCEED)
+    motor_default_speed: 100  # Default motor speed (2.0V)
+
+    accelerometer_i2c: true  # Using I2C accelerometer (A4=SDA, A5=SCL)
+    accelerometer_address: 0  # Auto-detect (0x53=ADXL345, 0x68=MPU6050)
+    vibration_threshold: 0.1  # Vibration detection threshold (g's)
+
+    photodiode_pin: 0  # Arduino analog pin for photodiode (A0)
+    aiming_laser_pin: 4  # Arduino digital pin for aiming laser (D4)
+    footpedal_pin: 5  # Arduino digital pin for footpedal (D5 - future)
+
+safety:
+  watchdog_enabled: true  # Enable hardware watchdog timer
+  watchdog_heartbeat_ms: 500  # Heartbeat interval (must be < watchdog timeout)
+  emergency_stop_enabled: true  # Enable emergency stop functionality
+  interlock_check_enabled: true  # Enable safety interlock checking
+  laser_enable_requires_interlocks: true  # Laser cannot enable without valid interlocks
+
+gui:
+  window_title: "TOSCA Laser Control System"  # Main window title
+  default_tab_index: 0  # Default selected tab on startup (0=Subject, 1=Camera, 2=Treatment, 3=Safety)
+  auto_connect_hardware: false  # Auto-connect to hardware on startup
+  enable_developer_mode: false  # Enable developer mode features
+  research_mode: true  # Mark system as research-only (not for clinical use)
+  show_warning_on_startup: true  # Show research mode warning dialog on startup
+
+logging:
+  retention_days: 2555  # Log retention period (7 years for FDA CFR 21 Part 11 compliance)
+  rotation_size_mb: 100  # Maximum log file size before rotation (MB)
+  enable_rotation: true  # Enable automatic log rotation
+  enable_cleanup: true  # Enable automatic cleanup of old log files

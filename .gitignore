@@ -1,0 +1,157 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+env/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+*.cover
+
+# Medical Device Data - DO NOT COMMIT
+data/
+*.db
+*.sqlite
+*.sqlite3
+sessions/
+logs/
+*.log
+
+# Subject Data - CRITICAL: Never commit
+*patient*
+*subject*
+*PHI*
+
+# Hardware Calibration - Project Specific
+calibration/
+*.cal
+
+# Video recordings
+*.avi
+*.mp4
+*.mkv
+
+# Camera test outputs
+components/camera_module/output/
+components/camera_module/docs/camera_features.txt
+
+# Documentation builds
+docs/_build/
+docs/.doctrees/
+
+# Environment variables and secrets
+.env
+.env.local
+*.pem
+*.key
+credentials.json
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+cleanup_*.sh
+README_backup.md
+
+# OS files
+Thumbs.db
+Desktop.ini
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+*.ipynb
+
+# PyInstaller
+*.spec
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+components/actuator_module/output/
+
+# Security scan outputs
+bandit_report.json
+safety_report.json
+*.bandit
+*.safety
+
+# AI Development Tools - NOT FOR MEDICAL DEVICE REPOSITORY
+# These files contain AI assistant configurations and development context
+# Keep them locally but do NOT commit to git for regulatory compliance
+.claude/
+.gemini/
+.taskmaster/
+.mcp.json
+CLAUDE.md
+presubmit/
+
+# AI-related documentation and installation
+COMPONENT_RECOMMENDATIONS.md
+install.txt
+docs/TOOL_*.md
+docs/UI_REDESIGN_PLAN.md
+
+# Regulatory/FDA Strategy Documents (archive only)
+docs/regulatory_archive/
+
+# Project Archive (old files moved here during cleanup)
+archive/
+
+# Logs
+logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+dev-debug.log
+# Dependency directories
+node_modules/
+# Environment variables
+# Editor directories and files
+.idea
+.vscode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+# OS specific
+
+# Task files
+# tasks.json
+# tasks/
+.cursor/

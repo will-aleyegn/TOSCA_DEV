@@ -1,0 +1,70 @@
+repos:
+  - repo: local
+    hooks:
+      - id: presubmit-reminder
+        name: Documentation Reminder
+        entry: python .pre-commit-hooks/show-presubmit-reminder.py
+        language: system
+        always_run: true
+        pass_filenames: false
+        stages: [pre-commit]
+        verbose: true
+
+      - id: detect-ai-references
+        name: Detect AI Tool References and Emojis
+        entry: python .pre-commit-hooks/detect-ai-references.py
+        language: system
+        types: [text]
+        stages: [pre-commit]
+        pass_filenames: true
+
+      - id: validate-file-paths
+        name: Validate File Paths (Whitelist)
+        entry: python .pre-commit-hooks/validate-file-paths.py
+        language: system
+        stages: [pre-commit]
+        pass_filenames: true
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: '^components/.*/manufacturer_docs/.*'
+      - id: end-of-file-fixer
+        exclude: '^components/.*/manufacturer_docs/.*'
+      - id: check-yaml
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+        exclude: '^components/.*/manufacturer_docs/.*'
+      - id: check-merge-conflict
+      - id: debug-statements
+      - id: mixed-line-ending
+        exclude: '^components/.*/manufacturer_docs/.*'
+
+  - repo: https://github.com/psf/black
+    rev: 24.3.0
+    hooks:
+      - id: black
+        args: ['--line-length=100']
+        exclude: '^components/.*/manufacturer_docs/.*'
+
+  - repo: https://github.com/pycqa/flake8
+    rev: 7.0.0
+    hooks:
+      - id: flake8
+        args: ['--max-line-length=100', '--extend-ignore=E203,W503']
+        exclude: '^(components/.*/manufacturer_docs/.*|docs/actuator-control/.*|\.claude/.*|components/camera_module/examples/official_allied_vision/.*|components/camera_module/tests/vmbpy_unit_tests/.*|tests/.*)'
+
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        args: ['--profile=black', '--line-length=100']
+        exclude: '^components/.*/manufacturer_docs/.*'
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.8.0
+    hooks:
+      - id: mypy
+        args: ['--ignore-missing-imports', '--no-strict-optional']
+        exclude: '^(components/.*/manufacturer_docs/.*|components/actuator_module/Xeryon\.py|\.claude/.*|components/camera_module/examples/official_allied_vision/.*|components/camera_module/tests/vmbpy_unit_tests/.*|tests/.*)'

@@ -1,0 +1,96 @@
+{
+  "protocol_name": "Scanning Pattern Example",
+  "version": "1.0",
+  "description": "Multiple position scan with varying laser power",
+  "loop_count": 3,
+  "created_date": "2025-10-30T12:00:00",
+  "author": "TOSCA Team",
+  "safety_limits": {
+    "max_power_watts": 10.0,
+    "max_duration_seconds": 300.0,
+    "min_actuator_position_mm": 0.0,
+    "max_actuator_position_mm": 20.0,
+    "max_actuator_speed_mm_per_s": 5.0
+  },
+  "lines": [
+    {
+      "line_number": 1,
+      "movement": {
+        "type": "move",
+        "params": {
+          "target_position_mm": 2.0,
+          "speed_mm_per_s": 2.0,
+          "move_type": "absolute"
+        }
+      },
+      "laser": {
+        "type": "set",
+        "params": {
+          "power_watts": 1.5
+        }
+      },
+      "dwell": {
+        "duration_s": 2.0
+      },
+      "notes": "Position 1: Low power spot treatment"
+    },
+    {
+      "line_number": 2,
+      "movement": {
+        "type": "move",
+        "params": {
+          "target_position_mm": 6.0,
+          "speed_mm_per_s": 2.0,
+          "move_type": "absolute"
+        }
+      },
+      "laser": {
+        "type": "set",
+        "params": {
+          "power_watts": 3.0
+        }
+      },
+      "dwell": {
+        "duration_s": 2.0
+      },
+      "notes": "Position 2: Medium power spot treatment"
+    },
+    {
+      "line_number": 3,
+      "movement": {
+        "type": "move",
+        "params": {
+          "target_position_mm": 10.0,
+          "speed_mm_per_s": 2.0,
+          "move_type": "absolute"
+        }
+      },
+      "laser": {
+        "type": "set",
+        "params": {
+          "power_watts": 4.5
+        }
+      },
+      "dwell": {
+        "duration_s": 2.0
+      },
+      "notes": "Position 3: Higher power spot treatment"
+    },
+    {
+      "line_number": 4,
+      "movement": {
+        "type": "home",
+        "params": {
+          "speed_mm_per_s": 3.0
+        }
+      },
+      "laser": {
+        "type": "set",
+        "params": {
+          "power_watts": 0.0
+        }
+      },
+      "notes": "Return to home position"
+    }
+  ]
+}
