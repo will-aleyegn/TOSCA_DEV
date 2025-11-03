@@ -292,7 +292,11 @@ class LineProtocolBuilderWidget(QWidget):
         self.dwell_group.setEnabled(False)
         # Auto-save enabled
 
-        group.setLayout(layout)
+        # Set scroll content and add to main layout
+        scroll.setWidget(scroll_content)
+        main_layout.addWidget(scroll)
+        
+        group.setLayout(main_layout)
         return group
 
     def _create_movement_section(self) -> QGroupBox:
