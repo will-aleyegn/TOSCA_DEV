@@ -41,6 +41,7 @@ from core.protocol_line import (
     ProtocolLine,
     SafetyLimits,
 )
+import pyqtgraph as pg
 
 logger = logging.getLogger(__name__)
 
@@ -132,6 +133,13 @@ class LineProtocolBuilderWidget(QWidget):
         self.total_duration_label = QLabel("0.0s")
         self.total_duration_label.setStyleSheet("font-weight: bold; color: #4CAF50;")
         layout.addWidget(self.total_duration_label)
+        
+        # Total energy display
+        layout.addWidget(QLabel("Total Energy:"))
+        self.total_energy_label = QLabel("0.0J")
+        self.total_energy_label.setStyleSheet("font-weight: bold; color: #FF9800;")
+        self.total_energy_label.setToolTip("Total laser energy delivered (Power × Time)")
+        layout.addWidget(self.total_energy_label)
 
         layout.addStretch()
 
@@ -168,6 +176,12 @@ class LineProtocolBuilderWidget(QWidget):
         self.remove_line_btn.clicked.connect(self._on_remove_line)
         self.remove_line_btn.setEnabled(False)
         btn_layout.addWidget(self.remove_line_btn)
+
+        self.duplicate_line_btn = QPushButton("📋 Duplicate")
+        self.duplicate_line_btn.clicked.connect(self._on_duplicate_line)
+        self.duplicate_line_btn.setEnabled(False)
+        self.duplicate_line_btn.setToolTip("Duplicate the selected line")
+        btn_layout.addWidget(self.duplicate_line_btn)
 
         self.move_up_btn = QPushButton("⬆ Up")
         self.move_up_btn.clicked.connect(self._on_move_line_up)
@@ -229,10 +243,28 @@ class LineProtocolBuilderWidget(QWidget):
         notes_layout.addWidget(self.notes_input)
         layout.addLayout(notes_layout)
 
+        # Position trajectory visualization
+        position_group = QGroupBox("Position Trajectory Preview")
+        position_layout = QVBoxLayout()
+        
+        # Create pyqtgraph plot widget
+        self.position_plot = pg.PlotWidget()
+        self.position_plot.setBackground('w')
+        self.position_plot.setLabel('left', 'Position', units='mm')
+        self.position_plot.setLabel('bottom', 'Time', units='s')
+        self.position_plot.setTitle('Actuator Position Over Time')
+        self.position_plot.showGrid(x=True, y=True, alpha=0.3)
+        self.position_plot.setMinimumHeight(200)
+        
+        # Add reference lines
+        self.position_plot.addLine(y=0, pen=pg.mkPen('r', width=1, style=pg.QtCore.Qt.PenStyle.DashLine))
+        
+        position_layout.addWidget(self.position_plot)
+        position_group.setLayout(position_layout)
+        layout.addWidget(position_group)
+
         # Apply changes button (REMOVED - auto-save enabled)
         # Auto-save happens when switching lines or closing editor
-
-        layout.addStretch()
 
         # Disable editor initially
         self.movement_group.setEnabled(False)
@@ -601,6 +633,7 @@ class LineProtocolBuilderWidget(QWidget):
             self.laser_group.setEnabled(False)
             self.dwell_group.setEnabled(False)
             self.remove_line_btn.setEnabled(False)
+            self.duplicate_line_btn.setEnabled(False)
             self.move_up_btn.setEnabled(False)
             self.move_down_btn.setEnabled(False)
             return
@@ -615,6 +648,7 @@ class LineProtocolBuilderWidget(QWidget):
         self.laser_group.setEnabled(True)
         self.dwell_group.setEnabled(True)
         self.remove_line_btn.setEnabled(True)
+        self.duplicate_line_btn.setEnabled(True)
 
         # Enable/disable move up/down buttons
         self.move_up_btn.setEnabled(index > 0)
@@ -702,6 +736,44 @@ class LineProtocolBuilderWidget(QWidget):
 
         self._update_sequence_view()
         self.sequence_list.setCurrentRow(idx + 1)
+
+    def _on_duplicate_line(self) -> None:
+        """Duplicate the currently selected line."""
+        if self.current_protocol is None or self.current_line_index < 0:
+            return
+        
+        if self.current_line_index >= len(self.current_protocol.lines):
+            return
+        
+        # Auto-save current line first
+        self._auto_save_current_line()
+        
+        # Copy the line
+        source_line = self.current_protocol.lines[self.current_line_index]
+        new_line_number = len(self.current_protocol.lines) + 1
+        
+        # Create deep copy with new line number
+        duplicated_line = ProtocolLine(
+            line_number=new_line_number,
+            movement=source_line.movement,
+            laser=source_line.laser,
+            dwell=source_line.dwell,
+            notes=source_line.notes + " (copy)" if source_line.notes else "(copy)",
+            loop_count=source_line.loop_count if hasattr(source_line, 'loop_count') else 1
+        )
+        
+        # Insert after current line
+        self.current_protocol.lines.insert(self.current_line_index + 1, duplicated_line)
+        
+        # Renumber all lines
+        for i, line in enumerate(self.current_protocol.lines):
+            line.line_number = i + 1
+        
+        # Update view and select new line
+        self._update_sequence_view()
+        self.sequence_list.setCurrentRow(self.current_line_index + 1)
+        
+        logger.info(f"Duplicated line {source_line.line_number}")
 
     # ========================================================================
     # Signal Handlers - Line Editor
@@ -1014,13 +1086,81 @@ class LineProtocolBuilderWidget(QWidget):
         self.execute_protocol_btn.setEnabled(len(self.current_protocol.lines) > 0)
 
     def _update_total_duration(self) -> None:
-        """Update total protocol duration display."""
+        """Update total protocol duration and energy displays."""
         if self.current_protocol is None:
             self.total_duration_label.setText("0.0s")
+            self.total_energy_label.setText("0.0J")
             return
 
         total_duration = self.current_protocol.calculate_total_duration()
         self.total_duration_label.setText(f"{total_duration:.1f}s")
+        
+        total_energy = self.current_protocol.calculate_total_energy()
+        self.total_energy_label.setText(f"{total_energy:.1f}J")
+        
+        # Update position graph
+        self._update_position_graph()
+    
+    def _update_position_graph(self) -> None:
+        """Update the position trajectory graph based on current protocol."""
+        self.position_plot.clear()
+        
+        if self.current_protocol is None or len(self.current_protocol.lines) == 0:
+            # Add reference line and empty state message
+            self.position_plot.addLine(y=0, pen=pg.mkPen('r', width=1, style=pg.QtCore.Qt.PenStyle.DashLine))
+            return
+        
+        # Calculate position trajectory
+        time_points = [0.0]
+        position_points = [0.0]  # Start at home position
+        current_position = 0.0
+        current_time = 0.0
+        
+        for line in self.current_protocol.lines:
+            line_loops = line.loop_count if hasattr(line, 'loop_count') else 1
+            
+            for _ in range(line_loops):
+                # Calculate duration for this line
+                line_duration = line.calculate_duration(current_position)
+                
+                # Update position based on movement
+                if isinstance(line.movement, MoveParams):
+                    target_pos = line.movement.target_position_mm
+                    if line.movement.move_type == MoveType.RELATIVE:
+                        target_pos = current_position + target_pos
+                    
+                    # Add intermediate point for movement
+                    time_points.append(current_time + line_duration)
+                    position_points.append(target_pos)
+                    current_position = target_pos
+                    
+                elif isinstance(line.movement, HomeParams):
+                    # Move to home (0)
+                    time_points.append(current_time + line_duration)
+                    position_points.append(0.0)
+                    current_position = 0.0
+                    
+                else:
+                    # No movement, dwell at current position
+                    if line.dwell is not None:
+                        time_points.append(current_time + line.dwell.duration_s)
+                        position_points.append(current_position)
+                
+                current_time += line_duration
+        
+        # Plot the trajectory
+        self.position_plot.plot(time_points, position_points, pen=pg.mkPen('b', width=2), 
+                                symbol='o', symbolSize=8, symbolBrush='b')
+        
+        # Add reference lines
+        self.position_plot.addLine(y=0, pen=pg.mkPen('r', width=1, style=pg.QtCore.Qt.PenStyle.DashLine))
+        
+        # Add safety limit lines if available
+        if self.safety_limits:
+            self.position_plot.addLine(y=self.safety_limits.max_actuator_position_mm, 
+                                      pen=pg.mkPen('orange', width=1, style=pg.QtCore.Qt.PenStyle.DashLine))
+            self.position_plot.addLine(y=self.safety_limits.min_actuator_position_mm, 
+                                      pen=pg.mkPen('orange', width=1, style=pg.QtCore.Qt.PenStyle.DashLine))
 
     def _load_line_into_editor(self, line: ProtocolLine) -> None:
         """Load line parameters into editor UI."""
