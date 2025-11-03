@@ -98,7 +98,9 @@ class LineProtocolBuilderWidget(QWidget):
 
         # Left side: Protocol sequence view
         sequence_group = self._create_sequence_view()
-        content_layout.addWidget(sequence_group, stretch=2)
+        sequence_group.setMinimumWidth(250)  # Ensure readable width
+        sequence_group.setMaximumWidth(350)  # Prevent too wide
+        content_layout.addWidget(sequence_group, stretch=1)
 
         # Right side: Line editor panel
         editor_group = self._create_line_editor()
@@ -164,6 +166,8 @@ class LineProtocolBuilderWidget(QWidget):
         self.sequence_list = QListWidget()
         self.sequence_list.setAlternatingRowColors(True)
         self.sequence_list.currentRowChanged.connect(self._on_line_selected)
+        self.sequence_list.setMinimumWidth(200)  # Prevent squishing
+        self.sequence_list.setMaximumWidth(400)  # Reasonable max width
         layout.addWidget(self.sequence_list)
 
         # Sequence control buttons
@@ -203,6 +207,7 @@ class LineProtocolBuilderWidget(QWidget):
         """Create contextual line editor panel."""
         group = QGroupBox("Line Editor")
         layout = QVBoxLayout()
+        layout.setSpacing(5)  # Reduce spacing to fit more content
 
         # Editor status label
         self.editor_status_label = QLabel("No line selected - add a line to begin")
