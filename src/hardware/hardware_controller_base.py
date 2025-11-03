@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-Abstract base class for all hardware controllers in TOSCA.
+Module: hardware_controller_base
+Project: TOSCA Laser Control System
 
+Purpose: Abstract base class for all hardware controllers in TOSCA.
 Enforces consistent interface across Camera, Actuator, Laser, and GPIO controllers.
 Combines PyQt6's QObject (for signals/slots) with ABC (for interface enforcement).
+Safety Critical: Yes
 
 Design Philosophy:
 - Minimal interface - only what's truly common across all hardware
@@ -72,7 +75,7 @@ class HardwareControllerBase(QObject, ABC, metaclass=QObjectABCMeta):
         self.event_logger = event_logger
 
     @abstractmethod
-    def connect(self, **kwargs: Any) -> bool:
+    def connect(self, **_kwargs: Any) -> bool:
         """
         Connect to hardware device.
 

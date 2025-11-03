@@ -1,8 +1,11 @@
 """
-Event logger for TOSCA treatment system.
+Module: event_logger
+Project: TOSCA Laser Control System
 
+Purpose: Event logger for TOSCA treatment system.
 Provides immutable audit trail for all safety-critical and operational events.
 Integrates with database SafetyLog table for persistence and emits PyQt6 signals.
+Safety Critical: Yes
 
 ARCHITECTURE ASSUMPTION:
 This implementation assumes single-process operation. The log rotation and
@@ -236,6 +239,12 @@ class EventLogger(QObject):
                 "tech_id": self.current_tech_id,
                 "system_state": system_state,
                 "laser_state": laser_state,
+                "footpedal_state": footpedal_state,
+                "smoothing_device_state": smoothing_device_state,
+                "photodiode_voltage": photodiode_voltage,
+                "footpedal_state": footpedal_state,
+                "smoothing_device_state": smoothing_device_state,
+                "photodiode_voltage": photodiode_voltage,
                 "action_taken": action_taken,
                 "details": details,
             }

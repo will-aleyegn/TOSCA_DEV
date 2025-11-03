@@ -1,3 +1,5 @@
+# flake8: noqa: F821
+# Note: F821 (undefined name) is expected - whitelist uses bare names by design
 # Vulture Whitelist for TOSCA Medical Device Software
 # This file contains patterns for code that should NOT be flagged as dead code
 
@@ -121,3 +123,8 @@ manual_tec_control  # Manual TEC override (deprecated, use protocol-based)
 # 1. The whitelist pattern is too generic (make it more specific)
 # 2. The code was removed but whitelist wasn't updated (remove from whitelist)
 # 3. The code is genuinely unused and should be reviewed for removal
+
+# ============================================================================
+# Abstract Method Parameters - Part of interface definition
+# ============================================================================
+_.connect.kwargs  # Used by subclass implementations (ActuatorController, LaserController, etc.)

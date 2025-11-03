@@ -1,13 +1,16 @@
 # -*- coding: utf-8 -*-
 """
-Camera hardware abstraction layer for Allied Vision cameras.
+Module: camera_controller
+Project: TOSCA Laser Control System
 
+Purpose: Camera hardware abstraction layer for Allied Vision cameras.
 Provides PyQt6-integrated camera control with:
 - Live streaming with Qt signals
 - Exposure and gain control
 - Still image capture
 - Video recording
 - Thread-safe camera operations
+Safety Critical: No
 """
 
 import logging
@@ -73,8 +76,8 @@ class CameraStreamThread(QThread):
         self.start_time = time.time()
         self.last_gui_frame_time = 0.0  # Reset to ensure first frame passes
 
-        def frame_callback(cam: Any, stream: Any, frame: Any) -> None:
-            """Callback for each frame."""
+        def frame_callback(cam: Any, _stream: Any, frame: Any) -> None:
+            """Callback for each frame (stream parameter unused but required by VmbPy API)."""
             if not self.running:
                 logger.debug("Frame callback called but running=False")
                 return
