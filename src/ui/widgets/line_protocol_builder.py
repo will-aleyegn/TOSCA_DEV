@@ -206,24 +206,26 @@ class LineProtocolBuilderWidget(QWidget):
         return group
 
     def _create_line_editor(self) -> QGroupBox:
-        """Create contextual line editor panel."""
+        """Create contextual line editor panel with scrolling."""
         group = QGroupBox("Line Editor")
-        layout = QVBoxLayout()
+        main_layout = QVBoxLayout()
+        main_layout.setContentsMargins(5, 5, 5, 5)
+        
+        # Editor status label (keep at top, outside scroll)
+        self.editor_status_label = QLabel("No line selected - add a line to begin")
+        self.editor_status_label.setStyleSheet("color: #888; font-style: italic; padding: 10px;")
+        main_layout.addWidget(self.editor_status_label)
 
         # Create scroll area for editor content
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        
         scroll_content = QWidget()
-        scroll_layout = QVBoxLayout(scroll_content)
-        scroll_layout.setSpacing(5)
-
-        layout.setSpacing(5)  # Reduce spacing to fit more content
-
-        # Editor status label
-        self.editor_status_label = QLabel("No line selected - add a line to begin")
-        self.editor_status_label.setStyleSheet("color: #888; font-style: italic; padding: 10px;")
-        layout.addWidget(self.editor_status_label)
+        layout = QVBoxLayout(scroll_content)
+        layout.setSpacing(5)
 
         # Movement section
         self.movement_group = self._create_movement_section()
@@ -283,14 +285,12 @@ class LineProtocolBuilderWidget(QWidget):
         position_group.setLayout(position_layout)
         layout.addWidget(position_group)
 
-        # Apply changes button (REMOVED - auto-save enabled)
-        # Auto-save happens when switching lines or closing editor
+        layout.addStretch()
 
         # Disable editor initially
         self.movement_group.setEnabled(False)
         self.laser_group.setEnabled(False)
         self.dwell_group.setEnabled(False)
-        # Auto-save enabled
 
         # Set scroll content and add to main layout
         scroll.setWidget(scroll_content)
