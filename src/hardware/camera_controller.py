@@ -67,6 +67,114 @@ class CameraStreamThread(QThread):
         self.last_gui_frame_time = 0.0
         self.gui_fps_target = 30.0  # Limit GUI updates to 30 FPS
 
+    def _convert_pixel_format(self, frame_data: np.ndarray, pixel_format: Any) -> np.ndarray:
+        """
+        Convert camera frame to RGB8 format for GUI display.
+
+        Args:
+            frame_data: Raw frame data from camera
+            pixel_format: VmbPy pixel format enum
+
+        Returns:
+            RGB8 frame data as contiguous numpy array
+        """
+        try:
+            if pixel_format == vmbpy.PixelFormat.Mono8:
+                return cv2.cvtColor(frame_data, cv2.COLOR_GRAY2RGB)
+            elif pixel_format == vmbpy.PixelFormat.Bgr8:
+                return cv2.cvtColor(frame_data, cv2.COLOR_BGR2RGB)
+            elif pixel_format == vmbpy.PixelFormat.Rgb8:
+                return np.ascontiguousarray(frame_data)
+            elif pixel_format in (
+                vmbpy.PixelFormat.BayerRG8,
+                vmbpy.PixelFormat.BayerGR8,
+                vmbpy.PixelFormat.BayerGB8,
+                vmbpy.PixelFormat.BayerBG8,
+            ):
+                return cv2.cvtColor(frame_data, cv2.COLOR_BayerRG2RGB)
+            elif pixel_format == vmbpy.PixelFormat.YUV422Packed:
+                return cv2.cvtColor(frame_data, cv2.COLOR_YUV2RGB_UYVY)
+            else:
+                logger.warning(f"Unsupported pixel format {pixel_format}, using raw data")
+                return np.ascontiguousarray(frame_data)
+        except Exception as conv_e:
+            logger.error(f"Pixel format conversion failed: {conv_e}, using raw data")
+            return np.ascontiguousarray(frame_data)
+
+    def _apply_display_scale(self, frame_rgb: np.ndarray) -> np.ndarray:
+        """
+        Downsample frame for GUI display if display_scale < 1.0.
+
+        Args:
+            frame_rgb: RGB8 frame at full resolution
+
+        Returns:
+            Downsampled RGB8 frame (or original if scale == 1.0)
+        """
+        if self.display_scale >= 1.0:
+            return frame_rgb
+
+        orig_height, orig_width = frame_rgb.shape[:2]
+        new_width = int(orig_width * self.display_scale)
+        new_height = int(orig_height * self.display_scale)
+
+        if self.gui_frame_count == 0:
+            logger.info(
+                f"Display downsampling enabled: {orig_width}×{orig_height} → "
+                f"{new_width}×{new_height} (scale={self.display_scale}×)"
+            )
+
+        return cv2.resize(frame_rgb, (new_width, new_height), interpolation=cv2.INTER_AREA)
+
+    def _create_pixmap(self, frame_rgb: np.ndarray) -> QPixmap:
+        """
+        Convert RGB8 numpy array to QPixmap for GUI display.
+
+        Args:
+            frame_rgb: RGB8 frame data
+
+        Returns:
+            QPixmap ready for GUI emission
+        """
+        height, width = frame_rgb.shape[:2]
+        bytes_per_line = 3 * width
+        q_image = QImage(frame_rgb.data, width, height, bytes_per_line, QImage.Format.Format_RGB888)
+        return QPixmap.fromImage(q_image)
+
+    def _should_update_gui(self, current_time: float) -> bool:
+        """
+        Check if enough time has elapsed to update GUI (throttling).
+
+        Args:
+            current_time: Current timestamp
+
+        Returns:
+            True if GUI should be updated, False to skip this frame
+        """
+        time_since_last = current_time - self.last_gui_frame_time
+        min_interval = 1.0 / self.gui_fps_target
+        return time_since_last >= min_interval
+
+    def _log_debug_info(
+        self, frame_rgb: np.ndarray, pixel_format: Any, current_time: float
+    ) -> None:
+        """Log debug information for frame processing."""
+        if self.gui_frame_count < 5:
+            logger.info(
+                f"Emitting frame to GUI: #{self.gui_frame_count + 1}, "
+                f"format: {pixel_format}, shape: {frame_rgb.shape}"
+            )
+
+        if self.gui_frame_count > 0 and self.gui_frame_count % 30 == 0:
+            gui_fps = (
+                30.0 / (current_time - self.start_time) if current_time > self.start_time else 0
+            )
+            logger.debug(
+                f"GUI frames: {self.gui_frame_count}, "
+                f"Camera frames: {self.frame_count}, "
+                f"GUI FPS: {gui_fps:.1f}"
+            )
+
     def run(self) -> None:  # noqa: C901
         """Start streaming frames."""
         import time
@@ -83,7 +191,6 @@ class CameraStreamThread(QThread):
                 return
 
             try:
-                # Convert frame to numpy array
                 self.frame_count += 1
                 current_time = time.time()
 
@@ -91,105 +198,36 @@ class CameraStreamThread(QThread):
                 if self.frame_count <= 5:
                     logger.info(f"Frame callback invoked: frame #{self.frame_count}")
 
-                # Throttle GUI updates to target FPS
-                time_since_last_gui_frame = current_time - self.last_gui_frame_time
-                min_frame_interval = 1.0 / self.gui_fps_target
-
-                if time_since_last_gui_frame >= min_frame_interval:
+                # Throttle GUI updates using helper method
+                if self._should_update_gui(current_time):
                     # Convert frame to numpy array
                     frame_data = frame.as_numpy_ndarray()
+                    pixel_format = frame.get_pixel_format()
 
-                    # Convert to RGB8 format for consistent GUI display
-                    # Handle various pixel formats from camera
-                    try:
-                        pixel_format = frame.get_pixel_format()
-
-                        # Convert based on pixel format
-                        if pixel_format == vmbpy.PixelFormat.Mono8:
-                            # Grayscale -> RGB (duplicate to 3 channels)
-                            frame_rgb = cv2.cvtColor(frame_data, cv2.COLOR_GRAY2RGB)
-                        elif pixel_format == vmbpy.PixelFormat.Bgr8:
-                            # BGR -> RGB (OpenCV uses BGR, Qt needs RGB)
-                            frame_rgb = cv2.cvtColor(frame_data, cv2.COLOR_BGR2RGB)
-                        elif pixel_format == vmbpy.PixelFormat.Rgb8:
-                            # Already RGB, just ensure contiguous
-                            frame_rgb = np.ascontiguousarray(frame_data)
-                        elif pixel_format in (
-                            vmbpy.PixelFormat.BayerRG8,
-                            vmbpy.PixelFormat.BayerGR8,
-                            vmbpy.PixelFormat.BayerGB8,
-                            vmbpy.PixelFormat.BayerBG8,
-                        ):
-                            # Bayer pattern -> RGB (debayering)
-                            frame_rgb = cv2.cvtColor(frame_data, cv2.COLOR_BayerRG2RGB)
-                        elif pixel_format == vmbpy.PixelFormat.YUV422Packed:
-                            # YUV -> RGB
-                            frame_rgb = cv2.cvtColor(frame_data, cv2.COLOR_YUV2RGB_UYVY)
-                        else:
-                            # Unsupported format - log warning and use as-is
-                            logger.warning(
-                                f"Unsupported pixel format {pixel_format}, using raw data"
-                            )
-                            frame_rgb = np.ascontiguousarray(frame_data)
-
-                        # Debug: Log first few GUI frames with format info
-                        if self.gui_frame_count < 5:
-                            logger.info(
-                                f"Emitting frame to GUI: #{self.gui_frame_count + 1}, "
-                                f"format: {pixel_format}, shape: {frame_rgb.shape}"
-                            )
-
-                    except Exception as conv_e:
-                        # Conversion failed - log error and use raw data as fallback
-                        logger.error(f"Pixel format conversion failed: {conv_e}, using raw data")
-                        frame_rgb = np.ascontiguousarray(frame_data)
+                    # Convert to RGB8 using helper method
+                    frame_rgb = self._convert_pixel_format(frame_data, pixel_format)
 
                     # Store latest frame for image capture (FULL resolution before downsampling)
                     with self.controller._lock:
                         self.controller.latest_frame = frame_rgb.copy()
 
                     # Write to video recorder if recording (FULL resolution)
-                    # Use lock to prevent race condition with stop_recording()
                     with self.controller._lock:
                         if self.controller.is_recording and self.controller.video_recorder:
-                            # Convert to BGR for OpenCV video writer
                             frame_bgr = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)
                             self.controller.video_recorder.write_frame(frame_bgr)
 
-                    # Apply display scale downsampling BEFORE emitting to GUI
-                    # This reduces signal/slot transfer overhead by 4-16×
-                    if self.display_scale < 1.0:
-                        orig_height, orig_width = frame_rgb.shape[:2]
-                        new_width = int(orig_width * self.display_scale)
-                        new_height = int(orig_height * self.display_scale)
-                        frame_rgb = cv2.resize(
-                            frame_rgb, (new_width, new_height), interpolation=cv2.INTER_AREA
-                        )
-                        # Debug log first downsampled frame
-                        if self.gui_frame_count == 0:
-                            logger.info(
-                                f"Display downsampling enabled: {orig_width}×{orig_height} → "
-                                f"{new_width}×{new_height} (scale={self.display_scale}×)"
-                            )
+                    # Apply display downsampling using helper method
+                    frame_rgb = self._apply_display_scale(frame_rgb)
 
-                    # PERFORMANCE OPTIMIZATION: Convert to QPixmap in camera thread
-                    # This eliminates GUI thread blocking from QImage→QPixmap conversion
-                    # QPixmap is implicitly shared (lightweight pointer), not full data copy
-                    height, width = frame_rgb.shape[:2]
-                    bytes_per_line = 3 * width
-                    q_image = QImage(
-                        frame_rgb.data,
-                        width,
-                        height,
-                        bytes_per_line,
-                        QImage.Format.Format_RGB888,
-                    )
-                    pixmap = QPixmap.fromImage(q_image)
+                    # Convert to QPixmap using helper method
+                    pixmap = self._create_pixmap(frame_rgb)
 
                     # Debug: Log first few pixmap emissions
                     if self.gui_frame_count <= 5:
                         logger.info(
-                            f"Emitting QPixmap to GUI: #{self.gui_frame_count}, size: {pixmap.width()}x{pixmap.height()}"
+                            f"Emitting QPixmap to GUI: #{self.gui_frame_count}, "
+                            f"size: {pixmap.width()}x{pixmap.height()}"
                         )
 
                     # Emit QPixmap to GUI (FAST - lightweight pointer sharing)
@@ -197,24 +235,12 @@ class CameraStreamThread(QThread):
 
                     # NOTE: frame_ready signal is NOT emitted during live view to avoid
                     # transferring 300KB numpy arrays across threads at 30 FPS (9 MB/s).
-                    # It will only be emitted when recording is active (future feature).
 
                     self.last_gui_frame_time = current_time
                     self.gui_frame_count += 1
 
-                    # Debug logging every 30 GUI frames
-                    if self.gui_frame_count % 30 == 0:
-                        gui_fps = (
-                            30.0 / (current_time - self.start_time)
-                            if current_time > self.start_time
-                            else 0
-                        )
-                        msg = (
-                            f"GUI frames: {self.gui_frame_count}, "
-                            f"Camera frames: {self.frame_count}, "
-                            f"GUI FPS: {gui_fps:.1f}"
-                        )
-                        logger.debug(msg)
+                    # Log debug info using helper method
+                    self._log_debug_info(frame_rgb, pixel_format, current_time)
 
                 # Calculate and emit camera FPS every 30 frames (real camera rate)
                 if self.frame_count % 30 == 0:
