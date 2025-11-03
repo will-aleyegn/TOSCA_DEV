@@ -25,6 +25,7 @@ from PyQt6.QtWidgets import (
     QMessageBox,
     QPushButton,
     QRadioButton,
+    QScrollArea,
     QSlider,
     QSpinBox,
     QVBoxLayout,
@@ -166,8 +167,9 @@ class LineProtocolBuilderWidget(QWidget):
         self.sequence_list = QListWidget()
         self.sequence_list.setAlternatingRowColors(True)
         self.sequence_list.currentRowChanged.connect(self._on_line_selected)
-        self.sequence_list.setMinimumWidth(200)  # Prevent squishing
-        self.sequence_list.setMaximumWidth(400)  # Reasonable max width
+        self.sequence_list.setMinimumWidth(250)  # Prevent squishing
+        self.sequence_list.setMaximumWidth(300)  # Keep it compact
+        self.sequence_list.setMinimumHeight(300)  # Ensure vertical space
         layout.addWidget(self.sequence_list)
 
         # Sequence control buttons
@@ -207,6 +209,15 @@ class LineProtocolBuilderWidget(QWidget):
         """Create contextual line editor panel."""
         group = QGroupBox("Line Editor")
         layout = QVBoxLayout()
+
+        # Create scroll area for editor content
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+        scroll_content = QWidget()
+        scroll_layout = QVBoxLayout(scroll_content)
+        scroll_layout.setSpacing(5)
+
         layout.setSpacing(5)  # Reduce spacing to fit more content
 
         # Editor status label
@@ -260,7 +271,8 @@ class LineProtocolBuilderWidget(QWidget):
         self.position_plot.setLabel('bottom', 'Time', units='s')
         self.position_plot.setTitle('Actuator Position Over Time')
         self.position_plot.showGrid(x=True, y=True, alpha=0.3)
-        self.position_plot.setMinimumHeight(200)
+        self.position_plot.setMinimumHeight(150)
+        self.position_plot.setMaximumHeight(200)
         
         # Add reference lines
         self.position_plot.addLine(y=0, pen=pg.mkPen('r', width=1, style=pg.QtCore.Qt.PenStyle.DashLine))
