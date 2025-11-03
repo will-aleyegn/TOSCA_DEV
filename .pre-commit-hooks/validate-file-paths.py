@@ -64,6 +64,12 @@ APPROVED_PATTERNS = [
     # Audit reports
     r"^audit_reports/.*\.md$",
     r"^audit_reports/\.gitkeep$",
+    # Code quality reports
+    r"^reports/.*\.md$",
+    r"^reports/.*\.txt$",
+    r"^reports/\.gitkeep$",
+    # Vulture dead code whitelist
+    r"^\.vulture_whitelist\.py$",
     # GitHub workflows (if CI/CD added)
     r"^\.github/workflows/.*\.ya?ml$",
     # IDE settings (minimal, project-wide only)
