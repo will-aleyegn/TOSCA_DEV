@@ -308,13 +308,15 @@ class LineProtocolBuilderWidget(QWidget):
         self.position_plot.scene().addItem(self.laser_axis)
         self.position_plot.getAxis("right").linkToView(self.laser_axis)
         self.laser_axis.setXLink(self.position_plot)
-        self.position_plot.getAxis("right").setLabel("Laser Power", units="W", color="orange")
+        self.position_plot.getAxis("right").setLabel("Laser Power", units="mW", color="orange")
         self.position_plot.showAxis("right")
 
         # Update views when plot is resized
         def update_views():
             self.laser_axis.setGeometry(self.position_plot.getViewBox().sceneBoundingRect())
-            self.laser_axis.linkedViewChanged(self.position_plot.getViewBox(), self.laser_axis.XAxis)
+            self.laser_axis.linkedViewChanged(
+                self.position_plot.getViewBox(), self.laser_axis.XAxis
+            )
 
         self.position_plot.getViewBox().sigResized.connect(update_views)
 
@@ -488,53 +490,86 @@ class LineProtocolBuilderWidget(QWidget):
         self.laser_checkbox.toggled.connect(self._on_line_params_changed)
         layout.addWidget(self.laser_checkbox)
 
-        # Laser mode radio buttons
+        # Laser mode radio buttons (Set vs Ramp)
         type_layout = QHBoxLayout()
         type_layout.addSpacing(20)  # Indent
 
-        self.laser_set_radio = QRadioButton("Set Power")
+        self.laser_set_radio = QRadioButton("Set")
         self.laser_set_radio.setChecked(True)
         self.laser_set_radio.toggled.connect(self._on_laser_type_changed)
         type_layout.addWidget(self.laser_set_radio)
 
-        self.laser_ramp_radio = QRadioButton("Ramp Power")
+        self.laser_ramp_radio = QRadioButton("Ramp")
         self.laser_ramp_radio.toggled.connect(self._on_laser_type_changed)
         type_layout.addWidget(self.laser_ramp_radio)
 
         type_layout.addStretch()
         layout.addLayout(type_layout)
 
-        # Set power parameters
+        # Set laser parameters (power or current)
         self.laser_set_params_widget = QWidget()
         set_layout = QVBoxLayout()
         set_layout.setContentsMargins(20, 0, 0, 0)  # Indent
 
-        set_power_layout = QHBoxLayout()
-        set_power_layout.addWidget(QLabel("Power (W):"))
+        # Control mode (Power vs Current)
+        control_mode_layout = QHBoxLayout()
+        self.laser_power_mode_radio = QRadioButton("Power (mW)")
+        self.laser_power_mode_radio.setChecked(True)
+        self.laser_power_mode_radio.toggled.connect(self._on_laser_control_mode_changed)
+        control_mode_layout.addWidget(self.laser_power_mode_radio)
+
+        self.laser_current_mode_radio = QRadioButton("Current (mA)")
+        self.laser_current_mode_radio.toggled.connect(self._on_laser_control_mode_changed)
+        control_mode_layout.addWidget(self.laser_current_mode_radio)
+        control_mode_layout.addStretch()
+        set_layout.addLayout(control_mode_layout)
+
+        # Power control (mW)
+        self.laser_power_control_widget = QWidget()
+        power_layout = QHBoxLayout()
+        power_layout.setContentsMargins(0, 0, 0, 0)
+        power_layout.addWidget(QLabel("Power (mW):"))
         self.laser_set_power_spin = QDoubleSpinBox()
-        self.laser_set_power_spin.setRange(0.0, 10.0)
-        self.laser_set_power_spin.setDecimals(2)
-        self.laser_set_power_spin.setSingleStep(0.1)
+        self.laser_set_power_spin.setRange(0.0, 10000.0)  # 0-10W in mW
+        self.laser_set_power_spin.setDecimals(1)
+        self.laser_set_power_spin.setSingleStep(10.0)
         self.laser_set_power_spin.valueChanged.connect(self._on_line_params_changed)
-        set_power_layout.addWidget(self.laser_set_power_spin)
-        set_power_layout.addStretch()
-        set_layout.addLayout(set_power_layout)
+        power_layout.addWidget(self.laser_set_power_spin)
+        power_layout.addStretch()
+        self.laser_power_control_widget.setLayout(power_layout)
+        set_layout.addWidget(self.laser_power_control_widget)
+
+        # Current control (mA)
+        self.laser_current_control_widget = QWidget()
+        current_layout = QHBoxLayout()
+        current_layout.setContentsMargins(0, 0, 0, 0)
+        current_layout.addWidget(QLabel("Current (mA):"))
+        self.laser_set_current_spin = QDoubleSpinBox()
+        self.laser_set_current_spin.setRange(0.0, 2000.0)  # From config
+        self.laser_set_current_spin.setDecimals(1)
+        self.laser_set_current_spin.setSingleStep(10.0)
+        self.laser_set_current_spin.valueChanged.connect(self._on_line_params_changed)
+        current_layout.addWidget(self.laser_set_current_spin)
+        current_layout.addStretch()
+        self.laser_current_control_widget.setLayout(current_layout)
+        self.laser_current_control_widget.setVisible(False)  # Hidden by default
+        set_layout.addWidget(self.laser_current_control_widget)
 
         self.laser_set_params_widget.setLayout(set_layout)
         layout.addWidget(self.laser_set_params_widget)
 
-        # Ramp power parameters
+        # Ramp laser parameters (power only for now)
         self.laser_ramp_params_widget = QWidget()
         ramp_layout = QVBoxLayout()
         ramp_layout.setContentsMargins(20, 0, 0, 0)  # Indent
 
         # Start power
         start_layout = QHBoxLayout()
-        start_layout.addWidget(QLabel("Start Power (W):"))
+        start_layout.addWidget(QLabel("Start Power (mW):"))
         self.laser_start_power_spin = QDoubleSpinBox()
-        self.laser_start_power_spin.setRange(0.0, 10.0)
-        self.laser_start_power_spin.setDecimals(2)
-        self.laser_start_power_spin.setSingleStep(0.1)
+        self.laser_start_power_spin.setRange(0.0, 10000.0)
+        self.laser_start_power_spin.setDecimals(1)
+        self.laser_start_power_spin.setSingleStep(10.0)
         self.laser_start_power_spin.valueChanged.connect(self._on_line_params_changed)
         start_layout.addWidget(self.laser_start_power_spin)
         start_layout.addStretch()
@@ -542,11 +577,11 @@ class LineProtocolBuilderWidget(QWidget):
 
         # End power
         end_layout = QHBoxLayout()
-        end_layout.addWidget(QLabel("End Power (W):"))
+        end_layout.addWidget(QLabel("End Power (mW):"))
         self.laser_end_power_spin = QDoubleSpinBox()
-        self.laser_end_power_spin.setRange(0.0, 10.0)
-        self.laser_end_power_spin.setDecimals(2)
-        self.laser_end_power_spin.setSingleStep(0.1)
+        self.laser_end_power_spin.setRange(0.0, 10000.0)
+        self.laser_end_power_spin.setDecimals(1)
+        self.laser_end_power_spin.setSingleStep(10.0)
         self.laser_end_power_spin.valueChanged.connect(self._on_line_params_changed)
         end_layout.addWidget(self.laser_end_power_spin)
         end_layout.addStretch()
@@ -767,11 +802,16 @@ class LineProtocolBuilderWidget(QWidget):
         # Apply laser parameters (check checkbox)
         if self.laser_checkbox.isChecked():
             if self.laser_set_radio.isChecked():
-                line.laser = LaserSetParams(power_watts=self.laser_set_power_spin.value())
+                # Convert mW to W for storage (backward compatibility)
+                power_w = self.laser_set_power_spin.value() / 1000.0
+                line.laser = LaserSetParams(power_watts=power_w)
             else:
+                # Ramp: Convert mW to W
+                start_w = self.laser_start_power_spin.value() / 1000.0
+                end_w = self.laser_end_power_spin.value() / 1000.0
                 line.laser = LaserRampParams(
-                    start_power_watts=self.laser_start_power_spin.value(),
-                    end_power_watts=self.laser_end_power_spin.value(),
+                    start_power_watts=start_w,
+                    end_power_watts=end_w,
                     duration_s=self.laser_ramp_duration_spin.value(),
                 )
         else:
@@ -1007,6 +1047,15 @@ class LineProtocolBuilderWidget(QWidget):
         else:
             self.laser_set_params_widget.setVisible(False)
             self.laser_ramp_params_widget.setVisible(True)
+
+    def _on_laser_control_mode_changed(self) -> None:
+        """Handle laser control mode change (Power vs Current)."""
+        if self.laser_power_mode_radio.isChecked():
+            self.laser_power_control_widget.setVisible(True)
+            self.laser_current_control_widget.setVisible(False)
+        else:
+            self.laser_power_control_widget.setVisible(False)
+            self.laser_current_control_widget.setVisible(True)
 
     def _on_dwell_enable_toggled(self, checked: bool) -> None:
         """Handle dwell enable checkbox toggle."""
@@ -1376,25 +1425,28 @@ class LineProtocolBuilderWidget(QWidget):
                         time_points.append(current_time + line.dwell.duration_s)
                         position_points.append(current_position)
 
-                # Update laser power
+                # Update laser power (convert W to mW for graph display)
                 if line.laser is not None:
                     if isinstance(line.laser, LaserSetParams):
-                        # Constant power
+                        # Constant power (convert to mW)
+                        power_mw = line.laser.power_watts * 1000.0
                         laser_time_points.append(line_start_time)
-                        laser_power_points.append(line.laser.power_watts)
+                        laser_power_points.append(power_mw)
                         laser_time_points.append(current_time + line_duration)
-                        laser_power_points.append(line.laser.power_watts)
+                        laser_power_points.append(power_mw)
                     elif isinstance(line.laser, LaserRampParams):
-                        # Ramping power - add intermediate points for smooth ramp
+                        # Ramping power - add intermediate points for smooth ramp (convert to mW)
                         num_points = 10
                         for i in range(num_points + 1):
                             fraction = i / num_points
                             ramp_time = line_start_time + (line.laser.duration_s * fraction)
-                            ramp_power = line.laser.start_power_watts + (
-                                (line.laser.end_power_watts - line.laser.start_power_watts) * fraction
+                            ramp_power_w = line.laser.start_power_watts + (
+                                (line.laser.end_power_watts - line.laser.start_power_watts)
+                                * fraction
                             )
+                            ramp_power_mw = ramp_power_w * 1000.0
                             laser_time_points.append(ramp_time)
-                            laser_power_points.append(ramp_power)
+                            laser_power_points.append(ramp_power_mw)
                 else:
                     # Laser off during this line
                     laser_time_points.append(line_start_time)
@@ -1412,7 +1464,7 @@ class LineProtocolBuilderWidget(QWidget):
             symbol="o",
             symbolSize=6,
             symbolBrush="b",
-            name="Position"
+            name="Position",
         )
 
         # Plot laser power trajectory (right Y-axis, orange/red)
@@ -1420,7 +1472,7 @@ class LineProtocolBuilderWidget(QWidget):
             laser_time_points,
             laser_power_points,
             pen=pg.mkPen("#FF9800", width=2),
-            name="Laser Power"
+            name="Laser Power",
         )
         self.laser_axis.addItem(laser_curve)
 
@@ -1462,16 +1514,18 @@ class LineProtocolBuilderWidget(QWidget):
         else:
             self.movement_checkbox.setChecked(False)
 
-        # Laser (set checkbox and values)
+        # Laser (set checkbox and values, convert W to mW for display)
         if line.laser is not None:
             self.laser_checkbox.setChecked(True)
             if isinstance(line.laser, LaserSetParams):
                 self.laser_set_radio.setChecked(True)
-                self.laser_set_power_spin.setValue(line.laser.power_watts)
+                # Convert W to mW for display
+                self.laser_set_power_spin.setValue(line.laser.power_watts * 1000.0)
             elif isinstance(line.laser, LaserRampParams):
                 self.laser_ramp_radio.setChecked(True)
-                self.laser_start_power_spin.setValue(line.laser.start_power_watts)
-                self.laser_end_power_spin.setValue(line.laser.end_power_watts)
+                # Convert W to mW for display
+                self.laser_start_power_spin.setValue(line.laser.start_power_watts * 1000.0)
+                self.laser_end_power_spin.setValue(line.laser.end_power_watts * 1000.0)
                 self.laser_ramp_duration_spin.setValue(line.laser.duration_s)
         else:
             self.laser_checkbox.setChecked(False)
@@ -1505,9 +1559,10 @@ class LineProtocolBuilderWidget(QWidget):
         self.move_speed_spin.setRange(0.1, limits.max_actuator_speed_mm_per_s)
         self.home_speed_spin.setRange(0.1, limits.max_actuator_speed_mm_per_s)
 
-        self.laser_set_power_spin.setRange(0.0, limits.max_power_watts)
-        self.laser_start_power_spin.setRange(0.0, limits.max_power_watts)
-        self.laser_end_power_spin.setRange(0.0, limits.max_power_watts)
+        # Convert W to mW for UI limits
+        self.laser_set_power_spin.setRange(0.0, limits.max_power_watts * 1000.0)
+        self.laser_start_power_spin.setRange(0.0, limits.max_power_watts * 1000.0)
+        self.laser_end_power_spin.setRange(0.0, limits.max_power_watts * 1000.0)
 
         self.laser_ramp_duration_spin.setRange(0.1, limits.max_duration_seconds)
         self.dwell_duration_spin.setRange(0.1, limits.max_duration_seconds)
