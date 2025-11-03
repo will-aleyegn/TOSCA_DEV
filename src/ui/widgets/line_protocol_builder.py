@@ -10,7 +10,8 @@ import logging
 from pathlib import Path
 from typing import Optional
 
-from PyQt6.QtCore import pyqtSignal, Qt
+import pyqtgraph as pg
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -43,7 +44,6 @@ from core.protocol_line import (
     ProtocolLine,
     SafetyLimits,
 )
-import pyqtgraph as pg
 
 logger = logging.getLogger(__name__)
 
@@ -94,18 +94,22 @@ class LineProtocolBuilderWidget(QWidget):
         metadata_group = self._create_metadata_section()
         main_layout.addWidget(metadata_group)
 
-        # Main content: Protocol sequence (left) + Line editor (right)
+        # Main content: 3 columns (sequence | editor | graph)
         content_layout = QHBoxLayout()
 
-        # Left side: Protocol sequence view
+        # Column 1: Protocol sequence view
         sequence_group = self._create_sequence_view()
         sequence_group.setMinimumWidth(250)  # Ensure readable width
         sequence_group.setMaximumWidth(350)  # Prevent too wide
         content_layout.addWidget(sequence_group, stretch=1)
 
-        # Right side: Line editor panel
+        # Column 2: Line editor panel
         editor_group = self._create_line_editor()
-        content_layout.addWidget(editor_group, stretch=3)
+        content_layout.addWidget(editor_group, stretch=2)
+
+        # Column 3: Position graph panel
+        graph_group = self._create_graph_panel()
+        content_layout.addWidget(graph_group, stretch=1)
 
         main_layout.addLayout(content_layout)
 
@@ -137,7 +141,7 @@ class LineProtocolBuilderWidget(QWidget):
         self.total_duration_label = QLabel("0.0s")
         self.total_duration_label.setStyleSheet("font-weight: bold; color: #4CAF50;")
         layout.addWidget(self.total_duration_label)
-        
+
         # Total energy display
         layout.addWidget(QLabel("Total Energy:"))
         self.total_energy_label = QLabel("0.0J")
@@ -210,14 +214,16 @@ class LineProtocolBuilderWidget(QWidget):
         group = QGroupBox("Line Editor")
         main_layout = QVBoxLayout()
         main_layout.setContentsMargins(5, 5, 5, 5)
-        
+
         # Quick add line button at top
         top_layout = QHBoxLayout()
         self.quick_add_btn = QPushButton("➕ Add New Line")
-        self.quick_add_btn.setStyleSheet("font-weight: bold; padding: 10px; background-color: #4CAF50; color: white;")
+        self.quick_add_btn.setStyleSheet(
+            "font-weight: bold; padding: 10px; background-color: #4CAF50; color: white;"
+        )
         self.quick_add_btn.clicked.connect(self._on_quick_add_line)
         top_layout.addWidget(self.quick_add_btn)
-        
+
         self.editor_status_label = QLabel("")
         self.editor_status_label.setStyleSheet("color: #888; font-style: italic; padding: 5px;")
         top_layout.addWidget(self.editor_status_label)
@@ -230,7 +236,7 @@ class LineProtocolBuilderWidget(QWidget):
         scroll.setFrameShape(QScrollArea.Shape.NoFrame)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        
+
         scroll_content = QWidget()
         layout = QVBoxLayout(scroll_content)
         layout.setSpacing(5)
@@ -260,7 +266,7 @@ class LineProtocolBuilderWidget(QWidget):
         loop_layout.addWidget(self.line_loop_spin)
         loop_layout.addStretch()
         layout.addLayout(loop_layout)
-        
+
         # Line notes
         notes_layout = QHBoxLayout()
         notes_layout.addWidget(QLabel("Notes:"))
@@ -269,29 +275,6 @@ class LineProtocolBuilderWidget(QWidget):
         self.notes_input.textChanged.connect(self._on_line_params_changed)
         notes_layout.addWidget(self.notes_input)
         layout.addLayout(notes_layout)
-
-        # Position trajectory visualization (collapsible)
-        position_group = QGroupBox("Position Trajectory Preview")
-        position_group.setCheckable(True)
-        position_group.setChecked(False)  # Start collapsed
-        position_layout = QVBoxLayout()
-        
-        # Create pyqtgraph plot widget
-        self.position_plot = pg.PlotWidget()
-        self.position_plot.setBackground('w')
-        self.position_plot.setLabel('left', 'Position', units='mm')
-        self.position_plot.setLabel('bottom', 'Time', units='s')
-        self.position_plot.setTitle('Actuator Position Over Time')
-        self.position_plot.showGrid(x=True, y=True, alpha=0.3)
-        self.position_plot.setMinimumHeight(80)
-        self.position_plot.setMaximumHeight(120)
-        
-        # Add reference lines
-        self.position_plot.addLine(y=0, pen=pg.mkPen('r', width=1, style=pg.QtCore.Qt.PenStyle.DashLine))
-        
-        position_layout.addWidget(self.position_plot)
-        position_group.setLayout(position_layout)
-        layout.addWidget(position_group)
 
         layout.addStretch()
 
@@ -303,8 +286,30 @@ class LineProtocolBuilderWidget(QWidget):
         # Set scroll content and add to main layout
         scroll.setWidget(scroll_content)
         main_layout.addWidget(scroll)
-        
+
         group.setLayout(main_layout)
+        return group
+
+    def _create_graph_panel(self) -> QGroupBox:
+        """Create position graph panel (3rd column)."""
+        group = QGroupBox("Position Trajectory")
+        layout = QVBoxLayout()
+
+        # Create pyqtgraph plot widget
+        self.position_plot = pg.PlotWidget()
+        self.position_plot.setBackground("w")
+        self.position_plot.setLabel("left", "Position", units="mm")
+        self.position_plot.setLabel("bottom", "Time", units="s")
+        self.position_plot.setTitle("Actuator Position Over Time")
+        self.position_plot.showGrid(x=True, y=True, alpha=0.3)
+
+        # Add reference lines
+        self.position_plot.addLine(
+            y=0, pen=pg.mkPen("r", width=1, style=pg.QtCore.Qt.PenStyle.DashLine)
+        )
+
+        layout.addWidget(self.position_plot)
+        group.setLayout(layout)
         return group
 
     def _create_movement_section(self) -> QGroupBox:
@@ -312,10 +317,11 @@ class LineProtocolBuilderWidget(QWidget):
         group = QGroupBox()
         layout = QVBoxLayout()
 
-        # Movement header (always enabled)
-        header_label = QLabel("Movement")
-        header_label.setStyleSheet("font-weight: bold; font-size: 12px; color: #4CAF50;")
-        layout.addWidget(header_label)
+        # Movement checkbox (enable/disable)
+        self.movement_checkbox = QCheckBox("Movement")
+        self.movement_checkbox.setStyleSheet("font-weight: bold; font-size: 12px;")
+        self.movement_checkbox.toggled.connect(self._on_line_params_changed)
+        layout.addWidget(self.movement_checkbox)
 
         # Movement type radio buttons
         type_layout = QHBoxLayout()
@@ -461,10 +467,11 @@ class LineProtocolBuilderWidget(QWidget):
         group = QGroupBox()
         layout = QVBoxLayout()
 
-        # Laser header (always enabled)
-        header_label = QLabel("Laser")
-        header_label.setStyleSheet("font-weight: bold; font-size: 12px; color: #FF9800;")
-        layout.addWidget(header_label)
+        # Laser checkbox (enable/disable)
+        self.laser_checkbox = QCheckBox("Laser")
+        self.laser_checkbox.setStyleSheet("font-weight: bold; font-size: 12px;")
+        self.laser_checkbox.toggled.connect(self._on_line_params_changed)
+        layout.addWidget(self.laser_checkbox)
 
         # Laser mode radio buttons
         type_layout = QHBoxLayout()
@@ -555,10 +562,11 @@ class LineProtocolBuilderWidget(QWidget):
         group = QGroupBox()
         layout = QVBoxLayout()
 
-        # Dwell header (always enabled)
-        header_label = QLabel("Dwell (Wait)")
-        header_label.setStyleSheet("font-weight: bold; font-size: 12px; color: #2196F3;")
-        layout.addWidget(header_label)
+        # Dwell checkbox (enable/disable)
+        self.dwell_checkbox = QCheckBox("Dwell (Wait)")
+        self.dwell_checkbox.setStyleSheet("font-weight: bold; font-size: 12px;")
+        self.dwell_checkbox.toggled.connect(self._on_line_params_changed)
+        layout.addWidget(self.dwell_checkbox)
 
         # Dwell duration
         dwell_layout = QHBoxLayout()
@@ -578,16 +586,22 @@ class LineProtocolBuilderWidget(QWidget):
         return group
 
     def _create_slider_spinbox_combo(
-        self, label: str, min_val: float, max_val: float, default: float,
-        decimals: int = 2, step: float = 0.1, unit: str = ""
+        self,
+        label: str,
+        min_val: float,
+        max_val: float,
+        default: float,
+        decimals: int = 2,
+        step: float = 0.1,
+        unit: str = "",
     ) -> tuple:
         """Create a slider+spinbox combination with visual feedback.
-        
+
         Returns: (layout, spinbox, slider)
         """
         layout = QHBoxLayout()
         layout.addWidget(QLabel(f"{label}:"))
-        
+
         # Spinbox
         spinbox = QDoubleSpinBox()
         spinbox.setRange(min_val, max_val)
@@ -597,45 +611,47 @@ class LineProtocolBuilderWidget(QWidget):
         if unit:
             spinbox.setSuffix(f" {unit}")
         spinbox.setMinimumWidth(100)
-        
+
         # Slider
         slider = QSlider()
         slider.setOrientation(Qt.Orientation.Horizontal)
-        slider.setMinimum(int(min_val * (10 ** decimals)))
-        slider.setMaximum(int(max_val * (10 ** decimals)))
-        slider.setValue(int(default * (10 ** decimals)))
+        slider.setMinimum(int(min_val * (10**decimals)))
+        slider.setMaximum(int(max_val * (10**decimals)))
+        slider.setValue(int(default * (10**decimals)))
         slider.setMinimumWidth(150)
-        
+
         # Bidirectional sync with visual feedback
         def spinbox_changed(value):
             slider.blockSignals(True)
-            slider.setValue(int(value * (10 ** decimals)))
+            slider.setValue(int(value * (10**decimals)))
             slider.blockSignals(False)
             # Color feedback based on proximity to limits
             range_pct = (value - min_val) / (max_val - min_val) if max_val > min_val else 0.5
             if range_pct < 0.2 or range_pct > 0.8:
-                slider.setStyleSheet("QSlider::handle:horizontal { background: #FF9800; }")  # Orange
+                slider.setStyleSheet(
+                    "QSlider::handle:horizontal { background: #FF9800; }"
+                )  # Orange
             elif range_pct < 0.1 or range_pct > 0.9:
                 slider.setStyleSheet("QSlider::handle:horizontal { background: #F44336; }")  # Red
             else:
                 slider.setStyleSheet("QSlider::handle:horizontal { background: #4CAF50; }")  # Green
-        
+
         def slider_changed(value):
             spinbox.blockSignals(True)
-            spinbox.setValue(value / (10 ** decimals))
+            spinbox.setValue(value / (10**decimals))
             spinbox.blockSignals(False)
-        
+
         spinbox.valueChanged.connect(spinbox_changed)
         slider.valueChanged.connect(slider_changed)
         spinbox.valueChanged.connect(self._on_line_params_changed)
-        
+
         layout.addWidget(spinbox)
         layout.addWidget(slider)
         layout.addStretch()
-        
+
         # Initial color
         spinbox_changed(default)
-        
+
         return layout, spinbox, slider
 
     def _create_action_buttons(self) -> QHBoxLayout:
@@ -668,7 +684,7 @@ class LineProtocolBuilderWidget(QWidget):
         loop_layout.addWidget(self.loop_count_spin)
         loop_layout.addStretch()
         layout.addLayout(loop_layout)
-        
+
         # Execute button
         self.execute_protocol_btn = QPushButton("▶▶ EXECUTE PROTOCOL ◀◀")
         self.execute_protocol_btn.setStyleSheet(
@@ -703,16 +719,20 @@ class LineProtocolBuilderWidget(QWidget):
         """Auto-save the currently selected line parameters."""
         if self.current_line_index < 0 or self.current_protocol is None:
             return
-        
+
         if self.current_line_index >= len(self.current_protocol.lines):
             return
-        
+
         line = self.current_protocol.lines[self.current_line_index]
-        
-        # Apply movement parameters (always save if values present)
-        if True:  # Always save movement
+
+        # Apply movement parameters (check checkbox)
+        if self.movement_checkbox.isChecked():
             if self.move_position_radio.isChecked():
-                move_type = MoveType.ABSOLUTE if self.move_type_combo.currentIndex() == 0 else MoveType.RELATIVE
+                move_type = (
+                    MoveType.ABSOLUTE
+                    if self.move_type_combo.currentIndex() == 0
+                    else MoveType.RELATIVE
+                )
                 line.movement = MoveParams(
                     target_position_mm=self.target_position_spin.value(),
                     speed_mm_per_s=self.move_speed_spin.value(),
@@ -728,9 +748,9 @@ class LineProtocolBuilderWidget(QWidget):
                 )
         else:
             line.movement = None
-        
-        # Apply laser parameters (always save if values present)
-        if True:  # Always save laser
+
+        # Apply laser parameters (check checkbox)
+        if self.laser_checkbox.isChecked():
             if self.laser_set_radio.isChecked():
                 line.laser = LaserSetParams(power_watts=self.laser_set_power_spin.value())
             else:
@@ -741,32 +761,33 @@ class LineProtocolBuilderWidget(QWidget):
                 )
         else:
             line.laser = None
-        
-        # Apply dwell parameters (always save if values present)
-        if True:  # Always save dwell
+
+        # Apply dwell parameters (check checkbox)
+        if self.dwell_checkbox.isChecked():
             line.dwell = DwellParams(duration_s=self.dwell_duration_spin.value())
         else:
             line.dwell = None
-        
+
         # Apply notes
         line.notes = self.notes_input.text()
-        
+
         # Apply loop count
         line.loop_count = self.line_loop_spin.value()
-        
+
         # Update sequence view to show new summary
         self._update_sequence_view()
         self._update_total_duration()
 
-
     def _on_line_selected(self, index: int) -> None:
         """Handle line selection in sequence view with auto-save."""
         # AUTO-SAVE: Save previous line before switching
-        if (self.current_line_index >= 0 and 
-            self.current_protocol is not None and 
-            self.current_line_index < len(self.current_protocol.lines)):
+        if (
+            self.current_line_index >= 0
+            and self.current_protocol is not None
+            and self.current_line_index < len(self.current_protocol.lines)
+        ):
             self._auto_save_current_line()
-        
+
         self.current_line_index = index
 
         if index < 0 or self.current_protocol is None or index >= len(self.current_protocol.lines):
@@ -801,23 +822,22 @@ class LineProtocolBuilderWidget(QWidget):
     # Signal Handlers - Sequence Controls
     # ========================================================================
 
-
     def _on_quick_add_line(self) -> None:
         """Quick add: Create new line and auto-select it."""
         if self.current_protocol is None:
             return
-        
+
         # Create new line
         line_number = len(self.current_protocol.lines) + 1
         new_line = ProtocolLine(line_number=line_number)
         self.current_protocol.lines.append(new_line)
-        
+
         # Update view
         self._update_sequence_view()
-        
+
         # Auto-select the new line
         self.sequence_list.setCurrentRow(len(self.current_protocol.lines) - 1)
-        
+
         logger.info(f"Quick add: Created and selected Line {line_number}")
 
     def _on_add_line(self) -> None:
@@ -903,17 +923,17 @@ class LineProtocolBuilderWidget(QWidget):
         """Duplicate the currently selected line."""
         if self.current_protocol is None or self.current_line_index < 0:
             return
-        
+
         if self.current_line_index >= len(self.current_protocol.lines):
             return
-        
+
         # Auto-save current line first
         self._auto_save_current_line()
-        
+
         # Copy the line
         source_line = self.current_protocol.lines[self.current_line_index]
         new_line_number = len(self.current_protocol.lines) + 1
-        
+
         # Create deep copy with new line number
         duplicated_line = ProtocolLine(
             line_number=new_line_number,
@@ -921,20 +941,20 @@ class LineProtocolBuilderWidget(QWidget):
             laser=source_line.laser,
             dwell=source_line.dwell,
             notes=source_line.notes + " (copy)" if source_line.notes else "(copy)",
-            loop_count=source_line.loop_count if hasattr(source_line, 'loop_count') else 1
+            loop_count=source_line.loop_count if hasattr(source_line, "loop_count") else 1,
         )
-        
+
         # Insert after current line
         self.current_protocol.lines.insert(self.current_line_index + 1, duplicated_line)
-        
+
         # Renumber all lines
         for i, line in enumerate(self.current_protocol.lines):
             line.line_number = i + 1
-        
+
         # Update view and select new line
         self._update_sequence_view()
         self.sequence_list.setCurrentRow(self.current_line_index + 1)
-        
+
         logger.info(f"Duplicated line {source_line.line_number}")
 
     # ========================================================================
@@ -1242,19 +1262,19 @@ class LineProtocolBuilderWidget(QWidget):
         for i, line in enumerate(self.current_protocol.lines):
             # Validate line
             valid, error_msg = line.validate(self.safety_limits)
-            
+
             # Add status indicator
             if valid:
                 status_icon = "[OK]"
             else:
                 status_icon = "[!]"
-            
+
             # Calculate current position for duration calculation
             # (simplified: assume starting from 0)
             summary = line.get_summary(current_position_mm=0.0)
             item_text = f"{status_icon} {summary}"
             item = QListWidgetItem(item_text)
-            
+
             # Color code based on validation
             if not valid:
                 item.setForeground(Qt.GlobalColor.red)
@@ -1262,7 +1282,7 @@ class LineProtocolBuilderWidget(QWidget):
             else:
                 item.setForeground(Qt.GlobalColor.darkGreen)
                 item.setToolTip("Line validated successfully")
-            
+
             self.sequence_list.addItem(item)
 
         # Restore selection
@@ -1281,79 +1301,93 @@ class LineProtocolBuilderWidget(QWidget):
 
         total_duration = self.current_protocol.calculate_total_duration()
         self.total_duration_label.setText(f"{total_duration:.1f}s")
-        
+
         total_energy = self.current_protocol.calculate_total_energy()
         self.total_energy_label.setText(f"{total_energy:.1f}J")
-        
+
         # Update position graph
         self._update_position_graph()
-    
+
     def _update_position_graph(self) -> None:
         """Update the position trajectory graph based on current protocol."""
         self.position_plot.clear()
-        
+
         if self.current_protocol is None or len(self.current_protocol.lines) == 0:
             # Add reference line and empty state message
-            self.position_plot.addLine(y=0, pen=pg.mkPen('r', width=1, style=pg.QtCore.Qt.PenStyle.DashLine))
+            self.position_plot.addLine(
+                y=0, pen=pg.mkPen("r", width=1, style=pg.QtCore.Qt.PenStyle.DashLine)
+            )
             return
-        
+
         # Calculate position trajectory
         time_points = [0.0]
         position_points = [0.0]  # Start at home position
         current_position = 0.0
         current_time = 0.0
-        
+
         for line in self.current_protocol.lines:
-            line_loops = line.loop_count if hasattr(line, 'loop_count') else 1
-            
+            line_loops = line.loop_count if hasattr(line, "loop_count") else 1
+
             for _ in range(line_loops):
                 # Calculate duration for this line
                 line_duration = line.calculate_duration(current_position)
-                
+
                 # Update position based on movement
                 if isinstance(line.movement, MoveParams):
                     target_pos = line.movement.target_position_mm
                     if line.movement.move_type == MoveType.RELATIVE:
                         target_pos = current_position + target_pos
-                    
+
                     # Add intermediate point for movement
                     time_points.append(current_time + line_duration)
                     position_points.append(target_pos)
                     current_position = target_pos
-                    
+
                 elif isinstance(line.movement, HomeParams):
                     # Move to home (0)
                     time_points.append(current_time + line_duration)
                     position_points.append(0.0)
                     current_position = 0.0
-                    
+
                 else:
                     # No movement, dwell at current position
                     if line.dwell is not None:
                         time_points.append(current_time + line.dwell.duration_s)
                         position_points.append(current_position)
-                
+
                 current_time += line_duration
-        
+
         # Plot the trajectory
-        self.position_plot.plot(time_points, position_points, pen=pg.mkPen('b', width=2), 
-                                symbol='o', symbolSize=8, symbolBrush='b')
-        
+        self.position_plot.plot(
+            time_points,
+            position_points,
+            pen=pg.mkPen("b", width=2),
+            symbol="o",
+            symbolSize=8,
+            symbolBrush="b",
+        )
+
         # Add reference lines
-        self.position_plot.addLine(y=0, pen=pg.mkPen('r', width=1, style=pg.QtCore.Qt.PenStyle.DashLine))
-        
+        self.position_plot.addLine(
+            y=0, pen=pg.mkPen("r", width=1, style=pg.QtCore.Qt.PenStyle.DashLine)
+        )
+
         # Add safety limit lines if available
         if self.safety_limits:
-            self.position_plot.addLine(y=self.safety_limits.max_actuator_position_mm, 
-                                      pen=pg.mkPen('orange', width=1, style=pg.QtCore.Qt.PenStyle.DashLine))
-            self.position_plot.addLine(y=self.safety_limits.min_actuator_position_mm, 
-                                      pen=pg.mkPen('orange', width=1, style=pg.QtCore.Qt.PenStyle.DashLine))
+            self.position_plot.addLine(
+                y=self.safety_limits.max_actuator_position_mm,
+                pen=pg.mkPen("orange", width=1, style=pg.QtCore.Qt.PenStyle.DashLine),
+            )
+            self.position_plot.addLine(
+                y=self.safety_limits.min_actuator_position_mm,
+                pen=pg.mkPen("orange", width=1, style=pg.QtCore.Qt.PenStyle.DashLine),
+            )
 
     def _load_line_into_editor(self, line: ProtocolLine) -> None:
         """Load line parameters into editor UI."""
-        # Movement (no checkbox)
+        # Movement (set checkbox and values)
         if line.movement is not None:
-
+            self.movement_checkbox.setChecked(True)
             if isinstance(line.movement, MoveParams):
                 self.move_position_radio.setChecked(True)
                 self.target_position_spin.setValue(line.movement.target_position_mm)
@@ -1368,11 +1402,12 @@ class LineProtocolBuilderWidget(QWidget):
                 self.home_speed_spin.setValue(line.movement.speed_mm_per_s)
                 self.home_accel_spin.setValue(line.movement.acceleration_mm_per_s2)
                 self.home_decel_spin.setValue(line.movement.deceleration_mm_per_s2)
-        # (Movement always visible)
+        else:
+            self.movement_checkbox.setChecked(False)
 
-        # Laser (no checkbox)
+        # Laser (set checkbox and values)
         if line.laser is not None:
-
+            self.laser_checkbox.setChecked(True)
             if isinstance(line.laser, LaserSetParams):
                 self.laser_set_radio.setChecked(True)
                 self.laser_set_power_spin.setValue(line.laser.power_watts)
@@ -1381,18 +1416,21 @@ class LineProtocolBuilderWidget(QWidget):
                 self.laser_start_power_spin.setValue(line.laser.start_power_watts)
                 self.laser_end_power_spin.setValue(line.laser.end_power_watts)
                 self.laser_ramp_duration_spin.setValue(line.laser.duration_s)
-        # (Laser always visible)
+        else:
+            self.laser_checkbox.setChecked(False)
 
-        # Dwell (no checkbox)
+        # Dwell (set checkbox and values)
         if line.dwell is not None:
+            self.dwell_checkbox.setChecked(True)
             self.dwell_duration_spin.setValue(line.dwell.duration_s)
-        # (Dwell always visible)
+        else:
+            self.dwell_checkbox.setChecked(False)
 
         # Notes
         self.notes_input.setText(line.notes)
-        
+
         # Loop count
-        self.line_loop_spin.setValue(line.loop_count if hasattr(line, 'loop_count') else 1)
+        self.line_loop_spin.setValue(line.loop_count if hasattr(line, "loop_count") else 1)
 
     def set_safety_limits(self, limits: SafetyLimits) -> None:
         """
