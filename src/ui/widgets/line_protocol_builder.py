@@ -260,8 +260,10 @@ class LineProtocolBuilderWidget(QWidget):
         notes_layout.addWidget(self.notes_input)
         layout.addLayout(notes_layout)
 
-        # Position trajectory visualization
+        # Position trajectory visualization (collapsible)
         position_group = QGroupBox("Position Trajectory Preview")
+        position_group.setCheckable(True)
+        position_group.setChecked(False)  # Start collapsed
         position_layout = QVBoxLayout()
         
         # Create pyqtgraph plot widget
@@ -271,8 +273,8 @@ class LineProtocolBuilderWidget(QWidget):
         self.position_plot.setLabel('bottom', 'Time', units='s')
         self.position_plot.setTitle('Actuator Position Over Time')
         self.position_plot.showGrid(x=True, y=True, alpha=0.3)
-        self.position_plot.setMinimumHeight(150)
-        self.position_plot.setMaximumHeight(200)
+        self.position_plot.setMinimumHeight(80)
+        self.position_plot.setMaximumHeight(120)
         
         # Add reference lines
         self.position_plot.addLine(y=0, pen=pg.mkPen('r', width=1, style=pg.QtCore.Qt.PenStyle.DashLine))
