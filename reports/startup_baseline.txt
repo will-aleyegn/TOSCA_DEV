@@ -1,0 +1,12 @@
+TOSCA Startup Performance Baseline
+============================================================
+
+Running 5 measurement iterations...
+
+Iteration 1/5... FAILED: No module named 'src'
+Iteration 2/5... FAILED: No module named 'src'
+Iteration 3/5... FAILED: No module named 'src'
+Iteration 4/5... FAILED: No module named 'src'
+Iteration 5/5... FAILED: No module named 'src'
+
+ERROR: All measurement iterations failed
