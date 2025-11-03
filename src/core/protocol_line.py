@@ -1,8 +1,11 @@
 """
-Line-based protocol data model for concurrent action execution.
+Module: protocol_line
+Project: TOSCA Laser Control System
 
-This module defines a new protocol structure where each "line" can contain
-multiple concurrent actions (movement, laser control, dwell time).
+Purpose: Line-based protocol data model for concurrent action execution.
+         Defines protocol structure where each "line" can contain multiple
+         concurrent actions (movement, laser control, dwell time).
+Safety Critical: No
 """
 
 from dataclasses import dataclass, field
@@ -238,18 +241,20 @@ class ProtocolLine:
     def get_summary(self, current_position_mm: float = 0.0) -> str:
         """
         Generate concise summary string for UI display.
-        
+
         Format: "Line 1:  5.00mm @ 1.0mm/s  |  0.50W  |  2.0s"
         Shows: movement | laser | dwell (using -- for disabled actions)
         """
         # Movement part
         if isinstance(self.movement, MoveParams):
-            move_str = f"{self.movement.target_position_mm:.2f}mm @ {self.movement.speed_mm_per_s:.1f}mm/s"
+            move_str = (
+                f"{self.movement.target_position_mm:.2f}mm @ {self.movement.speed_mm_per_s:.1f}mm/s"
+            )
         elif isinstance(self.movement, HomeParams):
             move_str = f"Home @ {self.movement.speed_mm_per_s:.1f}mm/s"
         else:
             move_str = "--"
-        
+
         # Laser part
         if isinstance(self.laser, LaserSetParams):
             laser_str = f"{self.laser.power_watts:.2f}W"
@@ -257,13 +262,13 @@ class ProtocolLine:
             laser_str = f"{self.laser.start_power_watts:.2f}W→{self.laser.end_power_watts:.2f}W"
         else:
             laser_str = "--"
-        
+
         # Dwell part
         if self.dwell is not None:
             dwell_str = f"{self.dwell.duration_s:.1f}s"
         else:
             dwell_str = "--"
-        
+
         # Add loop indicator if line loops more than once
         loop_str = f" x{self.loop_count}" if self.loop_count > 1 else ""
         return f"Line {self.line_number}:  {move_str}  |  {laser_str}  |  {dwell_str}{loop_str}"
@@ -472,6 +477,49 @@ class LineBasedProtocol:
                     current_position_mm = 0.0
 
         return total_duration
+
+    def calculate_total_energy(self) -> float:
+        """
+        Calculate total laser energy delivered by this protocol in Joules.
+
+        Energy = Power (W) × Time (s) = Joules
+        Accounts for line loop counts and protocol loop count.
+
+        Returns:
+            Total energy in Joules
+        """
+        total_energy_j = 0.0
+        current_position = 0.0
+
+        for line in self.lines:
+            line_energy = 0.0
+
+            # Calculate energy for this line execution
+            if line.laser is not None:
+                duration = line.calculate_duration(current_position)
+
+                if isinstance(line.laser, LaserSetParams):
+                    # Fixed power: E = P × t
+                    line_energy = line.laser.power_watts * duration
+                elif isinstance(line.laser, LaserRampParams):
+                    # Ramping power: E = average_power × t
+                    avg_power = (line.laser.start_power_watts + line.laser.end_power_watts) / 2.0
+                    line_energy = avg_power * line.laser.duration_s
+
+            # Multiply by line loop count
+            line_loop_count = line.loop_count if hasattr(line, "loop_count") else 1
+            total_energy_j += line_energy * line_loop_count
+
+            # Update position for next line
+            if isinstance(line.movement, MoveParams):
+                current_position = line.movement.target_position_mm
+            elif isinstance(line.movement, HomeParams):
+                current_position = 0.0
+
+        # Multiply by protocol loop count
+        total_energy_j *= self.loop_count
+
+        return total_energy_j
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert protocol to dictionary for JSON serialization."""

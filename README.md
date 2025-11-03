@@ -50,6 +50,16 @@ TOSCA is a laser control system integrating:
 - Hardware configuration guides
 - Test framework documentation
 
+### Recent Updates (2025-11-03)
+
+**Line Protocol Builder UX Enhancements:**
+- **Total Energy Calculation:** Real-time display of total laser energy delivery (Joules) with accounting for ramping and all loop levels - critical for medical safety
+- **Duplicate Line Button:** Quick line copying with auto-save and automatic renumbering - improves protocol creation productivity
+- **Position Trajectory Graph:** Real-time pyqtgraph visualization showing actuator position over time with safety limit indicators - enhances protocol planning and error detection
+
+**Technical:** 143 lines added, all features auto-update with protocol changes
+**Commit:** `dc5682d`
+
 ---
 
 ## Hardware Configuration
