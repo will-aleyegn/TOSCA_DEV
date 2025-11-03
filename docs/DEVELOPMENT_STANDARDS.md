@@ -12,8 +12,12 @@
 2. [Code Review Attribution](#code-review-attribution)
 3. [Documentation Standards](#documentation-standards)
 4. [Git Commit Guidelines](#git-commit-guidelines)
-5. [Pre-commit Hook System](#pre-commit-hook-system)
-6. [Quarterly Audit Process](#quarterly-audit-process)
+5. [Professional Comment Standards](#professional-comment-standards)
+6. [Professional Language Standards](#professional-language-standards)
+7. [File Header Requirements](#file-header-requirements)
+8. [Security Standards](#security-standards)
+9. [Pre-commit Hook System](#pre-commit-hook-system)
+10. [Quarterly Audit Process](#quarterly-audit-process)
 
 ---
 
@@ -450,3 +454,154 @@ If you discover AI references in production code:
 **Document Status:** Active
 **Next Review:** 2026-02-01 (quarterly)
 **Owner:** Development Team
+
+## Professional Comment Standards
+
+### TODO Comment Policy
+
+**Rationale:** Medical device code requires traceable task management. Informal TODO comments create technical debt without accountability.
+
+**Policy:**
+- All TODO comments MUST reference a tracked issue number
+- Format: `TODO(#issue): description`
+- Applies to: `src/`, `tests/`, `firmware/` directories
+- Exceptions: Vendor code in `components/*/manufacturer_docs/`
+
+**Examples:**
+
+❌ **INCORRECT:**
+```python
+# TODO: Fix this later
+# FIXME: This doesn't work right
+# HACK: Temporary workaround
+```
+
+✅ **CORRECT:**
+```python
+# TODO(#127): Implement database persistence for protocol execution
+# TODO(#128): Add power mode support when hardware available
+```
+
+**Enforcement:** Pre-commit hook `detect-informal-comments.py` blocks commits with untracked TODOs.
+
+**Creating Issues:**
+1. Create GitHub issue with detailed description
+2. Add TODO comment with issue number
+3. Link commit to issue in commit message
+
+---
+
+## Professional Language Standards
+
+**Rationale:** Medical device documentation must maintain professional tone for regulatory review.
+
+**Prohibited in Code/Comments:**
+- Slang: gonna, wanna, kinda, sorta
+- Informal expressions: oops, yikes, ugh, meh
+- Internet slang: wtf, lol, omg
+- Profanity: any profane language
+- Unprofessional adjectives: stupid, dumb, idiotic
+- Informal status terms: broken, busted, borked, janky
+
+**Examples:**
+
+❌ **INCORRECT:**
+```python
+# This is gonna break if we're not careful
+# WTF is this code doing?
+# Stupid bug that keeps happening
+```
+
+✅ **CORRECT:**
+```python
+# This will fail if input validation is bypassed
+# Investigate unexpected behavior in edge cases
+# Persistent defect requiring root cause analysis
+```
+
+**Enforcement:** Pre-commit hook `detect-informal-comments.py` scans for informal language patterns.
+
+---
+
+## File Header Requirements
+
+**Rationale:** FDA 21 CFR Part 11 and IEC 62304 require clear attribution and purpose documentation.
+
+**Required Elements (for src/ files):**
+```python
+"""
+Module: [module_name]
+Project: TOSCA Laser Control System
+
+Purpose: [Brief description of module's role]
+Safety Critical: [Yes/No]
+"""
+```
+
+**Optional Elements:**
+- Author: (use git history for attribution)
+- License: (if applicable)
+- References: (standards, requirements)
+
+**Examples:**
+
+```python
+"""
+Module: safety_manager
+Project: TOSCA Laser Control System
+
+Purpose: Central safety state machine and interlock coordination.
+Manages transitions between SAFE, ARMED, TREATING, UNSAFE states
+and enforces hardware interlock requirements.
+
+Safety Critical: Yes
+"""
+import threading
+from enum import Enum
+...
+```
+
+**Enforcement:** Pre-commit hook `verify-file-headers.py` checks src/ files for required elements.
+
+**Migration:** Add headers to existing files during normal maintenance. Not required immediately for legacy code.
+
+---
+
+## Security Standards
+
+### Hardcoded Secrets Policy
+
+**Rationale:** Credentials in code create security vulnerabilities and compliance violations.
+
+**Prohibited:**
+- Hardcoded passwords, API keys, tokens
+- Connection strings with embedded credentials
+- Private keys or certificates in code
+- Encryption keys in source files
+
+**Examples:**
+
+❌ **INCORRECT:**
+```python
+API_KEY = "sk_live_abcdef123456789"
+password = "admin123"
+db_url = "mysql://root:password123@localhost/tosca"
+```
+
+✅ **CORRECT:**
+```python
+import os
+API_KEY = os.environ.get("TOSCA_API_KEY")
+password = os.environ.get("TOSCA_DB_PASSWORD")
+db_url = config_loader.get_database_url()  # From config.yaml (in .gitignore)
+```
+
+**Configuration Management:**
+1. Use environment variables for secrets
+2. Store configs in `.gitignore`d files (config.yaml)
+3. Provide example configs without secrets (config.example.yaml)
+4. Document required environment variables in README
+
+**Enforcement:** Pre-commit hook `detect-secrets.py` scans for common secret patterns.
+
+**Testing:** Use test fixtures and mock credentials in test files (allowed exception).
