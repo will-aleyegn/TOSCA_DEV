@@ -1,5 +1,5 @@
 """
-Compact smoothing motor status and control widget.
+Compact laser spot smoothing module status and control widget.
 
 Designed for embedding in active treatment dashboard.
 Provides essential motor controls and live status monitoring.
@@ -25,13 +25,13 @@ logger = logging.getLogger(__name__)
 
 class SmoothingStatusWidget(QWidget):
     """
-    Compact smoothing motor status widget for active treatment dashboard.
+    Compact laser spot smoothing module status widget for active treatment dashboard.
 
     Features:
     - Motor Enable/Disable buttons
     - Voltage spinbox + Apply button
     - Live vibration magnitude
-    - Live photodiode power
+    - Live photodiode laser pickoff measurement power
     """
 
     def __init__(self) -> None:
@@ -50,7 +50,7 @@ class SmoothingStatusWidget(QWidget):
         self.setLayout(layout)
 
         # Main group
-        group = QGroupBox("Smoothing Motor")
+        group = QGroupBox("Laser Spot Smoothing Module")
         group_layout = QVBoxLayout()
         group_layout.setSpacing(8)
 
@@ -113,8 +113,8 @@ class SmoothingStatusWidget(QWidget):
         self.vibration_label.setStyleSheet("font-weight: bold; font-size: 11px; color: #2196F3;")
         status_layout.addWidget(self.vibration_label, 0, 1)
 
-        # Photodiode
-        photo_label = QLabel("Photodiode:")
+        # photodiode laser pickoff measurement
+        photo_label = QLabel("photodiode laser pickoff measurement:")
         photo_label.setStyleSheet("font-size: 11px;")
         status_layout.addWidget(photo_label, 1, 0)
 
@@ -184,7 +184,7 @@ class SmoothingStatusWidget(QWidget):
 
     @pyqtSlot(float)
     def _on_power_changed(self, power_mw: float) -> None:
-        """Update photodiode power display."""
+        """Update photodiode laser pickoff measurement power display."""
         self.photodiode_label.setText(f"{power_mw:.1f} mW")
 
     def _on_motor_control(self, enable: bool) -> None:

@@ -319,7 +319,7 @@ class MainWindow(QMainWindow):
         right_content.setLayout(hardware_right_layout)
 
         # === SECTION 4: GPIO DIAGNOSTICS ===
-        # GPIO widget contains smoothing device, photodiode, and safety interlocks
+        # GPIO widget contains laser spot smoothing module, photodiode laser pickoff measurement, and safety interlocks
         # Widget has its own internal headers and organization
         self.safety_widget = SafetyWidget(
             db_manager=self.db_manager, gpio_controller=self.gpio_controller
@@ -1433,7 +1433,7 @@ class MainWindow(QMainWindow):
 
     def _test_gpio(self) -> dict:
         """
-        Test GPIO system (smoothing motor + photodiode).
+        Test GPIO system (laser spot smoothing module + photodiode laser pickoff measurement).
 
         Returns:
             Dict with name, passed status, and details list
@@ -1449,15 +1449,15 @@ class MainWindow(QMainWindow):
                     result["passed"] = True
                     result["details"].append("GPIO controller connected")
 
-                    # Check smoothing motor
+                    # Check laser spot smoothing module
                     if hasattr(gpio_widget, "smoothing_motor_voltage"):
                         voltage = gpio_widget.smoothing_motor_voltage
                         result["details"].append(f"Smoothing motor: {voltage:.2f}V")
 
-                    # Check photodiode
+                    # Check photodiode laser pickoff measurement
                     if hasattr(gpio_widget, "photodiode_voltage"):
                         voltage = gpio_widget.photodiode_voltage
-                        result["details"].append(f"Photodiode: {voltage:.2f}V")
+                        result["details"].append(f"photodiode laser pickoff measurement: {voltage:.2f}V")
 
                     # Check interlocks
                     if (

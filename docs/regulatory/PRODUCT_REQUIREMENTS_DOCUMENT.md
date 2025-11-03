@@ -108,10 +108,10 @@ Source: `src/ui/widgets/actuator_connection_widget.py`, `src/hardware/actuator_c
 
 **What the user can do:**
 - **Connect/Disconnect** Arduino GPIO controller
-- **Control smoothing motor** - on/off toggle
+- **Control laser spot smoothing module** - on/off toggle
 - **Adjust motor speed** - slider (0-153 PWM, 0-3.0V)
 - **View vibration level** - real-time g-force display with color coding
-- **View photodiode voltage** - analog reading (0-5V)
+- **View photodiode laser pickoff measurement voltage** - analog reading (0-5V)
 - **Monitor interlock status** - visual indicators for all safety interlocks
 
 Source: `src/ui/widgets/gpio_widget.py`, `src/hardware/gpio_controller.py`
@@ -124,7 +124,7 @@ Source: `src/ui/widgets/gpio_widget.py`, `src/hardware/gpio_controller.py`
   - Camera (connection, streaming, FPS, model identification)
   - Actuator (connection, homing, positioning, range verification)
   - Laser (aiming and treatment laser operation)
-  - GPIO (controller, motor, photodiode, interlock signals)
+  - GPIO (controller, motor, photodiode laser pickoff measurement, interlock signals)
 - **See summary statistics** - "X/4 systems PASSED" overall result
 
 Source: `src/ui/main_window.py:516-639` (hardware test implementation)
@@ -246,7 +246,7 @@ Source: `src/core/protocol_engine.py`, `src/ui/widgets/active_treatment_widget.p
 
 **What the user sees:**
 - **Visual interlock status** - each interlock shows GREEN (OK) or RED (FAILED):
-  - GPIO Interlock (smoothing motor + vibration + photodiode)
+  - GPIO Interlock (laser spot smoothing module + vibration + photodiode laser pickoff measurement)
   - Session Valid (active session exists)
   - Power Limit OK (within configured maximum)
 - **Overall safety state** - large indicator shows:
@@ -619,7 +619,7 @@ Source: `README.md:250-262`
 - WARNING: **NOT SUITABLE FOR CLINICAL DATA** in current state
 
 **Hardware:**
-- Footpedal not yet integrated (pin assigned, software ready)
+- dead man's switch footpedal not yet integrated (pin assigned, software ready)
 - Only supports Allied Vision cameras (VmbPy SDK)
 - Fixed to specific Arroyo laser/TEC models
 

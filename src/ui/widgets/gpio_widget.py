@@ -1,7 +1,7 @@
 """
 GPIO safety interlock widget for the TOSCA GUI.
 
-Provides safety monitoring interface for smoothing device and photodiode.
+Provides safety monitoring interface for laser spot smoothing module and photodiode laser pickoff measurement.
 """
 
 import json
@@ -93,7 +93,7 @@ class GPIOWidget(QWidget):
         smoothing_group = self._create_smoothing_group()
         layout.addWidget(smoothing_group)
 
-        # Photodiode section
+        # photodiode laser pickoff measurement section
         photodiode_group = self._create_photodiode_group()
         layout.addWidget(photodiode_group)
 
@@ -240,8 +240,8 @@ class GPIOWidget(QWidget):
         return group
 
     def _create_smoothing_group(self) -> QGroupBox:
-        """Create smoothing device control group."""
-        group = QGroupBox("Smoothing Device")
+        """Create laser spot smoothing module control group."""
+        group = QGroupBox("Laser Spot Smoothing Module")
         layout = QVBoxLayout()
 
         # Motor control
@@ -332,8 +332,8 @@ class GPIOWidget(QWidget):
         return group
 
     def _create_photodiode_group(self) -> QGroupBox:
-        """Create photodiode monitoring group."""
-        group = QGroupBox("Photodiode Laser Monitor")
+        """Create photodiode laser pickoff measurement monitoring group."""
+        group = QGroupBox("photodiode laser pickoff measurement Laser Monitor")
         layout = QGridLayout()
 
         # Voltage display
@@ -563,13 +563,13 @@ class GPIOWidget(QWidget):
 
     @pyqtSlot(float)
     def _on_voltage_changed(self, voltage: float) -> None:
-        """Handle photodiode voltage update."""
+        """Handle photodiode laser pickoff measurement voltage update."""
         self.photodiode_voltage = voltage
         self.voltage_label.setText(f"{voltage:.3f} V")
 
     @pyqtSlot(float)
     def _on_power_changed(self, power_mw: float) -> None:
-        """Handle photodiode power update."""
+        """Handle photodiode laser pickoff measurement power update."""
         self.photodiode_power = power_mw
         self.power_label.setText(f"{power_mw:.1f} mW")
 

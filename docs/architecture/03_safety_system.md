@@ -31,9 +31,9 @@ This laser system implements multiple redundant safety layers based on these pri
               │                  │                  │
     ┌─────────▼─────────┐ ┌─────▼──────┐ ┌────────▼────────┐
     │ Hardware Interlocks│ │ Software   │ │  Session        │
-    │ - Footpedal        │ │ Interlocks │ │  Interlocks     │
-    │ - Smoothing Device │ │ - E-stop   │ │  - Active sess. │
-    │ - Photodiode       │ │ - Power    │ │  - Subject ID   │
+    │ - dead man's switch footpedal        │ │ Interlocks │ │  Interlocks     │
+    │ - Laser Spot Smoothing Module │ │ - E-stop   │ │  - Active sess. │
+    │ - photodiode laser pickoff measurement       │ │ - Power    │ │  - Subject ID   │
     └─────────┬──────────┘ │   limits   │ │  - Tech auth.   │
               │            └─────┬──────┘ └────────┬────────┘
               └──────────────────┼──────────────────┘
@@ -44,25 +44,25 @@ This laser system implements multiple redundant safety layers based on these pri
 
 ### Hardware Interlocks (GPIO-based)
 
-#### 1. Footpedal Deadman Switch (GPIO-1)
+#### 1. dead man's switch footpedal Deadman Switch (GPIO-1)
 
 **Type:** Active-High Requirement (Positive Permission)
 
 **Connection:**
 - Arduino Nano Digital Pin (connected via serial protocol)
-- Footpedal switch monitored via custom firmware
+- dead man's switch footpedal switch monitored via custom firmware
 - Hardware debouncing in firmware
 
 **Behavior:**
 ```
-Footpedal State:
+dead man's switch footpedal State:
   DEPRESSED (pin HIGH)  → Laser CAN fire (if other interlocks pass)
   RELEASED  (pin LOW)   → Laser CANNOT fire (immediate shutdown)
 ```
 
 **Implementation:**
 ```python
-class FootpedalInterlock:
+class Dead Man's Switch FootpedalInterlock:
     def __init__(self, gpio_pin):
         self.gpio_pin = gpio_pin
         self.state = False
@@ -76,9 +76,9 @@ class FootpedalInterlock:
         self.last_check_time = time.time()
 
         if self.state:
-            return (True, "Footpedal depressed - OK")
+            return (True, "dead man's switch footpedal depressed - OK")
         else:
-            return (False, "Footpedal released - LASER DISABLED")
+            return (False, "dead man's switch footpedal released - LASER DISABLED")
 
     def is_timeout(self, timeout_seconds=0.1) -> bool:
         """Check if reading is stale"""
@@ -94,13 +94,13 @@ class FootpedalInterlock:
 - Fail-safe: Pin defaults to LOW (laser disabled) on disconnect
 
 **Fault Conditions:**
-- Footpedal released during treatment → Immediate laser shutdown
+- dead man's switch footpedal released during treatment → Immediate laser shutdown
 - GPIO read timeout → Fault state, laser disabled
 - GPIO communication error → Fault state, laser disabled
 
 ---
 
-#### 2. Hotspot Smoothing Device Interlock (GPIO-1)
+#### 2. Hotspot Laser Spot Smoothing Module Interlock (GPIO-1)
 
 **Type:** Signal Health Monitoring (Positive Permission)
 
@@ -112,7 +112,7 @@ class FootpedalInterlock:
 
 **Behavior:**
 ```
-Smoothing Device State:
+Laser Spot Smoothing Module State:
   SIGNAL PRESENT & HEALTHY → Laser CAN fire (if other interlocks pass)
   SIGNAL ABSENT OR FAULT   → Laser CANNOT fire (immediate shutdown)
 ```
@@ -178,13 +178,13 @@ class SmoothingDeviceInterlock:
 
 ---
 
-#### 3. Photodiode Feedback Monitor (GPIO-2 ADC)
+#### 3. photodiode laser pickoff measurement Feedback Monitor (GPIO-2 ADC)
 
 **Type:** Output Power Verification (Continuous Monitoring)
 
 **Connection:**
 - Arduino Nano Analog Input (A0)
-- Photodiode voltage from laser pickoff (0-5V typical)
+- photodiode laser pickoff measurement voltage from laser pickoff (0-5V typical)
 - Voltage proportional to laser output power
 - 10-bit ADC resolution (0-1023)
 
@@ -195,7 +195,7 @@ class SmoothingDeviceInterlock:
 
 **Implementation:**
 ```python
-class PhotodiodeMonitor:
+class Photodiode Laser Pickoff MeasurementMonitor:
     def __init__(self, adc_pin, calibration_data):
         self.adc_pin = adc_pin
         self.calibration = calibration_data  # Maps voltage to watts
@@ -209,7 +209,7 @@ class PhotodiodeMonitor:
         self.min_voltage = 0.05  # Below this is considered "laser off"
 
     def voltage_to_power(self, voltage: float) -> float:
-        """Convert photodiode voltage to watts using calibration"""
+        """Convert photodiode laser pickoff measurement voltage to watts using calibration"""
         # Example: Linear calibration
         # Actual implementation loads from database
         slope = self.calibration['slope']
@@ -228,7 +228,7 @@ class PhotodiodeMonitor:
         # If laser should be off
         if commanded_power_watts < 0.1:
             if self.measured_voltage > self.min_voltage:
-                return (False, 'fault', "Laser should be OFF but photodiode detects light")
+                return (False, 'fault', "Laser should be OFF but photodiode laser pickoff measurement detects light")
             else:
                 return (True, 'ok', "Laser OFF - OK")
 
@@ -265,7 +265,7 @@ class PhotodiodeMonitor:
 
 **Fault Conditions:**
 - Power deviation >30% for >500ms → Laser shutdown
-- Photodiode reads power when laser should be off → Fault
+- photodiode laser pickoff measurement reads power when laser should be off → Fault
 - ADC communication error → Fault
 
 ---
@@ -531,9 +531,9 @@ class SafetyManager:
         self.hardware = hardware_manager
 
         # Initialize all interlocks
-        self.footpedal = FootpedalInterlock(hardware_manager.gpio1.D4)
+        self.dead man's switch footpedal = Dead Man's Switch FootpedalInterlock(hardware_manager.gpio1.D4)
         self.smoothing_device = SmoothingDeviceInterlock(hardware_manager.gpio1.D5)
-        self.photodiode = PhotodiodeMonitor(hardware_manager.gpio2.A0, get_calibration('photodiode'))
+        self.photodiode laser pickoff measurement = Photodiode Laser Pickoff MeasurementMonitor(hardware_manager.gpio2.A0, get_calibration('photodiode laser pickoff measurement'))
         self.emergency_stop = EmergencyStop(hardware_manager)
         self.power_limiter = PowerLimitEnforcer()
         self.session_interlock = SessionInterlock(session_manager)
@@ -553,20 +553,20 @@ class SafetyManager:
         results = {}
 
         # Check all interlocks
-        results['footpedal'] = self.footpedal.check()
+        results['dead man's switch footpedal'] = self.dead man's switch footpedal.check()
         results['smoothing_device'] = self.smoothing_device.check()
-        results['photodiode'] = self.photodiode.check(commanded_power)
+        results['photodiode laser pickoff measurement'] = self.photodiode laser pickoff measurement.check(commanded_power)
         results['emergency_stop'] = (not self.emergency_stop.triggered, "OK" if not self.emergency_stop.triggered else "E-STOP ACTIVE")
         results['session'] = self.session_interlock.check()
         results['camera'] = self.camera_interlock.check()
 
         # Check for timeouts
-        if self.footpedal.is_timeout():
-            results['footpedal'] = (False, "Footpedal read timeout")
+        if self.dead man's switch footpedal.is_timeout():
+            results['dead man's switch footpedal'] = (False, "dead man's switch footpedal read timeout")
         if self.smoothing_device.is_timeout():
             results['smoothing_device'] = (False, "Smoothing device read timeout")
-        if self.photodiode.is_timeout():
-            results['photodiode'] = (False, 'fault', "Photodiode read timeout")
+        if self.photodiode laser pickoff measurement.is_timeout():
+            results['photodiode laser pickoff measurement'] = (False, 'fault', "photodiode laser pickoff measurement read timeout")
 
         # Determine overall safety state
         all_safe = all(r[0] for r in results.values() if isinstance(r, tuple))
@@ -612,7 +612,7 @@ class SafetyManager:
         """
         Disable treatment laser only (selective shutdown).
 
-        Other systems (camera, actuator, aiming laser, GPIO monitoring)
+        Other systems (camera, actuator, GPIO monitoring)
         remain operational per SAFETY_SHUTDOWN_POLICY.md.
         """
         self.hardware.laser.set_power(0)
@@ -644,16 +644,16 @@ class SafetyManager:
        │ Session started, all interlocks pass
        ▼
 ┌──────────────┐
-│    ARMED     │  (Ready to fire, awaiting footpedal)
+│    ARMED     │  (Ready to fire, awaiting dead man's switch footpedal)
 └──────┬───────┘
-       │ Footpedal depressed
+       │ dead man's switch footpedal depressed
        ▼
 ┌──────────────┐         Any interlock failure
 │   TREATING   │────────────────────┐
 └──────┬───────┘                    │
        │                            │
        │ Treatment complete         │
-       │ OR footpedal released      ▼
+       │ OR dead man's switch footpedal released      ▼
        ▼                      ┌──────────┐
 ┌──────────────┐             │  FAULT   │
 │   PAUSED     │             └────┬─────┘
@@ -679,12 +679,12 @@ class SafetyManager:
 | INITIALIZING| READY         | All hardware connected, self-test pass         |
 | INITIALIZING| FAULT         | Hardware connection failure                    |
 | READY       | ARMED         | Session active, all interlocks pass            |
-| ARMED       | TREATING      | Footpedal depressed                            |
+| ARMED       | TREATING      | dead man's switch footpedal depressed                            |
 | ARMED       | READY         | Session ended                                  |
-| TREATING    | ARMED         | Footpedal released (normal)                    |
+| TREATING    | ARMED         | dead man's switch footpedal released (normal)                    |
 | TREATING    | FAULT         | Any interlock failure                          |
-| TREATING    | PAUSED        | User pauses (footpedal still required)         |
-| PAUSED      | TREATING      | User resumes, footpedal depressed              |
+| TREATING    | PAUSED        | User pauses (dead man's switch footpedal still required)         |
+| PAUSED      | TREATING      | User resumes, dead man's switch footpedal depressed              |
 | PAUSED      | FAULT         | Interlock failure during pause                 |
 | FAULT       | SAFE_SHUTDOWN | Fault acknowledged                             |
 | SAFE_SHUTDOWN| READY        | Supervisor resets, interlocks restored         |
@@ -758,9 +758,9 @@ def log_safety_event(event_type: str, severity: str, description: str, **kwargs)
         'tech_id': get_active_tech_id(),
         'system_state': safety_manager.system_state,
         'laser_state': hardware.laser.get_state(),
-        'footpedal_state': safety_manager.footpedal.state,
+        'footpedal_state': safety_manager.dead man's switch footpedal.state,
         'smoothing_device_state': safety_manager.smoothing_device.state,
-        'photodiode_voltage': safety_manager.photodiode.measured_voltage,
+        'photodiode_voltage': safety_manager.photodiode laser pickoff measurement.measured_voltage,
         'details': json.dumps(kwargs)
     }
 
@@ -817,23 +817,23 @@ class FaultHandler:
     def get_recovery_steps(self, fault_source: str) -> list:
         """Return recovery procedure for fault type"""
         recovery_procedures = {
-            'footpedal': [
-                "1. Check footpedal connection",
-                "2. Test footpedal operation (depress and release)",
+            'dead man's switch footpedal': [
+                "1. Check dead man's switch footpedal connection",
+                "2. Test dead man's switch footpedal operation (depress and release)",
                 "3. Verify GPIO pin reading in diagnostics",
                 "4. If OK, supervisor reset to clear fault"
             ],
             'smoothing_device': [
-                "1. Check smoothing device power supply",
+                "1. Check laser spot smoothing module power supply",
                 "2. Verify device status indicator",
                 "3. Check GPIO connection",
                 "4. If device fault, do NOT resume treatment",
                 "5. Contact service technician"
             ],
-            'photodiode': [
+            'photodiode laser pickoff measurement': [
                 "1. Check optical pickoff alignment",
-                "2. Verify photodiode connection",
-                "3. Run photodiode calibration test",
+                "2. Verify photodiode laser pickoff measurement connection",
+                "3. Run photodiode laser pickoff measurement calibration test",
                 "4. If persistent, contact service technician"
             ],
             'camera': [
@@ -909,17 +909,17 @@ class SafetyWatchdog:
 
 ### Safety System Tests
 
-1. **Footpedal Test**
+1. **dead man's switch footpedal Test**
    - Verify laser disables immediately on pedal release (<50ms)
    - Test pedal timeout detection
    - Test debouncing (no false triggers)
 
-2. **Smoothing Device Test**
+2. **Laser Spot Smoothing Module Test**
    - Verify laser disables on signal loss
    - Test voltage threshold detection
    - Test recovery behavior
 
-3. **Photodiode Test**
+3. **photodiode laser pickoff measurement Test**
    - Verify power mismatch detection
    - Test warning threshold (15% deviation)
    - Test fault threshold (30% deviation)

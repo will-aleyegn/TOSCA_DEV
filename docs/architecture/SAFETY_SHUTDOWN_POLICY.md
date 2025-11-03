@@ -37,7 +37,7 @@ Safety Interlock Failure Detected
 │  [DONE] Camera (visual monitoring)           │
 │  [DONE] Actuator (position control)          │
 │  [DONE] Aiming Laser (low-power alignment)   │
-│  [DONE] Smoothing Device (if not fault src)  │
+│  [DONE] Laser Spot Smoothing Module (if not fault src)  │
 │  [DONE] GPIO monitoring                       │
 │  [DONE] Event logging                         │
 │  [DONE] UI responsiveness                     │
@@ -129,16 +129,16 @@ laser_controller.set_current(0.0)    # Zero power
 
 ---
 
-### Smoothing Device (CONDITIONAL)
+### Laser Spot Smoothing Module (CONDITIONAL)
 
 **Action:** Depend on fault source
 
-**If Smoothing Device IS the fault source:**
+**If Laser Spot Smoothing Module IS the fault source:**
 - Motor → OFF
 - Safety interlock recognizes motor failure
 - Treatment laser disabled (per policy)
 
-**If Smoothing Device is NOT the fault source:**
+**If Laser Spot Smoothing Module is NOT the fault source:**
 - Motor continues running if already active
 - Can be manually controlled
 - Helps maintain component temperature stability
@@ -157,12 +157,12 @@ laser_controller.set_current(0.0)    # Zero power
 **Action:** Continue all monitoring functions
 **Rationale:**
 - Heartbeat monitoring must continue (watchdog still active)
-- Photodiode feedback confirms laser is off
+- photodiode laser pickoff measurement feedback confirms laser is off
 - Vibration sensor shows motor state
 - Essential for diagnosing root cause
 
 **Monitored Signals:**
-- Photodiode voltage → Should drop to <0.1V after laser shutdown
+- photodiode laser pickoff measurement voltage → Should drop to <0.1V after laser shutdown
 - Smoothing device vibration → Continues if motor running
 - Watchdog heartbeat → Must continue for system health
 - Safety interlock states → Track for diagnostics
@@ -314,7 +314,7 @@ class ProtocolEngine:
 - **Camera:** No harm possible (passive imaging)
 - **Actuator:** Low force, controlled motion, operator supervised
 - **Aiming Laser:** Class 2, eye-safe, inherently low risk
-- **Smoothing Device:** Mechanical device, no direct patient contact
+- **Laser Spot Smoothing Module:** Mechanical device, no direct patient contact
 - **Treatment Laser:** High power (2000 mW), tissue-damaging, **must** be disabled
 
 **Conclusion:** Selective shutdown optimizes both safety and functionality.
@@ -326,7 +326,7 @@ class ProtocolEngine:
 ### After Selective Shutdown
 
 **Immediate Actions:**
-1. [DONE] Verify treatment laser OFF (check photodiode < 0.1V)
+1. [DONE] Verify treatment laser OFF (check photodiode laser pickoff measurement < 0.1V)
 2. [DONE] Assess patient/tissue status visually (camera)
 3. [DONE] Document fault conditions in event log
 4. [DONE] Determine root cause
@@ -372,7 +372,7 @@ READY (All Systems Operational, Laser Can Be Enabled)
 **Test 1:** Emergency Stop Button
 - Press E-stop during treatment
 - **Verify:** Laser OFF, camera ON, actuator controllable
-- **Verify:** Photodiode reads <0.1V
+- **Verify:** photodiode laser pickoff measurement reads <0.1V
 - **Verify:** UI shows fault state but remains responsive
 
 **Test 2:** Watchdog Timeout
@@ -381,8 +381,8 @@ READY (All Systems Operational, Laser Can Be Enabled)
 - **Verify:** Camera still streaming
 - **Verify:** Event log records fault
 
-**Test 3:** Safety Interlock Failure (Smoothing Device)
-- Stop smoothing motor during treatment
+**Test 3:** Safety Interlock Failure (Laser Spot Smoothing Module)
+- Stop laser spot smoothing module during treatment
 - **Verify:** Laser OFF immediately
 - **Verify:** Motor stops, but camera/actuator available
 - **Verify:** Operator can reposition
