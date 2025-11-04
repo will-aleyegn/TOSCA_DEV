@@ -1,8 +1,10 @@
 """
-Line-based protocol execution engine for running treatment protocols.
+Module: Line Protocol Engine
+Project: TOSCA Laser Control System
 
-Executes line-based protocols where each line contains concurrent actions
-(movement, laser, dwell). Provides real-time control, safety monitoring, and logging.
+Purpose: Execute line-based treatment protocols with concurrent actions (movement, laser, dwell).
+         Provides real-time control, safety monitoring, and execution logging.
+Safety Critical: Yes
 """
 
 import asyncio
@@ -140,9 +142,7 @@ class LineBasedProtocolEngine:
             # Execute protocol with loop count
             for loop_iter in range(protocol.loop_count):
                 self.current_loop_iteration = loop_iter + 1
-                logger.info(
-                    f"Loop iteration {self.current_loop_iteration}/{protocol.loop_count}"
-                )
+                logger.info(f"Loop iteration {self.current_loop_iteration}/{protocol.loop_count}")
 
                 # Execute all lines in sequence
                 loop_failures = await self._execute_lines_with_recovery(
@@ -209,7 +209,7 @@ class LineBasedProtocolEngine:
                 # Update progress
                 line_progress = idx / total_lines if total_lines > 0 else 0.0
                 loop_progress = (loop_iteration - 1) / self.current_protocol.loop_count
-                overall_progress = (loop_progress + line_progress / self.current_protocol.loop_count)
+                overall_progress = loop_progress + line_progress / self.current_protocol.loop_count
 
                 if self.on_progress_update:
                     self.on_progress_update(overall_progress)
@@ -262,9 +262,7 @@ class LineBasedProtocolEngine:
 
         try:
             # Execute with timeout protection
-            await asyncio.wait_for(
-                self._execute_line_with_retry(line), timeout=LINE_TIMEOUT
-            )
+            await asyncio.wait_for(self._execute_line_with_retry(line), timeout=LINE_TIMEOUT)
 
             # Log line complete
             self.execution_log.append(
@@ -324,9 +322,7 @@ class LineBasedProtocolEngine:
                     )
                     await asyncio.sleep(RETRY_DELAY)
                 else:
-                    logger.error(
-                        f"Line {line.line_number} failed after {MAX_RETRIES} attempts"
-                    )
+                    logger.error(f"Line {line.line_number} failed after {MAX_RETRIES} attempts")
 
         # All retries failed
         if last_error:
@@ -360,9 +356,7 @@ class LineBasedProtocolEngine:
             # Use gather to run all tasks and propagate any exceptions
             await asyncio.gather(*tasks)
 
-    async def _execute_movement(
-        self, movement: MoveParams | HomeParams
-    ) -> None:
+    async def _execute_movement(self, movement: MoveParams | HomeParams) -> None:
         """Execute movement operation (move or home)."""
         if isinstance(movement, MoveParams):
             await self._execute_move(movement)
@@ -454,9 +448,7 @@ class LineBasedProtocolEngine:
             self.current_position_mm = 0.0
             await asyncio.sleep(home_time)
 
-    async def _execute_laser(
-        self, laser: LaserSetParams | LaserRampParams
-    ) -> None:
+    async def _execute_laser(self, laser: LaserSetParams | LaserRampParams) -> None:
         """Execute laser operation (set or ramp)."""
         if isinstance(laser, LaserSetParams):
             await self._execute_laser_set(laser)
@@ -552,9 +544,7 @@ class LineBasedProtocolEngine:
 
         # If no safety manager configured, allow execution (testing mode)
         if self.safety_manager is None:
-            logger.warning(
-                "No safety manager configured - skipping safety checks (testing mode)"
-            )
+            logger.warning("No safety manager configured - skipping safety checks (testing mode)")
             return True, "Safety checks skipped (testing mode)"
 
         # Check if laser enable is permitted
@@ -569,7 +559,7 @@ class LineBasedProtocolEngine:
 
     def _save_execution_record(self) -> None:
         """Save execution record to database."""
-        # TODO: Implement database persistence for line-based protocol execution
+        # TODO(#100): Implement database persistence for line-based protocol execution
         logger.debug("Database persistence not yet implemented for line-based protocols")
 
     def pause(self) -> None:

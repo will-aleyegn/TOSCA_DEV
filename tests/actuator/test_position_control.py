@@ -45,7 +45,9 @@ def test_position_control() -> None:  # noqa: C901
     )
     controller.status_changed.connect(lambda status: print(f"Status: {status}"))
     controller.position_changed.connect(lambda pos: print(f"  Position: {pos:.2f} µm"))
-    controller.position_reached.connect(lambda pos: print(f"  # [DONE] Target reached: {pos:.2f} µm"))
+    controller.position_reached.connect(
+        lambda pos: print(f"  # [DONE] Target reached: {pos:.2f} µm")
+    )
     controller.error_occurred.connect(lambda err: print(f"ERROR: {err}"))
 
     def run_tests() -> None:
@@ -180,13 +182,23 @@ def test_position_control() -> None:  # noqa: C901
     def print_results() -> None:
         """Print test results summary."""
         print("\n=== Test Results ===")
-        print(f"Connection:           {'# [DONE] PASS' if test_results['connection'] else '# [FAILED] FAIL'}")
-        print(f"Homing:              {'# [DONE] PASS' if test_results['homing'] else '# [FAILED] FAIL'}")
-        print(f"Absolute Positioning: {'# [DONE] PASS' if test_results['absolute'] else '# [FAILED] FAIL'}")
-        print(f"Relative Movement:    {'# [DONE] PASS' if test_results['relative'] else '# [FAILED] FAIL'}")
+        print(
+            f"Connection:           {'# [DONE] PASS' if test_results['connection'] else '# [FAILED] FAIL'}"
+        )
+        print(
+            f"Homing:              {'# [DONE] PASS' if test_results['homing'] else '# [FAILED] FAIL'}"
+        )
+        print(
+            f"Absolute Positioning: {'# [DONE] PASS' if test_results['absolute'] else '# [FAILED] FAIL'}"
+        )
+        print(
+            f"Relative Movement:    {'# [DONE] PASS' if test_results['relative'] else '# [FAILED] FAIL'}"
+        )
 
         all_passed = all(test_results.values())
-        print(f"\nOverall: {'# [DONE] ALL TESTS PASSED' if all_passed else '# [FAILED] SOME TESTS FAILED'}")
+        print(
+            f"\nOverall: {'# [DONE] ALL TESTS PASSED' if all_passed else '# [FAILED] SOME TESTS FAILED'}"
+        )
 
     def cleanup() -> None:
         """Cleanup and exit."""

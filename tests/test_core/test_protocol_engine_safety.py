@@ -26,7 +26,6 @@ from core.protocol_engine import ExecutionState, ProtocolEngine
 from core.safety import SafetyManager, SafetyState
 from tests.mocks import MockActuatorController, MockLaserController
 
-
 # ==============================================================================
 # FIXTURES
 # ==============================================================================
@@ -222,9 +221,7 @@ async def test_start_succeeds_when_all_interlocks_satisfied(protocol_engine_safe
 
 
 @pytest.mark.asyncio
-async def test_safety_change_during_pause_monitored(
-    protocol_engine_safe, safety_manager_safe, app
-):
+async def test_safety_change_during_pause_monitored(protocol_engine_safe, safety_manager_safe, app):
     """Test safety failure during pause is monitored and stops protocol on resume."""
     protocol = create_simple_protocol(duration=10.0)
 

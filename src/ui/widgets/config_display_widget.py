@@ -1,8 +1,10 @@
 """
-Configuration display widget for Hardware & Diagnostics tab.
+Module: Configuration Display Widget
+Project: TOSCA Laser Control System
 
-Displays read-only system configuration values loaded from config.yaml.
-Provides visibility into hardware settings without allowing UI modifications.
+Purpose: Display and manage system configuration files (config.yaml) in Hardware & Diagnostics tab.
+         Provides read-only visibility into hardware settings and configuration values.
+Safety Critical: No
 """
 
 import logging
@@ -89,13 +91,11 @@ class ConfigDisplayWidget(QWidget):
             "background-color: #f5f5f5; padding: 5px; border: 1px solid #ddd; "
             "border-radius: 3px;"
         )
-        self.config_path_label.setTextInteractionFlags(
-            Qt.TextInteractionFlag.TextSelectableByMouse
-        )
+        self.config_path_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         layout.addWidget(self.config_path_label, 1)
 
         # Open button
-        self.open_btn = QPushButton("📂 Open")
+        self.open_btn = QPushButton("[FILE] Open")
         self.open_btn.setFixedWidth(80)
         self.open_btn.setToolTip("Open config.yaml in default editor")
         self.open_btn.clicked.connect(self._open_config_file)
@@ -231,16 +231,12 @@ class ConfigDisplayWidget(QWidget):
             laser_config = self.config.get("hardware", {}).get("laser", {})
 
             self.gpio_baudrate_label.setText(str(gpio_config.get("baudrate", "N/A")))
-            self.actuator_baudrate_label.setText(
-                str(actuator_config.get("baudrate", "N/A"))
-            )
+            self.actuator_baudrate_label.setText(str(actuator_config.get("baudrate", "N/A")))
             self.laser_com_label.setText(str(laser_config.get("com_port", "N/A")))
             self.laser_baudrate_label.setText(str(laser_config.get("baudrate", "N/A")))
 
             # Motor settings
-            self.motor_pwm_max_label.setText(
-                str(gpio_config.get("motor_pwm_max", "N/A"))
-            )
+            self.motor_pwm_max_label.setText(str(gpio_config.get("motor_pwm_max", "N/A")))
             self.motor_default_speed_label.setText(
                 str(gpio_config.get("motor_default_speed", "N/A"))
             )
@@ -250,12 +246,8 @@ class ConfigDisplayWidget(QWidget):
 
             # Camera settings
             camera_config = self.config.get("hardware", {}).get("camera", {})
-            self.gui_fps_label.setText(
-                f"{camera_config.get('gui_fps_target', 'N/A')} FPS"
-            )
-            self.hardware_fps_label.setText(
-                f"{camera_config.get('hardware_fps', 'N/A')} FPS"
-            )
+            self.gui_fps_label.setText(f"{camera_config.get('gui_fps_target', 'N/A')} FPS")
+            self.hardware_fps_label.setText(f"{camera_config.get('hardware_fps', 'N/A')} FPS")
 
             # Safety timings
             safety_config = self.config.get("safety", {})

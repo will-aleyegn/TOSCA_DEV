@@ -1,11 +1,17 @@
 """
-Main application window with tab-based navigation.
+Module: Main Window
+Project: TOSCA Laser Control System
+
+Purpose: Primary application window with 3-tab interface (Setup, Treatment, Safety) and global toolbar.
+         Provides emergency stop button, hardware connection management, and safety status display.
+Safety Critical: Yes
 """
 
+import asyncio
 import logging
 from typing import Any
 
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtCore import QObject, QRunnable, Qt, pyqtSignal, pyqtSlot, QThreadPool
 from PyQt6.QtGui import QCloseEvent
 from PyQt6.QtWidgets import (
     QHBoxLayout,
@@ -42,11 +48,6 @@ logger = logging.getLogger(__name__)
 # ============================================================================
 # Protocol Execution Worker (QRunnable + asyncio.run())
 # ============================================================================
-
-
-import asyncio
-
-from PyQt6.QtCore import QObject, QRunnable, pyqtSignal
 
 
 class LineProtocolWorkerSignals(QObject):
@@ -258,7 +259,7 @@ class MainWindow(QMainWindow):
         left_content.setLayout(hardware_left_layout)
 
         # === SECTION 1: CAMERA SYSTEM ===
-        self.camera_header = QLabel("📷 Camera System ✗")
+        self.camera_header = QLabel("[CAM] Camera System [X]")
         self.camera_header.setStyleSheet(
             "font-size: 13px; font-weight: bold; padding: 8px; margin-top: 4px; "
             "background-color: #37474F; color: #64B5F6; border-radius: 3px;"
@@ -272,7 +273,7 @@ class MainWindow(QMainWindow):
         hardware_left_layout.addWidget(self.camera_hardware_panel)
 
         # === SECTION 2: LINEAR ACTUATOR ===
-        self.actuator_header = QLabel("🔧 Linear Actuator Controller ✗")
+        self.actuator_header = QLabel("[ACT] Linear Actuator Controller [X]")
         self.actuator_header.setStyleSheet(
             "font-size: 13px; font-weight: bold; padding: 8px; margin-top: 12px; "
             "background-color: #37474F; color: #81C784; border-radius: 3px;"
@@ -286,7 +287,7 @@ class MainWindow(QMainWindow):
         )  # Remember position for insertion
 
         # === SECTION 3: LASER SYSTEMS ===
-        self.laser_header = QLabel("⚡ Laser Systems (Driver + TEC) ✗")
+        self.laser_header = QLabel("[LSR] Laser Systems (Driver + TEC) [X]")
         self.laser_header.setStyleSheet(
             "font-size: 13px; font-weight: bold; padding: 8px; margin-top: 12px; "
             "background-color: #37474F; color: #FFD54F; border-radius: 3px;"
@@ -611,15 +612,15 @@ class MainWindow(QMainWindow):
             status_layout.addWidget(self.research_mode_label)
 
         # Connection status with icons (Dev Mode moved to menubar)
-        self.camera_status = QLabel("📷 Camera ✗")
+        self.camera_status = QLabel("[CAM] Camera [X]")
         self.camera_status.setToolTip("Camera connection status")
         self.camera_status.setStyleSheet("color: #f44336;")  # Red when disconnected
 
-        self.laser_status = QLabel("⚡ Laser ✗")
+        self.laser_status = QLabel("[LSR] Laser [X]")
         self.laser_status.setToolTip("Laser controller connection status")
         self.laser_status.setStyleSheet("color: #f44336;")  # Red when disconnected
 
-        self.actuator_status = QLabel("🔧 Actuator ✗")
+        self.actuator_status = QLabel("[ACT] Actuator [X]")
         self.actuator_status.setToolTip("Actuator controller connection status")
         self.actuator_status.setStyleSheet("color: #f44336;")  # Red when disconnected
 
@@ -666,7 +667,7 @@ class MainWindow(QMainWindow):
         """
         msg = QMessageBox(self)
         msg.setIcon(QMessageBox.Icon.Warning)
-        msg.setWindowTitle("⚠️ Developer Mode Warning")
+        msg.setWindowTitle("[!] Developer Mode Warning")
         msg.setText(
             "You are about to enable Developer Mode with:\n\n"
             "• Safety interlock bypass\n"
@@ -690,7 +691,7 @@ class MainWindow(QMainWindow):
         if show:
             # Status bar warning (persistent)
             self.statusBar().showMessage(
-                "⚠️ DEVELOPER MODE: Safety Bypasses Active - FOR TESTING ONLY",
+                "[!] DEVELOPER MODE: Safety Bypasses Active - FOR TESTING ONLY",
                 0,  # Timeout = 0 means persistent
             )
             self.statusBar().setStyleSheet(
@@ -759,13 +760,13 @@ class MainWindow(QMainWindow):
     def _update_camera_header_status(self, connected: bool) -> None:
         """Update camera section header with connection status."""
         if connected:
-            self.camera_header.setText("📷 Camera System ✓")
+            self.camera_header.setText("[CAM] Camera System [OK]")
             self.camera_header.setStyleSheet(
                 "font-size: 13px; font-weight: bold; padding: 8px; margin-top: 4px; "
                 "background-color: #2E7D32; color: white; border-radius: 3px;"
             )
         else:
-            self.camera_header.setText("📷 Camera System ✗")
+            self.camera_header.setText("[CAM] Camera System [X]")
             self.camera_header.setStyleSheet(
                 "font-size: 13px; font-weight: bold; padding: 8px; margin-top: 4px; "
                 "background-color: #37474F; color: #64B5F6; border-radius: 3px;"
@@ -774,13 +775,13 @@ class MainWindow(QMainWindow):
     def _update_actuator_header_status(self, connected: bool) -> None:
         """Update actuator section header with connection status."""
         if connected:
-            self.actuator_header.setText("🔧 Linear Actuator Controller ✓")
+            self.actuator_header.setText("[ACT] Linear Actuator Controller [OK]")
             self.actuator_header.setStyleSheet(
                 "font-size: 13px; font-weight: bold; padding: 8px; margin-top: 12px; "
                 "background-color: #2E7D32; color: white; border-radius: 3px;"
             )
         else:
-            self.actuator_header.setText("🔧 Linear Actuator Controller ✗")
+            self.actuator_header.setText("[ACT] Linear Actuator Controller [X]")
             self.actuator_header.setStyleSheet(
                 "font-size: 13px; font-weight: bold; padding: 8px; margin-top: 12px; "
                 "background-color: #37474F; color: #81C784; border-radius: 3px;"
@@ -789,13 +790,13 @@ class MainWindow(QMainWindow):
     def _update_laser_header_status(self, connected: bool) -> None:
         """Update laser section header with connection status."""
         if connected:
-            self.laser_header.setText("⚡ Laser Systems (Aiming + Treatment) ✓")
+            self.laser_header.setText("[LSR] Laser Systems (Aiming + Treatment) [OK]")
             self.laser_header.setStyleSheet(
                 "font-size: 13px; font-weight: bold; padding: 8px; margin-top: 12px; "
                 "background-color: #2E7D32; color: white; border-radius: 3px;"
             )
         else:
-            self.laser_header.setText("⚡ Laser Systems (Aiming + Treatment) ✗")
+            self.laser_header.setText("[LSR] Laser Systems (Aiming + Treatment) [X]")
             self.laser_header.setStyleSheet(
                 "font-size: 13px; font-weight: bold; padding: 8px; margin-top: 12px; "
                 "background-color: #37474F; color: #FFD54F; border-radius: 3px;"
@@ -1103,7 +1104,7 @@ class MainWindow(QMainWindow):
             f"  • Lines: {len(protocol.lines)}\n"
             f"  • Loop count: {protocol.loop_count}\n"
             f"  • Total duration: {protocol.calculate_total_duration():.1f}s\n\n"
-            f"⚠️ Safety checks will be performed before execution starts.",
+            f"[!] Safety checks will be performed before execution starts.",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
 
@@ -1112,7 +1113,6 @@ class MainWindow(QMainWindow):
             return
 
         # Execute protocol asynchronously using QRunnable pattern
-        from PyQt6.QtCore import QRunnable, QThreadPool, pyqtSlot
 
         # Store protocol for execution
         self._current_executing_protocol = protocol
@@ -1310,7 +1310,7 @@ class MainWindow(QMainWindow):
         Returns:
             Dict with name, passed status, and details list
         """
-        result = {"name": "📷 Camera System", "passed": False, "details": []}
+        result = {"name": "[CAM] Camera System", "passed": False, "details": []}
 
         if hasattr(self, "camera_live_view") and self.camera_live_view:
             if self.camera_live_view.is_connected:
@@ -1350,7 +1350,7 @@ class MainWindow(QMainWindow):
         Returns:
             Dict with name, passed status, and details list
         """
-        result = {"name": "🔧 Linear Actuator", "passed": False, "details": []}
+        result = {"name": "[ACT] Linear Actuator", "passed": False, "details": []}
 
         if hasattr(self, "actuator_connection_widget") and self.actuator_connection_widget:
             if (
@@ -1392,7 +1392,7 @@ class MainWindow(QMainWindow):
         Returns:
             Dict with name, passed status, and details list
         """
-        result = {"name": "⚡ Laser Systems", "passed": False, "details": []}
+        result = {"name": "[LSR] Laser Systems", "passed": False, "details": []}
 
         if hasattr(self, "laser_widget") and self.laser_widget:
             # Check aiming laser
@@ -1457,7 +1457,9 @@ class MainWindow(QMainWindow):
                     # Check photodiode laser pickoff measurement
                     if hasattr(gpio_widget, "photodiode_voltage"):
                         voltage = gpio_widget.photodiode_voltage
-                        result["details"].append(f"photodiode laser pickoff measurement: {voltage:.2f}V")
+                        result["details"].append(
+                            f"photodiode laser pickoff measurement: {voltage:.2f}V"
+                        )
 
                     # Check interlocks
                     if (
@@ -1526,10 +1528,10 @@ class MainWindow(QMainWindow):
     def update_camera_status(self, connected: bool) -> None:
         """Update camera connection status indicator."""
         if connected:
-            self.camera_status.setText("📷 Camera ✓")
+            self.camera_status.setText("[CAM] Camera [OK]")
             self.camera_status.setStyleSheet("color: #4CAF50;")  # Green
         else:
-            self.camera_status.setText("📷 Camera ✗")
+            self.camera_status.setText("[CAM] Camera [X]")
             self.camera_status.setStyleSheet("color: #f44336;")  # Red
 
         # Update hardware tab header
@@ -1538,10 +1540,10 @@ class MainWindow(QMainWindow):
     def update_laser_status(self, connected: bool) -> None:
         """Update laser connection status indicator."""
         if connected:
-            self.laser_status.setText("⚡ Laser ✓")
+            self.laser_status.setText("[LSR] Laser [OK]")
             self.laser_status.setStyleSheet("color: #4CAF50;")  # Green
         else:
-            self.laser_status.setText("⚡ Laser ✗")
+            self.laser_status.setText("[LSR] Laser [X]")
             self.laser_status.setStyleSheet("color: #f44336;")  # Red
 
         # Update hardware tab header
@@ -1550,10 +1552,10 @@ class MainWindow(QMainWindow):
     def update_actuator_status(self, connected: bool) -> None:
         """Update actuator connection status indicator."""
         if connected:
-            self.actuator_status.setText("🔧 Actuator ✓")
+            self.actuator_status.setText("[ACT] Actuator [OK]")
             self.actuator_status.setStyleSheet("color: #4CAF50;")  # Green
         else:
-            self.actuator_status.setText("🔧 Actuator ✗")
+            self.actuator_status.setText("[ACT] Actuator [X]")
             self.actuator_status.setStyleSheet("color: #f44336;")  # Red
 
         # Update hardware tab header
@@ -1581,17 +1583,17 @@ class MainWindow(QMainWindow):
     def _disconnect_hardware(self, controller_name: str, controller: Any) -> None:
         """
         Generic hardware disconnect with error handling.
-        
+
         Args:
             controller_name: Name for logging (e.g., "camera", "actuator")
             controller: Hardware controller instance
         """
         if not hasattr(self, controller_name) or controller is None:
             return
-            
+
         if not controller.is_connected:
             return
-            
+
         logger.info(f"Auto-disconnecting {controller_name} on shutdown")
         try:
             # Special handling for camera (stop streaming first)
@@ -1606,19 +1608,19 @@ class MainWindow(QMainWindow):
         # Camera
         if hasattr(self, "camera_live_view") and self.camera_live_view:
             self.camera_live_view.cleanup()
-        
+
         # Treatment widgets
         if hasattr(self, "treatment_setup_widget") and self.treatment_setup_widget:
             self.treatment_setup_widget.cleanup()
         if hasattr(self, "active_treatment_widget") and self.active_treatment_widget:
             self.active_treatment_widget.cleanup()
-        
+
         # Hardware & Diagnostics
         if hasattr(self, "laser_widget") and self.laser_widget:
             self.laser_widget.cleanup()
         if hasattr(self, "safety_widget") and self.safety_widget:
             self.safety_widget.cleanup()
-        
+
         # Protocol Builder
         if hasattr(self, "actuator_connection_widget") and self.actuator_connection_widget:
             self.actuator_connection_widget.cleanup()
@@ -1627,7 +1629,6 @@ class MainWindow(QMainWindow):
         """Close database connection."""
         if hasattr(self, "db_manager") and self.db_manager:
             self.db_manager.close()
-
 
     def closeEvent(self, event: QCloseEvent) -> None:
         """Handle window close event and cleanup resources."""

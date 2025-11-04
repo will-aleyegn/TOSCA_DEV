@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-GPIO hardware abstraction layer for Arduino Nano safety interlocks.
+Module: GPIO Controller
+Project: TOSCA Laser Control System
 
-Provides PyQt6-integrated GPIO control for:
-- Smoothing device control and monitoring
-- photodiode laser pickoff measurement laser power monitoring
-- Aiming laser control
-- Hardware watchdog timer heartbeat
-- Thread-safe serial communication
+Purpose: Arduino GPIO hardware abstraction layer for safety interlocks.
+         Provides smoothing device control, photodiode monitoring, aiming laser control,
+         hardware watchdog heartbeat, and thread-safe serial communication.
+Safety Critical: Yes
 
 Arduino Nano Pin Configuration:
 - Digital Pin 2: Smoothing motor control (output)
@@ -801,7 +800,9 @@ class GPIOController(QObject):
                 self._update_safety_status()
 
                 # Read photodiode laser pickoff measurement voltage
-                response = self._send_command("GET_PHOTODIODE", expected_prefix="photodiode laser pickoff measurement:")
+                response = self._send_command(
+                    "GET_PHOTODIODE", expected_prefix="photodiode laser pickoff measurement:"
+                )
                 if "photodiode laser pickoff measurement:" in response:
                     voltage_str = response.split(":")[1].strip()
                     self.photodiode_voltage = float(voltage_str)

@@ -1,8 +1,10 @@
 """
-Research Mode Warning Dialog.
+Module: Research Mode Warning Dialog
+Project: TOSCA Laser Control System
 
-Displays a warning dialog to inform users that the system is for research use only
-and not approved for clinical use. Requires explicit acknowledgment before proceeding.
+Purpose: Display warning dialog for research-only mode on startup.
+         Requires explicit acknowledgment that system is not approved for clinical use.
+Safety Critical: No
 """
 
 import logging
@@ -13,7 +15,6 @@ from PyQt6.QtWidgets import (
     QDialog,
     QHBoxLayout,
     QLabel,
-    QMessageBox,
     QPushButton,
     QVBoxLayout,
 )
@@ -144,7 +145,7 @@ class ResearchModeWarningDialog(QDialog):
         Args:
             state: Qt.CheckState value
         """
-        is_checked = (state == Qt.CheckState.Checked.value)
+        is_checked = state == Qt.CheckState.Checked.value
         self.ok_button.setEnabled(is_checked)
 
         if is_checked:

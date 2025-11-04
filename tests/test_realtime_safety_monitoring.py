@@ -272,7 +272,6 @@ class TestRealtimeSafetyMonitoring:
         except asyncio.CancelledError:
             pass
 
-
     @pytest.mark.asyncio
     async def test_interlock_failure_timing_under_200ms(
         self, protocol_engine, safety_manager, mock_laser, app
