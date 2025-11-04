@@ -1,4 +1,0 @@
-src\core\event_logger.py:189: unused variable 'footpedal_state' (100% confidence, 1 line)
-src\core\event_logger.py:190: unused variable 'smoothing_device_state' (100% confidence, 1 line)
-src\hardware\camera_controller.py:76: unused variable 'stream' (100% confidence, 1 line)
-src\hardware\hardware_controller_base.py:75: unused variable 'kwargs' (100% confidence, 1 line)
