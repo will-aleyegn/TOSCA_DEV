@@ -44,7 +44,7 @@ This Software Requirements Specification (SRS) defines the functional and perfor
 The TOSCA system is a **Class II medical device** for precision laser ablation therapy. This document covers software requirements for:
 
 - Laser power control and monitoring (0-10W diode laser)
-- Linear actuator positioning control (0-20mm range)
+- Linear actuator positioning control (45mm range)
 - Machine vision integration for tissue alignment
 - Multi-layer safety interlock system
 - Treatment protocol execution engine
@@ -332,10 +332,10 @@ The system SHALL provide real-time laser power feedback via photodiode monitorin
 **Risk Level:** LOW
 
 **Description:**
-The system SHALL control linear actuator positioning over 0-20mm range with ±0.01mm accuracy.
+The system SHALL control linear actuator positioning over 45mm range with ±0.01mm accuracy.
 
 **Acceptance Criteria:**
-1. Position range: 0-20mm
+1. Position range: 45mm
 2. Position accuracy: ±0.01mm (10 microns)
 3. Position repeatability: ±0.005mm
 4. Homing sequence SHALL complete within 30 seconds
