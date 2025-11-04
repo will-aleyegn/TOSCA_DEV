@@ -112,7 +112,7 @@ TOSCA requires regular calibration of all measurement systems to ensure treatmen
 
 ### Purpose
 
-Verify photodiode accurately measures laser power (0-10W range).
+Verify photodiode accurately measures laser power (5W range).
 
 **Safety Critical:** YES - Incorrect power measurement could exceed safety limits
 

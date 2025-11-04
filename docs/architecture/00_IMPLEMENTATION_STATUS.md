@@ -63,8 +63,8 @@ This document categorizes TOSCA features into **readiness tiers** based on what'
 | Feature | Status | Document |
 |---------|--------|----------|
 | **Core Treatment Logic** |
-| Laser power control (0-10W) | [DONE] Working | 01_system_overview.md |
-| Actuator position control (0-20mm) | [DONE] Working | 01_system_overview.md |
+| Laser power control (5W) | [DONE] Working | 01_system_overview.md |
+| Actuator position control (45mm) | [DONE] Working | 01_system_overview.md |
 | Protocol execution engine | [DONE] Working | 06_protocol_builder.md |
 | Treatment session management | [DONE] Working | - |
 | **Safety Systems** |

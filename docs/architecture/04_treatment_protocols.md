@@ -695,7 +695,7 @@ calibration_points = [
    - Add/remove/reorder steps
    - Edit step parameters:
      - Duration slider (0-300s)
-     - Power start/end (0-10W)
+     - Power start/end (5W)
      - Ring size (2-5mm)
      - Ramp type dropdown
 
@@ -741,7 +741,7 @@ calibration_points = [
 │                                              [Add Step]     │
 ├─────────────────────────────────────────────────────────────┤
 │ Power Profile:                                              │
-│   10W│                                                      │
+│   5W│                                                      │
 │    8W│           ╱─────────╲                               │
 │    6W│         ╱           ╲                               │
 │    4W│       ╱              ──────                         │
@@ -750,7 +750,7 @@ calibration_points = [
 │       0s    30s   60s   90s  120s  150s                    │
 ├─────────────────────────────────────────────────────────────┤
 │ Safety Check:                                               │
-│   [DONE] All steps within power limits (max 10W)                │
+│   [DONE] All steps within power limits (max 5W)                │
 │   [DONE] Total duration 150s (within 300s limit)                │
 │   [DONE] Ring sizes within range (2-5mm)                        │
 │   Total Energy: 675 Joules                                 │

@@ -80,11 +80,11 @@ Intended for research and development, hardware testing and calibration, algorit
                          │
 ┌────────────────────────▼────────────────────────────────┐
 │  Physical Hardware                                      │
-│  - Laser driver (Arroyo 6300, COM10)                    │
-│  - TEC controller (Arroyo 5305, COM9)                   │
-│  - Linear actuator (Xeryon, COM3)                       │
+│  - Laser driver (Arroyo 6300)                           │
+│  - TEC controller (Arroyo 5305)                         │
+│  - Linear actuator (Xeryon)                             │
 │  - Camera (Allied Vision 1800, USB 3.0)                 │
-│  - GPIO controller (Arduino Uno, COM4)                  │
+│  - GPIO controller (Arduino Uno)                        │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -92,11 +92,11 @@ Intended for research and development, hardware testing and calibration, algorit
 
 | Component | Model | Interface | Purpose |
 |-----------|-------|-----------|---------|
-| Laser Driver | Arroyo 6300 | COM10 @ 38400 | Treatment laser power control |
-| TEC Controller | Arroyo 5305 | COM9 @ 38400 | Laser temperature control |
-| Linear Actuator | Xeryon | COM3 @ 9600 | Laser ring positioning |
+| Laser Driver | Arroyo 6300 | Serial @ 38400 | Treatment laser power control |
+| TEC Controller | Arroyo 5305 | Serial @ 38400 | Laser temperature control |
+| Linear Actuator | Xeryon | Serial @ 9600 | Laser ring positioning |
 | Camera | Allied Vision 1800 | USB 3.0 | Live imaging, alignment |
-| GPIO Controller | Arduino Uno | COM4 @ 115200 | Safety interlocks |
+| GPIO Controller | Arduino Uno | Serial @ 115200 | Safety interlocks |
 
 **Safety Interlocks (Arduino GPIO):**
 
@@ -417,20 +417,20 @@ pytest
 ```yaml
 hardware:
   laser:
-    port: COM10
+    port: COM_PORT  # Configure in config.yaml
     baud_rate: 38400
   tec:
-    port: COM9
+    port: COM_PORT  # Configure in config.yaml
     baud_rate: 38400
   actuator:
-    port: COM3
+    port: COM_PORT  # Configure in config.yaml
     baud_rate: 9600
   gpio:
-    port: COM4
+    port: COM_PORT  # Configure in config.yaml
     baud_rate: 115200
 
 safety:
-  max_laser_power_watts: 10.0
+  max_laser_power_watts: 5.0
   watchdog_timeout_ms: 1000
   photodiode_deviation_threshold_percent: 30.0
 ```

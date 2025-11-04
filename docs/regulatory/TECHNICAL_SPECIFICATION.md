@@ -22,7 +22,7 @@ This document specifies the technical characteristics, capabilities, and impleme
 
 TOSCA is a laser control system that integrates:
 - Precision laser power control (0-10W diode laser)
-- Linear actuator positioning (0-20mm range)
+- Linear actuator positioning (45mm range)
 - Machine vision (Allied Vision camera, 30 FPS)
 - Multi-layer safety architecture with hardware interlocks
 - Comprehensive session and event logging
@@ -80,7 +80,7 @@ Source: `config.yaml:36-48`, `src/hardware/gpio_controller.py:1-100`
 Source: `config.yaml:19-27`, `src/hardware/laser_controller.py:25-67`
 
 **Actuator Subsystem:**
-- Travel Range: 0-20mm
+- Travel Range: 45mm
 - Position Resolution: 10μm (per Xeryon specifications)
 - Position Update Interval: 100ms
 - Homing: Required at session start
