@@ -2,8 +2,9 @@
 Module: Main Window
 Project: TOSCA Laser Control System
 
-Purpose: Primary application window with 3-tab interface (Setup, Treatment, Safety) and global toolbar.
-         Provides emergency stop button, hardware connection management, and safety status display.
+Purpose: Primary application window with 3-tab interface (Setup, Treatment, Safety)
+         and global toolbar. Provides emergency stop button, hardware connection
+         management, and safety status display.
 Safety Critical: Yes
 """
 
@@ -11,7 +12,7 @@ import asyncio
 import logging
 from typing import Any
 
-from PyQt6.QtCore import QObject, QRunnable, Qt, pyqtSignal, pyqtSlot, QThreadPool
+from PyQt6.QtCore import QObject, QRunnable, Qt, QThreadPool, pyqtSignal
 from PyQt6.QtGui import QCloseEvent
 from PyQt6.QtWidgets import (
     QHBoxLayout,
@@ -320,7 +321,8 @@ class MainWindow(QMainWindow):
         right_content.setLayout(hardware_right_layout)
 
         # === SECTION 4: GPIO DIAGNOSTICS ===
-        # GPIO widget contains laser spot smoothing module, photodiode laser pickoff measurement, and safety interlocks
+        # GPIO widget contains laser spot smoothing module, photodiode monitoring,
+        # and safety interlocks
         # Widget has its own internal headers and organization
         self.safety_widget = SafetyWidget(
             db_manager=self.db_manager, gpio_controller=self.gpio_controller
@@ -328,7 +330,7 @@ class MainWindow(QMainWindow):
         hardware_right_layout.addWidget(self.safety_widget)
 
         # === SECTION 5: CONFIGURATION DISPLAY ===
-        self.config_header = QLabel("⚙️ System Configuration")
+        self.config_header = QLabel("[CFG] System Configuration")
         self.config_header.setStyleSheet(
             "font-size: 13px; font-weight: bold; padding: 8px; margin-top: 12px; "
             "background-color: #37474F; color: #B0BEC5; border-radius: 3px;"
@@ -523,7 +525,7 @@ class MainWindow(QMainWindow):
         self.addToolBar(toolbar)
 
         # Global E-STOP button (always accessible)
-        self.global_estop_btn = QPushButton("🛑 EMERGENCY STOP")
+        self.global_estop_btn = QPushButton("[STOP] EMERGENCY STOP")
         self.global_estop_btn.setMinimumHeight(40)
         self.global_estop_btn.setStyleSheet(
             "QPushButton { background-color: #d32f2f; color: white; "
@@ -537,7 +539,7 @@ class MainWindow(QMainWindow):
         toolbar.addSeparator()
 
         # Connect All button
-        self.connect_all_btn = QPushButton("🔌 Connect All")
+        self.connect_all_btn = QPushButton("[CONN] Connect All")
         self.connect_all_btn.setMinimumHeight(35)
         self.connect_all_btn.setStyleSheet(
             "QPushButton { background-color: #1976D2; color: white; "
@@ -559,7 +561,7 @@ class MainWindow(QMainWindow):
         toolbar.addSeparator()
 
         # Test All Hardware button
-        self.test_all_btn = QPushButton("🧪 Test All Hardware")
+        self.test_all_btn = QPushButton("[TEST] Test All Hardware")
         self.test_all_btn.setMinimumHeight(35)
         self.test_all_btn.setStyleSheet(
             "QPushButton { background-color: #6A1B9A; color: white; "
@@ -581,7 +583,7 @@ class MainWindow(QMainWindow):
         toolbar.addWidget(self.pause_protocol_btn)
 
         # Resume Protocol button
-        self.resume_protocol_btn = QPushButton("▶ Resume")
+        self.resume_protocol_btn = QPushButton("[>] Resume")
         self.resume_protocol_btn.setMinimumHeight(35)
         self.resume_protocol_btn.setEnabled(False)
         self.resume_protocol_btn.setToolTip("Resume paused treatment protocol")
@@ -1100,7 +1102,7 @@ class MainWindow(QMainWindow):
             self,
             "Execute Protocol",
             f"Execute protocol '{protocol.protocol_name}'?\n\n"
-            f"📊 Protocol Details:\n"
+            f"Protocol Details:\n"
             f"  • Lines: {len(protocol.lines)}\n"
             f"  • Loop count: {protocol.loop_count}\n"
             f"  • Total duration: {protocol.calculate_total_duration():.1f}s\n\n"
@@ -1181,7 +1183,7 @@ class MainWindow(QMainWindow):
             self.safety_manager.trigger_emergency_stop()
             # Disable E-Stop button after activation
             self.global_estop_btn.setEnabled(False)
-            self.global_estop_btn.setText("🛑 E-STOP ACTIVE")
+            self.global_estop_btn.setText("[STOP] E-STOP ACTIVE")
 
     def _update_hardware_button_states(self) -> None:
         """Update Connect All / Disconnect All button states based on hardware connections."""
@@ -1438,7 +1440,7 @@ class MainWindow(QMainWindow):
         Returns:
             Dict with name, passed status, and details list
         """
-        result = {"name": "🔌 GPIO Diagnostics", "passed": False, "details": []}
+        result = {"name": "[CONN] GPIO Diagnostics", "passed": False, "details": []}
 
         if hasattr(self, "safety_widget") and self.safety_widget:
             if hasattr(self.safety_widget, "gpio_widget") and self.safety_widget.gpio_widget:
