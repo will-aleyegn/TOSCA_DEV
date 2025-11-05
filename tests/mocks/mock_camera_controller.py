@@ -96,6 +96,7 @@ class MockCameraController(MockQObjectBase):
         # VmbPy API attributes
         self.pixel_format: MockPixelFormat = MockPixelFormat.Bgr8
         self.binning_factor: int = 1
+        self.binning: int = 1  # Alias for test compatibility
         self.trigger_mode: MockTriggerMode = MockTriggerMode.Continuous
         self.acquisition_mode: MockAcquisitionMode = MockAcquisitionMode.Continuous
         self.hardware_fps: float = 30.0
@@ -111,6 +112,9 @@ class MockCameraController(MockQObjectBase):
         if self.simulate_connection_failure:
             self.error_occurred.emit("Failed to connect (simulated)")
             return False
+
+        # Store camera_id as instance attribute
+        self.camera_id = camera_id if camera_id is not None else "DEV_MOCK_001"
 
         self.is_connected = True
         self.connection_changed.emit(True)
@@ -135,11 +139,19 @@ class MockCameraController(MockQObjectBase):
         self._frame_timer.start(int(1000 / self.simulated_fps))
         return True
 
-    def stop_streaming(self) -> None:
+    def stop_streaming(self) -> bool:
         """Simulate stopping video stream."""
         self._log_call("stop_streaming")
+
+        if not self.is_connected:
+            return False
+
+        if not self.is_streaming:
+            return False
+
         self.is_streaming = False
         self._frame_timer.stop()
+        return True
 
     def _generate_frame(self) -> None:
         """
@@ -180,21 +192,38 @@ class MockCameraController(MockQObjectBase):
         self.recording_status_changed.emit(True)
         return True
 
-    def stop_recording(self) -> None:
+    def stop_recording(self) -> bool:
         """Simulate stopping recording."""
         self._log_call("stop_recording")
+
+        if not self.is_recording:
+            return False
+
         self.is_recording = False
         self.recording_status_changed.emit(False)
+        return True
 
     def set_exposure(self, exposure_us: float) -> bool:
         """Simulate setting camera exposure."""
         self._log_call("set_exposure", exposure_us=exposure_us)
+
+        if not self.is_connected or self.simulate_operation_error:
+            if self.simulate_operation_error:
+                self.error_occurred.emit(self.error_message)
+            return False
+
         self.exposure_us = exposure_us
         return True
 
     def set_gain(self, gain_db: float) -> bool:
         """Simulate setting camera gain."""
         self._log_call("set_gain", gain_db=gain_db)
+
+        if not self.is_connected or self.simulate_operation_error:
+            if self.simulate_operation_error:
+                self.error_occurred.emit(self.error_message)
+            return False
+
         self.gain_db = gain_db
         return True
 
@@ -215,7 +244,7 @@ class MockCameraController(MockQObjectBase):
         Simulate setting camera pixel format.
 
         Args:
-            pixel_format: Pixel format (Bgr8, Rgb8, Mono8)
+            pixel_format: Pixel format (Bgr8, Rgb8, Mono8) - can be enum or string
 
         Returns:
             True if successful
@@ -227,7 +256,18 @@ class MockCameraController(MockQObjectBase):
             self.error_occurred.emit(self.error_message)
             return False
 
+        # Store original format (string or enum) for test compatibility
         self.pixel_format = pixel_format
+
+        # Convert to enum for internal logic if needed
+        if isinstance(pixel_format, str):
+            pixel_format_enum = MockPixelFormat(pixel_format)
+        else:
+            pixel_format_enum = pixel_format
+
+        # Store enum version for shape calculations
+        self._pixel_format_enum = pixel_format_enum
+
         self._update_frame_shape()
         self.pixel_format_changed.emit(pixel_format)
         return True
@@ -265,6 +305,7 @@ class MockCameraController(MockQObjectBase):
             return False
 
         self.binning_factor = binning_factor
+        self.binning = binning_factor  # Update alias
         self._update_frame_shape()
         self.binning_changed.emit(binning_factor)
         return True
@@ -397,7 +438,8 @@ class MockCameraController(MockQObjectBase):
             self.error_occurred.emit(self.error_message)
             return False
 
-        if self.trigger_mode != MockTriggerMode.Software:
+        # Handle both enum and string comparison for test compatibility
+        if self.trigger_mode != MockTriggerMode.Software and self.trigger_mode != "Software":
             self.error_occurred.emit("Camera not in software trigger mode")
             return False
 
@@ -409,14 +451,21 @@ class MockCameraController(MockQObjectBase):
         self.fps_update.emit(float(self.simulated_fps))
         return True
 
+    def trigger_frame(self) -> bool:
+        """Alias for trigger_software_frame for test compatibility."""
+        return self.trigger_software_frame()
+
     def _update_frame_shape(self) -> None:
         """Update simulated frame shape based on pixel format and binning."""
         # Calculate binned dimensions
         width = self._base_width // self.binning_factor
         height = self._base_height // self.binning_factor
 
-        # Update shape based on pixel format
-        if self.pixel_format == MockPixelFormat.Mono8:
+        # Update shape based on pixel format (use enum version if available)
+        pixel_format_to_check = getattr(self, '_pixel_format_enum', self.pixel_format)
+
+        # Handle both enum and string comparison
+        if pixel_format_to_check == MockPixelFormat.Mono8 or pixel_format_to_check == "Mono8":
             self.simulated_frame_shape = (height, width)  # Grayscale (2D)
         else:
             self.simulated_frame_shape = (height, width, 3)  # Color (3D)
