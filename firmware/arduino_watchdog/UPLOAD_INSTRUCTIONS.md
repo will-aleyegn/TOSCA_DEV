@@ -10,8 +10,8 @@
 3. **Hardware connected**:
    - Motor on D9 + GND
    - Accelerometer on 5V, GND, A4 (SDA), A5 (SCL)
+   - MCP4725 DAC on 5V, GND, A4 (SDA), A5 (SCL) - Shared I2C bus
    - Photodiode on A0
-   - Aiming laser on D4 (optional)
 
 ---
 
@@ -110,7 +110,10 @@ Before powering on, verify these connections:
 - [ ] Accelerometer SDA → Arduino A4
 - [ ] Accelerometer SCL → Arduino A5
 - [ ] Photodiode signal → Arduino A0
-- [ ] Aiming laser control → Arduino D4 (if used)
+- [ ] MCP4725 DAC VCC → Arduino 5V
+- [ ] MCP4725 DAC GND → Arduino GND
+- [ ] MCP4725 DAC SDA → Arduino A4 (shared I2C bus)
+- [ ] MCP4725 DAC SCL → Arduino A5 (shared I2C bus)
 - [ ] Footpedal switch → Arduino D5 (future)
 
 ---
@@ -129,6 +132,6 @@ Before powering on, verify these connections:
 ## Safety Notes
 
 - WARNING: **DO NOT** exceed MOTOR_SPEED:153 (motor damage!)
-- WARNING: **DO NOT** connect treatment laser yet (only aiming laser on D4)
+- WARNING: **DO NOT** connect treatment laser yet (SEMINEX unit only)
 - WARNING: **Keep photodiode covered** until laser is ready
 - WARNING: **Test watchdog** before connecting any lasers

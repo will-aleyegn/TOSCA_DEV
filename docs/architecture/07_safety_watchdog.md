@@ -170,7 +170,7 @@ ISR(WDT_vect) {
 
 **GPIO Pin Assignments:**
 - D2: Smoothing motor (emergency shutdown → LOW)
-- D4: Aiming laser (emergency shutdown → LOW)
+- A4/A5 (I2C): MCP4725 DAC for SEMINEX aiming beam (emergency shutdown → 0)
 - D3: Vibration sensor (input)
 - A0: Photodiode (analog input)
 
@@ -180,8 +180,8 @@ ISR(WDT_vect) {
 | `WDT_RESET` | `OK:WDT_RESET` | Reset watchdog timer |
 | `MOTOR_ON` | `OK:MOTOR_ON` | Enable motor (D2 HIGH) |
 | `MOTOR_OFF` | `OK:MOTOR_OFF` | Disable motor (D2 LOW) |
-| `LASER_ON` | `OK:LASER_ON` | Enable laser (D4 HIGH) |
-| `LASER_OFF` | `OK:LASER_OFF` | Disable laser (D4 LOW) |
+| `LASER_ON` | `OK:LASER_ON` | Enable aiming beam (MCP4725 DAC to default power) |
+| `LASER_OFF` | `OK:LASER_OFF` | Disable aiming beam (MCP4725 DAC to 0) |
 | `GET_STATUS` | Multi-line status | System status report |
 
 ---

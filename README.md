@@ -110,7 +110,9 @@ The Arduino Uno acts as a dedicated safety controller, continuously monitoring c
   - Missed heartbeat triggers automatic laser shutdown
   - Prevents software hang or crash from leaving laser enabled
   - Independent failsafe layer beyond software interlocks
-- **Aiming laser control:** 650nm red laser for alignment (D4)
+- **Aiming beam control:** SEMINEX integrated aiming beam via MCP4725 DAC (I2C address 0x62, Arduino A4/A5)
+  - 12-bit digital control (0-4095) via LDD200 200mA driver
+  - Continuous power adjustment for optimal alignment visibility
 
 ### Safety Architecture
 
@@ -144,7 +146,7 @@ When safety fault occurs:
 - Treatment laser: DISABLED (immediate power-off)
 - Camera: MAINTAINED (visual feedback)
 - Actuator: MAINTAINED (controlled retraction)
-- Aiming laser: MAINTAINED (Class 2, low power)
+- Aiming beam: MAINTAINED (SEMINEX integrated, low power)
 - GPIO monitoring: MAINTAINED (diagnostics)
 - Event logging: MAINTAINED (audit trail)
 

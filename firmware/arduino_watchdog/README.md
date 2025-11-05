@@ -30,8 +30,8 @@ This firmware replaces StandardFirmata with custom protocol that includes hardwa
 |-----|----------|-----------|-------------|
 | D2 | Motor Control | Output | Smoothing device motor (HIGH = ON) |
 | D3 | Vibration Sensor | Input (Pullup) | Vibration detection (LOW = detected) |
-| D4 | Aiming Laser | Output | Aiming laser control (HIGH = ON) |
 | A0 | Photodiode | Analog Input | Laser power monitoring (0-5V) |
+| A4/A5 | I2C (SDA/SCL) | I2C Bus | MCP4725 DAC + Accelerometer control |
 
 ---
 
@@ -61,16 +61,16 @@ Response: OK:MOTOR_OFF
 Action: Disable smoothing motor (D2 = LOW)
 ```
 
-### Laser Control
+### Aiming Beam Control (MCP4725 DAC)
 
 ```
 Command: LASER_ON
 Response: OK:LASER_ON
-Action: Enable aiming laser (D4 = HIGH)
+Action: Enable SEMINEX aiming beam (MCP4725 DAC to default power)
 
 Command: LASER_OFF
 Response: OK:LASER_OFF
-Action: Disable aiming laser (D4 = LOW)
+Action: Disable SEMINEX aiming beam (MCP4725 DAC to 0)
 ```
 
 ### Sensor Reads
@@ -165,7 +165,7 @@ Ready. Send WDT_RESET every 500ms
 -----------------------------------
 STATUS:
   Motor: OFF
-  Aiming Laser: OFF
+  Aiming Beam: OFF
   Vibration: NONE
   Photodiode: 0.000V
   Watchdog: ENABLED
