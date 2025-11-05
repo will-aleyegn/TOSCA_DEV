@@ -531,8 +531,8 @@ class SafetyManager:
         self.hardware = hardware_manager
 
         # Initialize all interlocks
-        self.dead man's switch footpedal = Dead Man's Switch FootpedalInterlock(hardware_manager.gpio1.D4)
-        self.smoothing_device = SmoothingDeviceInterlock(hardware_manager.gpio1.D5)
+        self.dead man's switch footpedal = Dead Man's Switch FootpedalInterlock(hardware_manager.gpio1.D5)
+        self.smoothing_device = SmoothingDeviceInterlock(hardware_manager.gpio1.D2_D3)
         self.photodiode laser pickoff measurement = Photodiode Laser Pickoff MeasurementMonitor(hardware_manager.gpio2.A0, get_calibration('photodiode laser pickoff measurement'))
         self.emergency_stop = EmergencyStop(hardware_manager)
         self.power_limiter = PowerLimitEnforcer()
