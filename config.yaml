@@ -50,7 +50,13 @@ hardware:
     vibration_threshold: 0.1  # Vibration detection threshold (g's)
 
     photodiode_pin: 0  # Arduino analog pin for photodiode (A0)
-    aiming_laser_pin: 4  # Arduino digital pin for aiming laser (D4)
+
+    # MCP4725 DAC for Aiming Beam Control (SEMINEX integrated aiming beam)
+    mcp4725_i2c: true  # Using I2C DAC (same I2C bus as accelerometer)
+    mcp4725_address: 0x62  # MCP4725 I2C address (default: 0x62 or 0x63)
+    aiming_beam_dac_max: 4095  # 12-bit DAC maximum value
+    aiming_beam_dac_default: 2048  # Default aiming beam power (50%)
+
     footpedal_pin: 5  # Arduino digital pin for footpedal (D5 - future)
 
 safety:

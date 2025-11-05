@@ -27,10 +27,11 @@
 - **Arduino Pin**: A0
 - **Purpose**: Real-time laser power verification
 
-### 4. Aiming Laser (650nm Red)
-- **Type**: Digital on/off control
-- **Arduino Pin**: D4
-- **Purpose**: Visual alignment
+### 4. Aiming Beam Control (SEMINEX Integrated)
+- **Type**: I2C DAC control (MCP4725)
+- **Arduino Pins**: A4 (SDA), A5 (SCL) - Shared I2C bus
+- **Purpose**: SEMINEX aiming beam power control via LDD200 driver
+- **Control Range**: 12-bit (0-4095)
 
 ### 5. Footpedal (Optional - Future)
 - **Type**: Digital input (normally open switch)
@@ -43,12 +44,11 @@
 
 | Pin | Function | Direction | Device | Voltage |
 |-----|----------|-----------|--------|---------|
-| **D4** | Aiming Laser | OUTPUT | Red laser control | Digital 0/5V |
 | **D5** | Footpedal | INPUT_PULLUP | Safety switch | Digital (active LOW) |
 | **D9** | Motor Control | PWM OUTPUT | Smoothing motor | PWM 1.5-3V |
 | **A0** | Photodiode | ANALOG IN | Laser power sensor | 0-5V analog |
-| **A4** | SDA | I2C DATA | Accelerometer | I2C protocol |
-| **A5** | SCL | I2C CLOCK | Accelerometer | I2C protocol |
+| **A4** | SDA | I2C DATA | Accelerometer + MCP4725 DAC | I2C protocol |
+| **A5** | SCL | I2C CLOCK | Accelerometer + MCP4725 DAC | I2C protocol |
 
 ---
 
@@ -116,11 +116,11 @@ ACCEL_CALIBRATE         Calibrate accelerometer (zero-point)
 ACCEL_SET_THRESHOLD:val Set vibration detection threshold
 ```
 
-### Existing Commands (unchanged):
+### Existing Commands (updated for MCP4725):
 ```
 WDT_RESET               Reset watchdog timer (heartbeat)
-LASER_ON                Enable aiming laser (D4 HIGH)
-LASER_OFF               Disable aiming laser (D4 LOW)
+LASER_ON                Enable aiming beam (MCP4725 DAC to default power)
+LASER_OFF               Disable aiming beam (MCP4725 DAC to 0)
 GET_PHOTODIODE          Read photodiode voltage (A0)
 GET_FOOTPEDAL           Read footpedal state (D5)
 GET_STATUS              Get all sensor states

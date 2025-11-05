@@ -136,13 +136,13 @@ jsonschema            # Protocol validation
 - **Digital I/O:**
   - **Pin D2 (Output):** Smoothing device motor control
   - **Pin D3 (Input):** Smoothing device vibration sensor
-  - **Pin D4 (Output):** Aiming laser control (650nm red laser)
+  - **I2C Bus (A4/A5):** MCP4725 DAC control for SEMINEX aiming beam (via LDD200 driver)
 - **Analog Input:**
   - **Pin A0 (ADC):** Photodiode voltage monitoring (0-5V, 10-bit)
 - **Functions:**
   - Safety interlock monitoring (motor + vibration detection)
   - Real-time laser power measurement via photodiode
-  - Aiming laser control for alignment
+  - SEMINEX aiming beam control for alignment (12-bit DAC, 0-4095)
   - Hardware watchdog timer (1000ms timeout)
   - Cross-platform support (Windows/Linux/macOS)
 
