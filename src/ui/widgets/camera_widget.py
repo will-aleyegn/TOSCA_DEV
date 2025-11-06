@@ -47,11 +47,15 @@ class CameraWidget(QWidget):
     # Other widgets can connect to this to display the same camera feed
     pixmap_ready = pyqtSignal(QPixmap)
 
-    def __init__(self, camera_controller: Optional[Any] = None) -> None:
+    # Signal emitted when camera connection state changes
+    connection_changed = pyqtSignal(bool)  # True = connected, False = disconnected
+
+    def __init__(self, camera_controller: Optional[Any] = None, show_settings: bool = True) -> None:
         super().__init__()
 
         # Reference to CameraController (created and managed by MainWindow)
         self.camera_controller = camera_controller
+        self.show_settings = show_settings  # Show exposure/gain controls (True=Hardware tab, False=Treatment tab)
 
         # State
         self.is_connected = False
@@ -90,30 +94,37 @@ class CameraWidget(QWidget):
         self.setLayout(layout)
 
         layout.addWidget(self._create_camera_display(), 3)
-        layout.addWidget(self._create_control_panel(), 1)
+        # Store reference to control panel for hiding in display-only mode
+        self.control_panel = self._create_control_panel()
+        layout.addWidget(self.control_panel, 1)
 
-    def _create_camera_display(self) -> QGroupBox:
-        """Create camera feed display area."""
-        group = QGroupBox("Live Camera Feed")
+    def _create_camera_display(self) -> QWidget:
+        """Create camera feed display area (no QGroupBox for maximum space)."""
+        container = QWidget()
         layout = QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)  # Remove margins for maximum space
+        layout.setSpacing(4)  # Minimal spacing
 
         self.camera_display = QLabel("Camera feed will appear here")
         self.camera_display.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.camera_display.setMinimumSize(
-            640, 480
-        )  # Reduced from 800x600 for better layout proportions
+            800, 600
+        )  # Increased from 640x480 for better visibility (1800x1200 native camera)
         self.camera_display.setStyleSheet(
-            "background-color: #2b2b2b; color: #888; font-size: 16px;"
+            "background-color: #2b2b2b; color: #888; font-size: 16px; border: 1px solid #444;"
         )
         self.camera_display.setScaledContents(False)
-        layout.addWidget(self.camera_display)
+        layout.addWidget(self.camera_display, 1)  # Stretch to fill available space
 
-        # Status bar
+        # Status bar (compact)
         status_layout = QHBoxLayout()
+        status_layout.setSpacing(8)
         self.connection_status = QLabel("Status: Not Connected")
+        self.connection_status.setStyleSheet("font-size: 10px; color: #aaa;")
         self.fps_label = QLabel("FPS: --")
+        self.fps_label.setStyleSheet("font-size: 10px; color: #aaa;")
         self.recording_indicator = QLabel("")
-        self.recording_indicator.setStyleSheet("color: red; font-weight: bold; font-size: 14px;")
+        self.recording_indicator.setStyleSheet("color: red; font-weight: bold; font-size: 11px;")
 
         status_layout.addWidget(self.connection_status)
         status_layout.addStretch()
@@ -122,14 +133,15 @@ class CameraWidget(QWidget):
 
         layout.addLayout(status_layout)
 
-        # Camera settings info bar
+        # Camera settings info bar (compact)
         settings_layout = QHBoxLayout()
+        settings_layout.setSpacing(6)
         self.exposure_info = QLabel("Exposure: --")
-        self.exposure_info.setStyleSheet("color: #888; font-size: 10px;")
+        self.exposure_info.setStyleSheet("color: #888; font-size: 9px;")
         self.gain_info = QLabel("Gain: --")
-        self.gain_info.setStyleSheet("color: #888; font-size: 10px;")
+        self.gain_info.setStyleSheet("color: #888; font-size: 9px;")
         self.resolution_info = QLabel("Resolution: --")
-        self.resolution_info.setStyleSheet("color: #888; font-size: 10px;")
+        self.resolution_info.setStyleSheet("color: #888; font-size: 9px;")
 
         settings_layout.addWidget(self.exposure_info)
         settings_layout.addWidget(QLabel("|"))
@@ -140,8 +152,8 @@ class CameraWidget(QWidget):
 
         layout.addLayout(settings_layout)
 
-        group.setLayout(layout)
-        return group
+        container.setLayout(layout)
+        return container
 
     def _create_control_panel(self) -> QGroupBox:
         """Create camera control panel."""
@@ -151,13 +163,34 @@ class CameraWidget(QWidget):
         # Constrain maximum width for compact controls
         group.setMaximumWidth(350)
 
-        # Connection controls
+        # Connection controls (hideable - Hardware tab only)
         self.connection_controls_group = self._create_connection_controls()
         layout.addWidget(self.connection_controls_group)
 
-        # Camera settings
-        settings_group = self._create_camera_settings()
-        layout.addWidget(settings_group)
+        # Streaming controls (always visible - needed in all tabs)
+        self.streaming_controls_group = self._create_streaming_controls()
+        layout.addWidget(self.streaming_controls_group)
+
+        # Camera settings (CONDITIONAL - only show if show_settings=True)
+        if self.show_settings:
+            settings_group = self._create_camera_settings()
+            layout.addWidget(settings_group)
+            logger.debug("Camera settings controls created (Hardware tab mode)")
+        else:
+            # Initialize control references to None when not shown
+            self.exposure_slider = None
+            self.gain_slider = None
+            self.auto_exposure_check = None
+            self.auto_gain_check = None
+            self.auto_wb_check = None
+            self.allow_long_exposure_check = None
+            self.exposure_input = None
+            self.gain_input = None
+            self.exposure_value_label = None
+            self.gain_value_label = None
+            self.exposure_warning_label = None
+            self.scale_combo = None
+            logger.debug("Camera settings controls hidden (Treatment tab mode)")
 
         # Capture controls
         capture_group = self._create_capture_controls()
@@ -190,6 +223,24 @@ class CameraWidget(QWidget):
             self.connection_controls_group.setVisible(True)
             logger.info("Camera connection controls shown (hardware tab)")
 
+    def hide_stream_controls(self) -> None:
+        """Hide streaming/capture controls (for display-only mode)."""
+        if hasattr(self, "streaming_controls_group") and self.streaming_controls_group:
+            self.streaming_controls_group.setVisible(False)
+            logger.info("Camera streaming controls hidden (display-only mode)")
+
+    def hide_all_controls(self) -> None:
+        """
+        Hide entire camera control panel (for display-only mode).
+
+        This hides the entire right-side control panel QGroupBox, removing it
+        from the layout completely. Use this when you want ONLY the camera
+        display visible (e.g., Treatment tab with separate compact controls).
+        """
+        if hasattr(self, "control_panel") and self.control_panel:
+            self.control_panel.setVisible(False)
+            logger.info("Camera control panel hidden entirely (display-only mode)")
+
     def connect_camera(self) -> bool:
         """
         Public API: Connect to camera.
@@ -208,16 +259,28 @@ class CameraWidget(QWidget):
         logger.info("Connecting to camera...")
         success = self.camera_controller.connect()
         if success:
-            # Update slider ranges from camera
-            exp_min, exp_max = self.camera_controller.get_exposure_range()
-            self.exposure_slider.setMinimum(int(exp_min))
-            self.exposure_slider.setMaximum(int(exp_max))
+            # Update slider ranges from camera (only if settings controls exist)
+            if self.exposure_slider is not None:
+                exp_min, exp_max = self.camera_controller.get_exposure_range()
+                self.exposure_slider.setMinimum(int(exp_min))
+                self.exposure_slider.setMaximum(int(exp_max))
 
-            gain_min, gain_max = self.camera_controller.get_gain_range()
-            self.gain_slider.setMinimum(int(gain_min * 10))
-            self.gain_slider.setMaximum(int(gain_max * 10))
+            if self.gain_slider is not None:
+                gain_min, gain_max = self.camera_controller.get_gain_range()
+                self.gain_slider.setMinimum(int(gain_min * 10))
+                self.gain_slider.setMaximum(int(gain_max * 10))
 
-            logger.info("Camera connected successfully")
+            # Read and display current camera settings
+            current_exposure = self.camera_controller.get_exposure()
+            current_gain = self.camera_controller.get_gain()
+
+            # Update UI with current hardware values (status labels + controls if they exist)
+            self._on_exposure_hardware_changed(current_exposure)
+            self._on_gain_hardware_changed(current_gain)
+
+            # Auto-start streaming for immediate visual feedback
+            self._on_stream_clicked()  # Use existing stream button handler
+            logger.info("Camera connected successfully (streaming auto-started)")
         else:
             logger.error("Failed to connect camera")
 
@@ -248,13 +311,21 @@ class CameraWidget(QWidget):
         return success
 
     def _create_connection_controls(self) -> QGroupBox:
-        """Create connection control group."""
+        """Create connection control group (Hardware tab only)."""
         group = QGroupBox("Connection")
         layout = QVBoxLayout()
 
         self.connect_btn = QPushButton("Connect Camera")
         self.connect_btn.clicked.connect(self._on_connect_clicked)
         layout.addWidget(self.connect_btn)
+
+        group.setLayout(layout)
+        return group
+
+    def _create_streaming_controls(self) -> QGroupBox:
+        """Create streaming control group (visible in all tabs)."""
+        group = QGroupBox("Streaming")
+        layout = QVBoxLayout()
 
         self.stream_btn = QPushButton("Start Streaming")
         self.stream_btn.setEnabled(False)
@@ -526,30 +597,38 @@ class CameraWidget(QWidget):
         else:
             success = self.camera_controller.connect()
             if success:
-                # Update slider ranges from camera
-                exp_min, exp_max = self.camera_controller.get_exposure_range()
-                self.exposure_slider.setMinimum(int(exp_min))
-                self.exposure_slider.setMaximum(int(exp_max))
+                # Update slider ranges from camera (only if settings controls exist)
+                if self.exposure_slider is not None:
+                    exp_min, exp_max = self.camera_controller.get_exposure_range()
+                    self.exposure_slider.setMinimum(int(exp_min))
+                    self.exposure_slider.setMaximum(int(exp_max))
 
-                gain_min, gain_max = self.camera_controller.get_gain_range()
-                self.gain_slider.setMinimum(int(gain_min * 10))
-                self.gain_slider.setMaximum(int(gain_max * 10))
+                if self.gain_slider is not None:
+                    gain_min, gain_max = self.camera_controller.get_gain_range()
+                    self.gain_slider.setMinimum(int(gain_min * 10))
+                    self.gain_slider.setMaximum(int(gain_max * 10))
 
-                # Enable controls for pre-configuration (before streaming)
-                self.exposure_slider.setEnabled(True)
-                self.gain_slider.setEnabled(True)
-                self.exposure_input.setEnabled(True)
-                self.gain_input.setEnabled(True)
-                self.auto_exposure_check.setEnabled(True)
-                self.auto_gain_check.setEnabled(True)
-                self.auto_wb_check.setEnabled(True)
-                self.allow_long_exposure_check.setEnabled(True)
+                # Enable controls for pre-configuration (before streaming) - only if they exist
+                if self.exposure_slider is not None:
+                    self.exposure_slider.setEnabled(True)
+                    self.exposure_input.setEnabled(True)
+                if self.gain_slider is not None:
+                    self.gain_slider.setEnabled(True)
+                    self.gain_input.setEnabled(True)
+                if self.auto_exposure_check is not None:
+                    self.auto_exposure_check.setEnabled(True)
+                if self.auto_gain_check is not None:
+                    self.auto_gain_check.setEnabled(True)
+                if self.auto_wb_check is not None:
+                    self.auto_wb_check.setEnabled(True)
+                if self.allow_long_exposure_check is not None:
+                    self.allow_long_exposure_check.setEnabled(True)
 
                 # Read and display current camera settings
                 current_exposure = self.camera_controller.get_exposure()
                 current_gain = self.camera_controller.get_gain()
 
-                # Update UI with current hardware values
+                # Update UI with current hardware values (status labels + controls if they exist)
                 self._on_exposure_hardware_changed(current_exposure)
                 self._on_gain_hardware_changed(current_gain)
 
@@ -561,46 +640,94 @@ class CameraWidget(QWidget):
     def _on_stream_clicked(self) -> None:
         """Handle start/stop streaming button click."""
         if not self.camera_controller:
+            QMessageBox.warning(self, "Camera Error", "Camera controller not initialized.")
             return
 
-        if self.is_streaming:
-            self.camera_controller.stop_streaming()
-            self.is_streaming = False
-            self.stream_btn.setText("Start Streaming")
-            self.capture_btn.setEnabled(False)
-            self.record_btn.setEnabled(False)
-            # Keep controls enabled for configuration (user can adjust before next stream)
-            # Don't disable: exposure_slider, gain_slider, auto checks
-        else:
-            # Apply pre-configured settings to camera hardware before streaming
-            if not self.auto_exposure_check.isChecked():
-                exp_value = self.exposure_slider.value()
-                self.camera_controller.set_exposure(float(exp_value))
-                logger.info(f"Pre-configured exposure applied: {exp_value}µs")
+        try:
+            if self.is_streaming:
+                # Stop streaming
+                success = self.camera_controller.stop_streaming()
+                if success:
+                    self.is_streaming = False
+                    self.stream_btn.setText("Start Streaming")
+                    self.capture_btn.setEnabled(False)
+                    self.record_btn.setEnabled(False)
+                    logger.info("Streaming stopped successfully")
+                else:
+                    QMessageBox.warning(
+                        self, "Camera Error", "Failed to stop streaming. Check camera connection."
+                    )
+                    logger.error("Failed to stop camera streaming")
+                # Keep controls enabled for configuration (user can adjust before next stream)
+                # Don't disable: exposure_slider, gain_slider, auto checks
+            else:
+                # Apply pre-configured settings to camera hardware before streaming (only if controls exist)
+                if self.auto_exposure_check is not None and not self.auto_exposure_check.isChecked():
+                    exp_value = self.exposure_slider.value()
+                    try:
+                        self.camera_controller.set_exposure(float(exp_value))
+                        logger.info(f"Pre-configured exposure applied: {exp_value}µs")
+                    except Exception as e:
+                        logger.error(f"Failed to set exposure: {e}")
+                        QMessageBox.warning(
+                            self,
+                            "Camera Configuration Error",
+                            f"Failed to set exposure: {e}\n\nStreaming will continue with current settings.",
+                        )
 
-            if not self.auto_gain_check.isChecked():
-                gain_value = self.gain_slider.value() / 10.0
-                self.camera_controller.set_gain(gain_value)
-                logger.info(f"Pre-configured gain applied: {gain_value:.1f}dB")
+                if self.auto_gain_check is not None and not self.auto_gain_check.isChecked():
+                    gain_value = self.gain_slider.value() / 10.0
+                    try:
+                        self.camera_controller.set_gain(gain_value)
+                        logger.info(f"Pre-configured gain applied: {gain_value:.1f}dB")
+                    except Exception as e:
+                        logger.error(f"Failed to set gain: {e}")
+                        QMessageBox.warning(
+                            self,
+                            "Camera Configuration Error",
+                            f"Failed to set gain: {e}\n\nStreaming will continue with current settings.",
+                        )
 
-            success = self.camera_controller.start_streaming()
-            if success:
-                self.is_streaming = True
-                self.stream_btn.setText("Stop Streaming")
-                self.capture_btn.setEnabled(True)
-                self.record_btn.setEnabled(True)
+                # Start streaming
+                success = self.camera_controller.start_streaming()
+                if success:
+                    self.is_streaming = True
+                    self.stream_btn.setText("Stop Streaming")
+                    self.capture_btn.setEnabled(True)
+                    self.record_btn.setEnabled(True)
 
-                # Display current settings (already configured)
-                exp_value = self.exposure_slider.value()
-                exp_ms = exp_value / 1000.0
-                self.exposure_info.setText(f"Exposure: {exp_value} µs ({exp_ms:.1f} ms)")
-                gain_value = self.gain_slider.value() / 10.0
-                self.gain_info.setText(f"Gain: {gain_value:.1f} dB")
+                    # Display current settings (already configured) - only if controls exist
+                    if self.exposure_slider is not None:
+                        exp_value = self.exposure_slider.value()
+                        exp_ms = exp_value / 1000.0
+                        self.exposure_info.setText(f"Exposure: {exp_value} µs ({exp_ms:.1f} ms)")
 
-                # Check if current exposure requires long exposure mode
-                self._check_exposure_safety(exp_value)
+                        # Check if current exposure requires long exposure mode
+                        self._check_exposure_safety(exp_value)
 
-                logger.info("Streaming started with pre-configured settings")
+                    if self.gain_slider is not None:
+                        gain_value = self.gain_slider.value() / 10.0
+                        self.gain_info.setText(f"Gain: {gain_value:.1f} dB")
+
+                    logger.info("Streaming started with pre-configured settings")
+                else:
+                    QMessageBox.warning(
+                        self,
+                        "Camera Error",
+                        "Failed to start streaming.\n\nPlease check:\n"
+                        "• Camera is connected\n"
+                        "• No other application is using the camera\n"
+                        "• Camera has sufficient power",
+                    )
+                    logger.error("Failed to start camera streaming")
+
+        except Exception as e:
+            logger.error(f"Unexpected error in _on_stream_clicked: {e}", exc_info=True)
+            QMessageBox.critical(
+                self,
+                "Camera Error",
+                f"Unexpected error occurred:\n\n{e}\n\nCheck logs for details.",
+            )
 
     def cleanup(self) -> None:
         """Cleanup camera resources on application exit."""
@@ -622,22 +749,25 @@ class CameraWidget(QWidget):
         if not self._is_exposure_safe(value):
             # Revert to safe value (33ms = 33,333 µs at 30 FPS)
             safe_value = 33000
-            self.exposure_slider.blockSignals(True)
-            self.exposure_slider.setValue(safe_value)
-            self.exposure_slider.blockSignals(False)
+            if self.exposure_slider is not None:
+                self.exposure_slider.blockSignals(True)
+                self.exposure_slider.setValue(safe_value)
+                self.exposure_slider.blockSignals(False)
 
-            # Show warning
-            self.exposure_warning_label.setText(
-                "WARNING: Exposure limited to 33ms (30 FPS). Enable 'Allow Long Exposure' for longer times."
-            )
+            # Show warning (if control exists)
+            if self.exposure_warning_label is not None:
+                self.exposure_warning_label.setText(
+                    "WARNING: Exposure limited to 33ms (30 FPS). Enable 'Allow Long Exposure' for longer times."
+                )
             logger.warning(
                 f"Exposure change blocked: {value}µs exceeds frame period. "
                 f"Enable 'Allow Long Exposure' checkbox to proceed."
             )
             return
         else:
-            # Clear warning if exposure is now safe
-            self.exposure_warning_label.setText("")
+            # Clear warning if exposure is now safe (if control exists)
+            if self.exposure_warning_label is not None:
+                self.exposure_warning_label.setText("")
 
         # Send command to camera hardware
         # Works both during streaming (live update) and before streaming (pre-configuration)
@@ -645,12 +775,16 @@ class CameraWidget(QWidget):
 
         # Update label immediately for pre-configuration feedback
         exp_ms = value / 1000.0
-        self.exposure_value_label.setText(f"{value} µs ({exp_ms:.1f} ms)")
+        if self.exposure_value_label is not None:
+            self.exposure_value_label.setText(f"{value} µs ({exp_ms:.1f} ms)")
         if self.is_streaming:
             self.exposure_info.setText(f"Exposure: {value} µs ({exp_ms:.1f} ms)")
 
     def _on_exposure_input_changed(self) -> None:
         """Handle exposure input box change."""
+        if self.exposure_input is None or self.exposure_slider is None:
+            return
+
         try:
             value = int(self.exposure_input.text())
             # Safety check will happen in _on_exposure_changed when slider updates
@@ -666,12 +800,16 @@ class CameraWidget(QWidget):
             self.camera_controller.set_gain(gain_db)
 
             # Update label immediately for pre-configuration feedback
-            self.gain_value_label.setText(f"{gain_db:.1f} dB")
+            if self.gain_value_label is not None:
+                self.gain_value_label.setText(f"{gain_db:.1f} dB")
             if self.is_streaming:
                 self.gain_info.setText(f"Gain: {gain_db:.1f} dB")
 
     def _on_gain_input_changed(self) -> None:
         """Handle gain input box change."""
+        if self.gain_input is None or self.gain_slider is None:
+            return
+
         try:
             gain_db = float(self.gain_input.text())
             value = int(gain_db * 10)
@@ -689,18 +827,26 @@ class CameraWidget(QWidget):
 
         if enabled:
             # Disable manual controls when auto mode active
-            self.exposure_slider.setEnabled(False)
-            self.exposure_input.setEnabled(False)
-            self.allow_long_exposure_check.setEnabled(False)
+            if self.exposure_slider is not None:
+                self.exposure_slider.setEnabled(False)
+            if self.exposure_input is not None:
+                self.exposure_input.setEnabled(False)
+            if self.allow_long_exposure_check is not None:
+                self.allow_long_exposure_check.setEnabled(False)
             # Clear warning (auto mode manages exposure)
-            self.exposure_warning_label.setText("")
+            if self.exposure_warning_label is not None:
+                self.exposure_warning_label.setText("")
         else:
             # Re-enable manual controls
-            self.exposure_slider.setEnabled(True)
-            self.exposure_input.setEnabled(True)
-            self.allow_long_exposure_check.setEnabled(True)
+            if self.exposure_slider is not None:
+                self.exposure_slider.setEnabled(True)
+            if self.exposure_input is not None:
+                self.exposure_input.setEnabled(True)
+            if self.allow_long_exposure_check is not None:
+                self.allow_long_exposure_check.setEnabled(True)
             # Check current exposure safety
-            self._check_exposure_safety(self.exposure_slider.value())
+            if self.exposure_slider is not None:
+                self._check_exposure_safety(self.exposure_slider.value())
 
     def _on_auto_gain_changed(self, state: int) -> None:
         """Handle auto gain checkbox change."""
@@ -711,11 +857,15 @@ class CameraWidget(QWidget):
             self.camera_controller.set_auto_gain(enabled)
 
         if enabled:
-            self.gain_slider.setEnabled(False)
-            self.gain_input.setEnabled(False)
+            if self.gain_slider is not None:
+                self.gain_slider.setEnabled(False)
+            if self.gain_input is not None:
+                self.gain_input.setEnabled(False)
         else:
-            self.gain_slider.setEnabled(True)
-            self.gain_input.setEnabled(True)
+            if self.gain_slider is not None:
+                self.gain_slider.setEnabled(True)
+            if self.gain_input is not None:
+                self.gain_input.setEnabled(True)
 
     def _on_auto_wb_changed(self, state: int) -> None:
         """Handle auto white balance checkbox change."""
@@ -738,22 +888,30 @@ class CameraWidget(QWidget):
         exposure_int = int(exposure_us)
         exposure_ms = exposure_us / 1000.0
 
-        # Block signals to prevent triggering set_exposure again
-        self.exposure_slider.blockSignals(True)
-        self.exposure_input.blockSignals(True)
-
-        # Update all exposure UI elements
-        self.exposure_slider.setValue(exposure_int)
-        self.exposure_value_label.setText(f"{exposure_int} µs ({exposure_ms:.1f} ms)")
-        self.exposure_input.setText(str(exposure_int))
+        # ALWAYS update status label (visible in all tabs)
         self.exposure_info.setText(f"Exposure: {exposure_int} µs ({exposure_ms:.1f} ms)")
 
-        # Check exposure safety and update warnings
-        self._check_exposure_safety(exposure_int)
+        # Update full controls only if they exist (Hardware tab only)
+        if self.exposure_slider is not None:
+            # Block signals to prevent triggering set_exposure again
+            self.exposure_slider.blockSignals(True)
+            if self.exposure_input is not None:
+                self.exposure_input.blockSignals(True)
 
-        # Re-enable signals
-        self.exposure_slider.blockSignals(False)
-        self.exposure_input.blockSignals(False)
+            # Update all exposure UI elements
+            self.exposure_slider.setValue(exposure_int)
+            if self.exposure_value_label is not None:
+                self.exposure_value_label.setText(f"{exposure_int} µs ({exposure_ms:.1f} ms)")
+            if self.exposure_input is not None:
+                self.exposure_input.setText(str(exposure_int))
+
+            # Check exposure safety and update warnings
+            self._check_exposure_safety(exposure_int)
+
+            # Re-enable signals
+            self.exposure_slider.blockSignals(False)
+            if self.exposure_input is not None:
+                self.exposure_input.blockSignals(False)
 
         logger.debug(f"UI updated with hardware exposure: {exposure_int} µs")
 
@@ -767,21 +925,29 @@ class CameraWidget(QWidget):
         Args:
             gain_db: Actual gain from camera hardware in dB
         """
-        gain_int = int(gain_db * 10)  # Convert dB to slider value
-
-        # Block signals to prevent triggering set_gain again
-        self.gain_slider.blockSignals(True)
-        self.gain_input.blockSignals(True)
-
-        # Update all gain UI elements
-        self.gain_slider.setValue(gain_int)
-        self.gain_value_label.setText(f"{gain_db:.1f} dB")
-        self.gain_input.setText(f"{gain_db:.1f}")
+        # ALWAYS update status label (visible in all tabs)
         self.gain_info.setText(f"Gain: {gain_db:.1f} dB")
 
-        # Re-enable signals
-        self.gain_slider.blockSignals(False)
-        self.gain_input.blockSignals(False)
+        # Update full controls only if they exist (Hardware tab only)
+        if self.gain_slider is not None:
+            gain_int = int(gain_db * 10)  # Convert dB to slider value
+
+            # Block signals to prevent triggering set_gain again
+            self.gain_slider.blockSignals(True)
+            if self.gain_input is not None:
+                self.gain_input.blockSignals(True)
+
+            # Update all gain UI elements
+            self.gain_slider.setValue(gain_int)
+            if self.gain_value_label is not None:
+                self.gain_value_label.setText(f"{gain_db:.1f} dB")
+            if self.gain_input is not None:
+                self.gain_input.setText(f"{gain_db:.1f}")
+
+            # Re-enable signals
+            self.gain_slider.blockSignals(False)
+            if self.gain_input is not None:
+                self.gain_input.blockSignals(False)
 
         logger.debug(f"UI updated with hardware gain: {gain_db:.1f} dB")
 
@@ -800,45 +966,97 @@ class CameraWidget(QWidget):
     def _on_capture_image(self) -> None:
         """Handle capture image button click."""
         if not self.camera_controller:
+            QMessageBox.warning(self, "Camera Error", "Camera controller not initialized.")
             return
 
-        # Get base filename from input
-        base_filename = self.image_filename_input.text() or "capture"
+        try:
+            # Get base filename from input
+            base_filename = self.image_filename_input.text() or "capture"
 
-        # Use custom path if in dev mode
-        output_dir = None
-        if self.dev_mode and self.custom_image_path:
-            output_dir = self.custom_image_path
-            logger.info(f"Using custom image path: {output_dir}")
+            # Use custom path if in dev mode
+            output_dir = None
+            if self.dev_mode and self.custom_image_path:
+                output_dir = self.custom_image_path
+                logger.info(f"Using custom image path: {output_dir}")
 
-        # Capture image
-        saved_path = self.camera_controller.capture_image(base_filename, output_dir)
+            # Capture image
+            saved_path = self.camera_controller.capture_image(base_filename, output_dir)
 
-        if saved_path:
-            self.last_capture_label.setText(f"Saved: {saved_path}")
-            self.last_capture_label.setStyleSheet("color: green; font-size: 10px;")
-            logger.info(f"Image captured successfully: {saved_path}")
-        else:
-            self.last_capture_label.setText("Capture failed - check logs")
+            if saved_path:
+                self.last_capture_label.setText(f"Saved: {saved_path}")
+                self.last_capture_label.setStyleSheet("color: green; font-size: 10px;")
+                logger.info(f"Image captured successfully: {saved_path}")
+                QMessageBox.information(
+                    self, "Image Captured", f"Image saved successfully:\n\n{saved_path}"
+                )
+            else:
+                self.last_capture_label.setText("Capture failed - check logs")
+                self.last_capture_label.setStyleSheet("color: red; font-size: 10px;")
+                QMessageBox.warning(
+                    self,
+                    "Capture Failed",
+                    "Failed to capture image.\n\nPlease check:\n"
+                    "• Camera is streaming\n"
+                    "• Output directory is writable\n"
+                    "• Sufficient disk space available",
+                )
+                logger.error("Image capture failed")
+
+        except Exception as e:
+            logger.error(f"Unexpected error in _on_capture_image: {e}", exc_info=True)
+            self.last_capture_label.setText(f"Error: {e}")
             self.last_capture_label.setStyleSheet("color: red; font-size: 10px;")
+            QMessageBox.critical(
+                self, "Capture Error", f"Unexpected error occurred:\n\n{e}\n\nCheck logs for details."
+            )
 
     def _on_record_clicked(self) -> None:
         """Handle record button click."""
         if not self.camera_controller:
+            QMessageBox.warning(self, "Camera Error", "Camera controller not initialized.")
             return
 
-        if self.camera_controller.is_recording:
-            self.camera_controller.stop_recording()
-        else:
-            base_filename = self.video_filename_input.text() or "recording"
+        try:
+            if self.camera_controller.is_recording:
+                # Stop recording
+                success = self.camera_controller.stop_recording()
+                if success:
+                    logger.info("Video recording stopped successfully")
+                    QMessageBox.information(
+                        self, "Recording Stopped", "Video recording stopped successfully."
+                    )
+                else:
+                    QMessageBox.warning(self, "Recording Error", "Failed to stop recording. Check logs.")
+                    logger.error("Failed to stop video recording")
+            else:
+                # Start recording
+                base_filename = self.video_filename_input.text() or "recording"
 
-            # Use custom path if in dev mode
-            output_dir = None
-            if self.dev_mode and self.custom_video_path:
-                output_dir = self.custom_video_path
-                logger.info(f"Using custom video path: {output_dir}")
+                # Use custom path if in dev mode
+                output_dir = None
+                if self.dev_mode and self.custom_video_path:
+                    output_dir = self.custom_video_path
+                    logger.info(f"Using custom video path: {output_dir}")
 
-            self.camera_controller.start_recording(base_filename, output_dir)
+                success = self.camera_controller.start_recording(base_filename, output_dir)
+                if success:
+                    logger.info(f"Video recording started: {base_filename}")
+                else:
+                    QMessageBox.warning(
+                        self,
+                        "Recording Failed",
+                        "Failed to start recording.\n\nPlease check:\n"
+                        "• Camera is streaming\n"
+                        "• Output directory is writable\n"
+                        "• Sufficient disk space available",
+                    )
+                    logger.error("Failed to start video recording")
+
+        except Exception as e:
+            logger.error(f"Unexpected error in _on_record_clicked: {e}", exc_info=True)
+            QMessageBox.critical(
+                self, "Recording Error", f"Unexpected error occurred:\n\n{e}\n\nCheck logs for details."
+            )
 
     # Slots for camera controller signals
     @pyqtSlot(QPixmap)
@@ -891,6 +1109,9 @@ class CameraWidget(QWidget):
         """Handle connection status change."""
         self.is_connected = connected
 
+        # Emit signal for other widgets (e.g., hardware panel)
+        self.connection_changed.emit(connected)
+
         if connected:
             self.connection_status.setText("Status: Connected")
             self.connection_status.setStyleSheet("color: green;")
@@ -906,24 +1127,25 @@ class CameraWidget(QWidget):
             self.camera_display.clear()
             self.camera_display.setText("Camera feed will appear here")
 
-            # Disable controls when camera disconnected
-            self.exposure_slider.setEnabled(False)
-            self.gain_slider.setEnabled(False)
-            self.exposure_input.setEnabled(False)
-            self.gain_input.setEnabled(False)
-            self.auto_exposure_check.setEnabled(False)
-            self.auto_gain_check.setEnabled(False)
-            self.auto_wb_check.setEnabled(False)
-            self.allow_long_exposure_check.setEnabled(False)
+            # Disable controls when camera disconnected (only if they exist)
+            if self.exposure_slider is not None:
+                self.exposure_slider.setEnabled(False)
+                self.exposure_input.setEnabled(False)
+            if self.gain_slider is not None:
+                self.gain_slider.setEnabled(False)
+                self.gain_input.setEnabled(False)
+            if self.auto_exposure_check is not None:
+                self.auto_exposure_check.setEnabled(False)
+            if self.auto_gain_check is not None:
+                self.auto_gain_check.setEnabled(False)
+            if self.auto_wb_check is not None:
+                self.auto_wb_check.setEnabled(False)
+            if self.allow_long_exposure_check is not None:
+                self.allow_long_exposure_check.setEnabled(False)
 
-        # Notify main window status bar (if available)
-        main_window = self.window()
-        if main_window and hasattr(main_window, "update_camera_status"):
-            main_window.update_camera_status(connected)
-
-        # Notify hardware tab panel (if available)
-        if main_window and hasattr(main_window, "camera_hardware_panel"):
-            main_window.camera_hardware_panel.update_connection_status(connected)
+        # Note: Connection status updates now handled via connection_changed signal
+        # Hardware panel automatically receives updates via signal wiring
+        # No need for manual status propagation
 
     @pyqtSlot(str)
     def _on_error(self, error_msg: str) -> None:
@@ -951,12 +1173,14 @@ class CameraWidget(QWidget):
         enabled = bool(state)
         if enabled:
             logger.info("Long exposure mode enabled (may cause frame drops)")
-            self.exposure_warning_label.setText("")
+            if self.exposure_warning_label is not None:
+                self.exposure_warning_label.setText("")
         else:
             logger.info("Long exposure mode disabled (limited to 33ms)")
             # Check if current exposure needs to be clamped
-            current_exposure = self.exposure_slider.value()
-            self._check_exposure_safety(current_exposure)
+            if self.exposure_slider is not None:
+                current_exposure = self.exposure_slider.value()
+                self._check_exposure_safety(current_exposure)
 
     def _is_exposure_safe(self, exposure_us: int) -> bool:
         """
@@ -974,8 +1198,11 @@ class CameraWidget(QWidget):
         # Frame period at 30 FPS = 33.33ms = 33,333 microseconds
         max_safe_exposure_us = 33000  # Slightly under 33.33ms for margin
 
-        # Allow if under limit OR long exposure mode explicitly enabled
-        return exposure_us <= max_safe_exposure_us or self.allow_long_exposure_check.isChecked()
+        # Allow if under limit OR long exposure mode explicitly enabled (if control exists)
+        long_exposure_allowed = (
+            self.allow_long_exposure_check is not None and self.allow_long_exposure_check.isChecked()
+        )
+        return exposure_us <= max_safe_exposure_us or long_exposure_allowed
 
     def _check_exposure_safety(self, exposure_us: int) -> None:
         """
@@ -984,6 +1211,10 @@ class CameraWidget(QWidget):
         Args:
             exposure_us: Exposure time in microseconds
         """
+        # Skip if warning label doesn't exist (Treatment tab mode)
+        if self.exposure_warning_label is None:
+            return
+
         if not self._is_exposure_safe(exposure_us):
             exposure_ms = exposure_us / 1000.0
             self.exposure_warning_label.setText(
@@ -992,7 +1223,11 @@ class CameraWidget(QWidget):
             )
         else:
             # Clear warning if exposure is safe
-            if exposure_us > 33000 and self.allow_long_exposure_check.isChecked():
+            long_exposure_enabled = (
+                self.allow_long_exposure_check is not None
+                and self.allow_long_exposure_check.isChecked()
+            )
+            if exposure_us > 33000 and long_exposure_enabled:
                 # Show informational message when long exposure is intentionally enabled
                 exposure_ms = exposure_us / 1000.0
                 fps_estimate = 1000.0 / exposure_ms if exposure_ms > 0 else 30.0

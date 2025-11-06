@@ -37,6 +37,7 @@ from core.protocol_line import (
     DwellParams,
     HomeParams,
     LaserRampParams,
+    LaserSetCurrentParams,
     LaserSetParams,
     LineBasedProtocol,
     MoveParams,
@@ -44,6 +45,7 @@ from core.protocol_line import (
     ProtocolLine,
     SafetyLimits,
 )
+from ui.design_tokens import Colors
 
 logger = logging.getLogger(__name__)
 
@@ -90,32 +92,18 @@ class LineProtocolBuilderWidget(QWidget):
         )
         main_layout.addWidget(header)
 
-        # Protocol metadata section
-        metadata_group = self._create_metadata_section()
-        main_layout.addWidget(metadata_group)
-
-        # Main content: 3 columns (sequence | editor | graph)
+        # Main content: 2 columns (unified builder | graph)
         content_layout = QHBoxLayout()
 
-        # Column 1: Protocol sequence view
-        sequence_group = self._create_sequence_view()
-        sequence_group.setMinimumWidth(250)  # Ensure readable width
-        sequence_group.setMaximumWidth(350)  # Prevent too wide
-        content_layout.addWidget(sequence_group, stretch=1)
+        # LEFT COLUMN: Unified protocol builder (single box)
+        builder_group = self._create_unified_builder()
+        content_layout.addWidget(builder_group, stretch=1)  # 50% width
 
-        # Column 2: Line editor panel
-        editor_group = self._create_line_editor()
-        content_layout.addWidget(editor_group, stretch=2)
-
-        # Column 3: Position graph panel
+        # RIGHT COLUMN: Position graph
         graph_group = self._create_graph_panel()
-        content_layout.addWidget(graph_group, stretch=1)
+        content_layout.addWidget(graph_group, stretch=1)  # 50% width
 
         main_layout.addLayout(content_layout)
-
-        # Bottom: Action buttons
-        action_layout = self._create_action_buttons()
-        main_layout.addLayout(action_layout)
 
         # Initialize with empty protocol
         self._create_new_protocol()
@@ -139,13 +127,13 @@ class LineProtocolBuilderWidget(QWidget):
         # Total duration display
         layout.addWidget(QLabel("Total Duration:"))
         self.total_duration_label = QLabel("0.0s")
-        self.total_duration_label.setStyleSheet("font-weight: bold; color: #4CAF50;")
+        self.total_duration_label.setStyleSheet(f"font-weight: bold; color: {Colors.SAFE};")
         layout.addWidget(self.total_duration_label)
 
         # Total energy display
         layout.addWidget(QLabel("Total Energy:"))
         self.total_energy_label = QLabel("0.0J")
-        self.total_energy_label.setStyleSheet("font-weight: bold; color: #FF9800;")
+        self.total_energy_label.setStyleSheet(f"font-weight: bold; color: {Colors.WARNING};")
         self.total_energy_label.setToolTip("Total laser energy delivered (Power × Time)")
         layout.addWidget(self.total_energy_label)
 
@@ -154,34 +142,188 @@ class LineProtocolBuilderWidget(QWidget):
         group.setLayout(layout)
         return group
 
-    def _create_sequence_view(self) -> QGroupBox:
-        """Create protocol sequence view with line summaries."""
-        group = QGroupBox("Protocol Sequence")
-        layout = QVBoxLayout()
+    def _create_unified_builder(self) -> QGroupBox:
+        """Create unified protocol builder with logical workflow order."""
+        group = QGroupBox("Protocol Builder")
+        main_layout = QVBoxLayout()
+        main_layout.setContentsMargins(5, 5, 5, 5)
 
-        # Instructions
+        # ===== 1. FILE OPERATIONS + PROTOCOL METADATA (combined row) =====
+        file_metadata_layout = QHBoxLayout()
+
+        # File operation buttons
+        self.new_protocol_btn = QPushButton("📄 New")
+        self.new_protocol_btn.clicked.connect(self._on_new_protocol)
+        self.new_protocol_btn.setToolTip("Create new protocol")
+        self.new_protocol_btn.setMinimumHeight(30)
+        file_metadata_layout.addWidget(self.new_protocol_btn)
+
+        self.load_protocol_btn = QPushButton("📂 Load")
+        self.load_protocol_btn.clicked.connect(self._on_load_protocol)
+        self.load_protocol_btn.setToolTip("Load existing protocol")
+        self.load_protocol_btn.setMinimumHeight(30)
+        file_metadata_layout.addWidget(self.load_protocol_btn)
+
+        self.save_protocol_btn = QPushButton("💾 Save")
+        self.save_protocol_btn.clicked.connect(self._on_save_protocol)
+        self.save_protocol_btn.setToolTip("Save protocol to file")
+        self.save_protocol_btn.setMinimumHeight(30)
+        file_metadata_layout.addWidget(self.save_protocol_btn)
+
+        file_metadata_layout.addWidget(QLabel(" | "))  # Visual separator
+
+        # Protocol name
+        file_metadata_layout.addWidget(QLabel("Name:"))
+        self.protocol_name_input = QLineEdit()
+        self.protocol_name_input.setPlaceholderText("Protocol name...")
+        self.protocol_name_input.textChanged.connect(self._on_metadata_changed)
+        self.protocol_name_input.setMaximumWidth(200)
+        file_metadata_layout.addWidget(self.protocol_name_input)
+
+        # Total duration display
+        file_metadata_layout.addWidget(QLabel("Duration:"))
+        self.total_duration_label = QLabel("0.0s")
+        self.total_duration_label.setStyleSheet(f"font-weight: bold; color: {Colors.SAFE};")
+        file_metadata_layout.addWidget(self.total_duration_label)
+
+        # Total energy display
+        file_metadata_layout.addWidget(QLabel("Energy:"))
+        self.total_energy_label = QLabel("0.0J")
+        self.total_energy_label.setStyleSheet(f"font-weight: bold; color: {Colors.WARNING};")
+        self.total_energy_label.setToolTip("Total laser energy delivered (Power × Time)")
+        file_metadata_layout.addWidget(self.total_energy_label)
+
+        file_metadata_layout.addStretch()
+        main_layout.addLayout(file_metadata_layout)
+
+        # ===== 2. LINE EDITOR PARAMETERS (with Add Line button inside) =====
+
+        # Create scroll area for editor parameters
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        scroll.setMaximumHeight(400)  # Limit height to leave room for sequence list
+
+        scroll_content = QWidget()
+        scroll_layout = QVBoxLayout(scroll_content)
+        scroll_layout.setSpacing(5)
+
+        # Button row: Update Line + Add Line
+        button_row = QHBoxLayout()
+        button_row.setSpacing(5)
+
+        self.update_line_btn = QPushButton("💾 Update Line")
+        self.update_line_btn.setStyleSheet(
+            "background-color: #388E3C; color: white; font-weight: bold; padding: 8px;"
+        )
+        self.update_line_btn.setToolTip("Save changes to current line")
+        self.update_line_btn.setMinimumHeight(35)
+        self.update_line_btn.clicked.connect(self._on_update_line)
+        button_row.addWidget(self.update_line_btn)
+
+        self.add_line_btn = QPushButton("➕ Add Line")
+        self.add_line_btn.setStyleSheet(
+            "background-color: #616161; color: white; font-weight: bold; padding: 8px;"
+        )
+        self.add_line_btn.setToolTip("Add new line to protocol")
+        self.add_line_btn.setMinimumHeight(35)
+        self.add_line_btn.clicked.connect(self._on_add_line)
+        button_row.addWidget(self.add_line_btn)
+
+        scroll_layout.addLayout(button_row)
+
+        # Create 2-column layout for parameters
+        params_columns = QHBoxLayout()
+        params_columns.setSpacing(10)
+
+        # LEFT COLUMN: Movement + Dwell (motion/timing related)
+        left_column = QVBoxLayout()
+        left_column.setSpacing(5)
+
+        self.movement_group = self._create_movement_section()
+        left_column.addWidget(self.movement_group)
+
+        self.dwell_group = self._create_dwell_section()
+        left_column.addWidget(self.dwell_group)
+
+        left_column.addStretch()
+        params_columns.addLayout(left_column, stretch=1)
+
+        # RIGHT COLUMN: Laser + Line settings (power + repetition)
+        right_column = QVBoxLayout()
+        right_column.setSpacing(5)
+
+        self.laser_group = self._create_laser_section()
+        right_column.addWidget(self.laser_group)
+
+        # Line loop count (inside right column)
+        loop_group = QGroupBox("Line Repetition")
+        loop_layout = QVBoxLayout()
+
+        repeat_layout = QHBoxLayout()
+        repeat_layout.addWidget(QLabel("Repeat:"))
+        self.line_loop_spin = QSpinBox()
+        self.line_loop_spin.setRange(1, 100)
+        self.line_loop_spin.setValue(1)
+        self.line_loop_spin.setToolTip("Number of times to repeat this specific line")
+        self.line_loop_spin.setMinimumWidth(80)
+        self.line_loop_spin.setSuffix(" times")
+        self.line_loop_spin.valueChanged.connect(self._on_line_params_changed)
+        repeat_layout.addWidget(self.line_loop_spin)
+        repeat_layout.addStretch()
+        loop_layout.addLayout(repeat_layout)
+
+        # Line notes (inside right column)
+        notes_layout = QHBoxLayout()
+        notes_layout.addWidget(QLabel("Notes:"))
+        self.notes_input = QLineEdit()
+        self.notes_input.setPlaceholderText("Optional notes...")
+        self.notes_input.textChanged.connect(self._on_line_params_changed)
+        notes_layout.addWidget(self.notes_input)
+        loop_layout.addLayout(notes_layout)
+
+        loop_group.setLayout(loop_layout)
+        right_column.addWidget(loop_group)
+
+        right_column.addStretch()
+        params_columns.addLayout(right_column, stretch=1)
+
+        scroll_layout.addLayout(params_columns)
+
+        scroll_layout.addStretch()
+
+        # Disable editor initially
+        self.movement_group.setEnabled(False)
+        self.laser_group.setEnabled(False)
+        self.dwell_group.setEnabled(False)
+
+        scroll.setWidget(scroll_content)
+        main_layout.addWidget(scroll)
+
+        # ===== 5. SEQUENCE LIST (at bottom) =====
         instructions = QLabel(
-            "Click a line to edit its parameters.\n"
             "Lines execute concurrently (move + laser + dwell)."
         )
         instructions.setStyleSheet("color: #888; font-size: 10px; padding: 5px;")
-        layout.addWidget(instructions)
+        main_layout.addWidget(instructions)
 
-        # Sequence list
         self.sequence_list = QListWidget()
         self.sequence_list.setAlternatingRowColors(True)
         self.sequence_list.currentRowChanged.connect(self._on_line_selected)
-        self.sequence_list.setMinimumWidth(250)  # Prevent squishing
-        self.sequence_list.setMaximumWidth(300)  # Keep it compact
-        self.sequence_list.setMinimumHeight(300)  # Ensure vertical space
-        layout.addWidget(self.sequence_list)
+        self.sequence_list.setMinimumHeight(200)  # Reduced from 300
 
-        # Sequence control buttons
+        # Larger, more readable font for line list
+        list_font = self.sequence_list.font()
+        list_font.setPointSize(10)
+        list_font.setFamily("Consolas")  # Monospace for column alignment
+        self.sequence_list.setFont(list_font)
+
+        main_layout.addWidget(self.sequence_list)
+
+        # ===== 6. SEQUENCE CONTROL BUTTONS =====
         btn_layout = QHBoxLayout()
-
-        self.add_line_btn = QPushButton("➕ Add Line")
-        self.add_line_btn.clicked.connect(self._on_add_line)
-        btn_layout.addWidget(self.add_line_btn)
 
         self.remove_line_btn = QPushButton("➖ Remove")
         self.remove_line_btn.clicked.connect(self._on_remove_line)
@@ -204,10 +346,34 @@ class LineProtocolBuilderWidget(QWidget):
         self.move_down_btn.setEnabled(False)
         btn_layout.addWidget(self.move_down_btn)
 
-        layout.addLayout(btn_layout)
+        main_layout.addLayout(btn_layout)
 
-        group.setLayout(layout)
+        # ===== 7. PROTOCOL EXECUTION (at bottom) =====
+        exec_layout = QHBoxLayout()
+        exec_layout.addWidget(QLabel("Loops:"))
+        self.loop_count_spin = QSpinBox()
+        self.loop_count_spin.setRange(1, 100)
+        self.loop_count_spin.setValue(1)
+        self.loop_count_spin.setToolTip("Number of times to repeat the entire protocol")
+        self.loop_count_spin.setMinimumWidth(70)
+        self.loop_count_spin.valueChanged.connect(self._on_metadata_changed)
+        exec_layout.addWidget(self.loop_count_spin)
+
+        self.execute_protocol_btn = QPushButton("▶▶ EXECUTE PROTOCOL ◀◀")
+        self.execute_protocol_btn.setStyleSheet(
+            "background-color: #2196F3; color: white; font-weight: bold; "
+            "padding: 10px; font-size: 14px;"
+        )
+        self.execute_protocol_btn.clicked.connect(self._on_execute_protocol)
+        self.execute_protocol_btn.setEnabled(False)
+        self.execute_protocol_btn.setMinimumHeight(45)
+        exec_layout.addWidget(self.execute_protocol_btn, stretch=1)
+
+        main_layout.addLayout(exec_layout)
+
+        group.setLayout(main_layout)
         return group
+
 
     def _create_line_editor(self) -> QGroupBox:
         """Create contextual line editor panel with scrolling."""
@@ -215,16 +381,9 @@ class LineProtocolBuilderWidget(QWidget):
         main_layout = QVBoxLayout()
         main_layout.setContentsMargins(5, 5, 5, 5)
 
-        # Quick add line button at top
+        # Editor status label (removed duplicate Add Line button)
         top_layout = QHBoxLayout()
-        self.quick_add_btn = QPushButton("➕ Add New Line")
-        self.quick_add_btn.setStyleSheet(
-            "font-weight: bold; padding: 10px; background-color: #4CAF50; color: white;"
-        )
-        self.quick_add_btn.clicked.connect(self._on_quick_add_line)
-        top_layout.addWidget(self.quick_add_btn)
-
-        self.editor_status_label = QLabel("")
+        self.editor_status_label = QLabel("Select a line to edit or add a new line")
         self.editor_status_label.setStyleSheet("color: #888; font-style: italic; padding: 5px;")
         top_layout.addWidget(self.editor_status_label)
         top_layout.addStretch()
@@ -303,13 +462,14 @@ class LineProtocolBuilderWidget(QWidget):
         self.position_plot.setTitle("Actuator Position & Laser Power Over Time")
         self.position_plot.showGrid(x=True, y=True, alpha=0.3)
 
-        # Create second Y-axis for laser power (right side)
+        # Create second Y-axis for laser power/current (right side)
         self.laser_axis = pg.ViewBox()
         self.position_plot.scene().addItem(self.laser_axis)
         self.position_plot.getAxis("right").linkToView(self.laser_axis)
         self.laser_axis.setXLink(self.position_plot)
-        self.position_plot.getAxis("right").setLabel("Laser Power", units="mW", color="orange")
+        self.position_plot.getAxis("right").setLabel("Power/Current", units="mW/mA", color="orange")
         self.position_plot.showAxis("right")
+        self.position_plot.getAxis("right").setStyle(showValues=True)
 
         # Update views when plot is resized
         def update_views():
@@ -684,7 +844,7 @@ class LineProtocolBuilderWidget(QWidget):
             elif range_pct < 0.1 or range_pct > 0.9:
                 slider.setStyleSheet("QSlider::handle:horizontal { background: #F44336; }")  # Red
             else:
-                slider.setStyleSheet("QSlider::handle:horizontal { background: #4CAF50; }")  # Green
+                slider.setStyleSheet(f"QSlider::handle:horizontal { background: {Colors.SAFE}; }")  # Green
 
         def slider_changed(value):
             spinbox.blockSignals(True)
@@ -703,49 +863,6 @@ class LineProtocolBuilderWidget(QWidget):
         spinbox_changed(default)
 
         return layout, spinbox, slider
-
-    def _create_action_buttons(self) -> QHBoxLayout:
-        """Create bottom action buttons (New, Save, Load, Execute)."""
-        layout = QHBoxLayout()
-
-        self.new_protocol_btn = QPushButton("📄 New Protocol")
-        self.new_protocol_btn.clicked.connect(self._on_new_protocol)
-        layout.addWidget(self.new_protocol_btn)
-
-        self.save_protocol_btn = QPushButton("💾 Save Protocol")
-        self.save_protocol_btn.clicked.connect(self._on_save_protocol)
-        layout.addWidget(self.save_protocol_btn)
-
-        self.load_protocol_btn = QPushButton("📂 Load Protocol")
-        self.load_protocol_btn.clicked.connect(self._on_load_protocol)
-        layout.addWidget(self.load_protocol_btn)
-
-        layout.addStretch()
-
-        # Loop count control (moved from top)
-        loop_layout = QHBoxLayout()
-        loop_layout.addWidget(QLabel("Protocol Loops:"))
-        self.loop_count_spin = QSpinBox()
-        self.loop_count_spin.setRange(1, 100)
-        self.loop_count_spin.setValue(1)
-        self.loop_count_spin.setToolTip("Number of times to repeat the entire protocol")
-        self.loop_count_spin.setMinimumWidth(80)
-        self.loop_count_spin.valueChanged.connect(self._on_metadata_changed)
-        loop_layout.addWidget(self.loop_count_spin)
-        loop_layout.addStretch()
-        layout.addLayout(loop_layout)
-
-        # Execute button
-        self.execute_protocol_btn = QPushButton("▶▶ EXECUTE PROTOCOL ◀◀")
-        self.execute_protocol_btn.setStyleSheet(
-            "background-color: #2196F3; color: white; font-weight: bold; "
-            "padding: 15px; font-size: 14px; min-height: 45px;"
-        )
-        self.execute_protocol_btn.clicked.connect(self._on_execute_protocol)
-        self.execute_protocol_btn.setEnabled(False)
-        layout.addWidget(self.execute_protocol_btn)
-
-        return layout
 
     # ========================================================================
     # Signal Handlers - Metadata
@@ -802,11 +919,17 @@ class LineProtocolBuilderWidget(QWidget):
         # Apply laser parameters (check checkbox)
         if self.laser_checkbox.isChecked():
             if self.laser_set_radio.isChecked():
-                # Convert mW to W for storage (backward compatibility)
-                power_w = self.laser_set_power_spin.value() / 1000.0
-                line.laser = LaserSetParams(power_watts=power_w)
+                # Check which control mode is selected (Power or Current)
+                if self.laser_power_mode_radio.isChecked():
+                    # Power mode: Convert mW to W for storage
+                    power_w = self.laser_set_power_spin.value() / 1000.0
+                    line.laser = LaserSetParams(power_watts=power_w)
+                else:
+                    # Current mode: Store mA value using proper current params class
+                    current_ma = self.laser_set_current_spin.value()
+                    line.laser = LaserSetCurrentParams(current_milliamps=current_ma)
             else:
-                # Ramp: Convert mW to W
+                # Ramp: Convert mW to W (power mode only for ramps currently)
                 start_w = self.laser_start_power_spin.value() / 1000.0
                 end_w = self.laser_end_power_spin.value() / 1000.0
                 line.laser = LaserRampParams(
@@ -829,8 +952,7 @@ class LineProtocolBuilderWidget(QWidget):
         # Apply loop count
         line.loop_count = self.line_loop_spin.value()
 
-        # Update sequence view to show new summary
-        self._update_sequence_view()
+        # Update total duration (but DON'T update sequence view to avoid recursion)
         self._update_total_duration()
 
     def _on_line_selected(self, index: int) -> None:
@@ -842,12 +964,16 @@ class LineProtocolBuilderWidget(QWidget):
             and self.current_line_index < len(self.current_protocol.lines)
         ):
             self._auto_save_current_line()
+            # Update sequence view to show new summary (but block signals to avoid recursion)
+            self.sequence_list.blockSignals(True)
+            self._update_sequence_view()
+            self.sequence_list.blockSignals(False)
 
         self.current_line_index = index
 
         if index < 0 or self.current_protocol is None or index >= len(self.current_protocol.lines):
             # No valid selection
-            self.editor_status_label.setText("No line selected - add a line to begin")
+            # self.editor_status_label.setText("No line selected - add a line to begin")  # Removed status label
             self.movement_group.setEnabled(False)
             self.laser_group.setEnabled(False)
             self.dwell_group.setEnabled(False)
@@ -862,7 +988,7 @@ class LineProtocolBuilderWidget(QWidget):
         self._load_line_into_editor(line)
 
         # Enable editor
-        self.editor_status_label.setText(f"✏️ Editing Line {line.line_number} (auto-save enabled)")
+        # self.editor_status_label.setText(f"✏️ Editing Line {line.line_number} (auto-save enabled)")  # Removed status label
         self.movement_group.setEnabled(True)
         self.laser_group.setEnabled(True)
         self.dwell_group.setEnabled(True)
@@ -877,23 +1003,24 @@ class LineProtocolBuilderWidget(QWidget):
     # Signal Handlers - Sequence Controls
     # ========================================================================
 
-    def _on_quick_add_line(self) -> None:
-        """Quick add: Create new line and auto-select it."""
-        if self.current_protocol is None:
+    def _on_update_line(self) -> None:
+        """Update current line with editor values (manual save)."""
+        if self.current_protocol is None or self.current_line_index < 0:
+            logger.warning("No line selected to update")
             return
 
-        # Create new line
-        line_number = len(self.current_protocol.lines) + 1
-        new_line = ProtocolLine(line_number=line_number)
-        self.current_protocol.lines.append(new_line)
+        # Save current line parameters
+        self._auto_save_current_line()
 
-        # Update view
+        # Update sequence view to show new summary (with signal blocking)
+        self.sequence_list.blockSignals(True)
         self._update_sequence_view()
+        self.sequence_list.blockSignals(False)
 
-        # Auto-select the new line
-        self.sequence_list.setCurrentRow(len(self.current_protocol.lines) - 1)
+        # Re-select the current line to refresh display
+        self.sequence_list.setCurrentRow(self.current_line_index)
 
-        logger.info(f"Quick add: Created and selected Line {line_number}")
+        logger.info(f"Line {self.current_line_index + 1} updated manually")
 
     def _on_add_line(self) -> None:
         """Add new line to protocol."""
@@ -1279,15 +1406,22 @@ class LineProtocolBuilderWidget(QWidget):
     # ========================================================================
 
     def _create_new_protocol(self) -> None:
-        """Create new empty protocol."""
+        """Create new protocol with one default line."""
+        # Create default first line
+        default_line = ProtocolLine(line_number=1)
+
         self.current_protocol = LineBasedProtocol(
             protocol_name="New Protocol",
             version="1.0",
-            lines=[],
+            lines=[default_line],
             safety_limits=self.safety_limits,
         )
         self._refresh_ui_from_protocol()
-        logger.info("New protocol created")
+
+        # Auto-select the first line so user can start editing
+        self.sequence_list.setCurrentRow(0)
+
+        logger.info("New protocol created with default line")
 
     def _refresh_ui_from_protocol(self) -> None:
         """Refresh entire UI from current protocol."""
@@ -1329,9 +1463,9 @@ class LineProtocolBuilderWidget(QWidget):
 
             # Add status indicator
             if valid:
-                status_icon = "[OK]"
+                status_icon = "✓"
             else:
-                status_icon = "[!]"
+                status_icon = "✗"
 
             # Calculate current position for duration calculation
             # (simplified: assume starting from 0)
@@ -1339,12 +1473,12 @@ class LineProtocolBuilderWidget(QWidget):
             item_text = f"{status_icon} {summary}"
             item = QListWidgetItem(item_text)
 
-            # Color code based on validation
+            # Color code based on validation (no green, use default text color for valid)
             if not valid:
                 item.setForeground(Qt.GlobalColor.red)
                 item.setToolTip(f"Validation Error: {error_msg}")
             else:
-                item.setForeground(Qt.GlobalColor.darkGreen)
+                # Use default text color (white/light gray in dark theme)
                 item.setToolTip("Line validated successfully")
 
             self.sequence_list.addItem(item)
@@ -1425,15 +1559,22 @@ class LineProtocolBuilderWidget(QWidget):
                         time_points.append(current_time + line.dwell.duration_s)
                         position_points.append(current_position)
 
-                # Update laser power (convert W to mW for graph display)
+                # Update laser power (convert W to mW or display mA for graph)
                 if line.laser is not None:
                     if isinstance(line.laser, LaserSetParams):
-                        # Constant power (convert to mW)
+                        # Power mode: Convert W to mW
                         power_mw = line.laser.power_watts * 1000.0
                         laser_time_points.append(line_start_time)
                         laser_power_points.append(power_mw)
                         laser_time_points.append(current_time + line_duration)
                         laser_power_points.append(power_mw)
+                    elif isinstance(line.laser, LaserSetCurrentParams):
+                        # Current mode: Display mA value directly
+                        current_ma = line.laser.current_milliamps
+                        laser_time_points.append(line_start_time)
+                        laser_power_points.append(current_ma)
+                        laser_time_points.append(current_time + line_duration)
+                        laser_power_points.append(current_ma)
                     elif isinstance(line.laser, LaserRampParams):
                         # Ramping power - add intermediate points for smooth ramp (convert to mW)
                         num_points = 10
@@ -1471,7 +1612,7 @@ class LineProtocolBuilderWidget(QWidget):
         laser_curve = pg.PlotCurveItem(
             laser_time_points,
             laser_power_points,
-            pen=pg.mkPen("#FF9800", width=2),
+            pen=pg.mkPen(Colors.WARNING, width=2),
             name="Laser Power",
         )
         self.laser_axis.addItem(laser_curve)
@@ -1494,6 +1635,11 @@ class LineProtocolBuilderWidget(QWidget):
 
     def _load_line_into_editor(self, line: ProtocolLine) -> None:
         """Load line parameters into editor UI."""
+        # Block all signals during loading to prevent auto-save triggers
+        self.movement_checkbox.blockSignals(True)
+        self.laser_checkbox.blockSignals(True)
+        self.dwell_checkbox.blockSignals(True)
+
         # Movement (set checkbox and values)
         if line.movement is not None:
             self.movement_checkbox.setChecked(True)
@@ -1514,13 +1660,19 @@ class LineProtocolBuilderWidget(QWidget):
         else:
             self.movement_checkbox.setChecked(False)
 
-        # Laser (set checkbox and values, convert W to mW for display)
+        # Laser (set checkbox and values, convert W to mW/mA for display)
         if line.laser is not None:
             self.laser_checkbox.setChecked(True)
             if isinstance(line.laser, LaserSetParams):
                 self.laser_set_radio.setChecked(True)
-                # Convert W to mW for display
+                # Power mode: Convert W to mW for display
+                self.laser_power_mode_radio.setChecked(True)
                 self.laser_set_power_spin.setValue(line.laser.power_watts * 1000.0)
+            elif isinstance(line.laser, LaserSetCurrentParams):
+                self.laser_set_radio.setChecked(True)
+                # Current mode: Display mA value
+                self.laser_current_mode_radio.setChecked(True)
+                self.laser_set_current_spin.setValue(line.laser.current_milliamps)
             elif isinstance(line.laser, LaserRampParams):
                 self.laser_ramp_radio.setChecked(True)
                 # Convert W to mW for display
@@ -1542,6 +1694,11 @@ class LineProtocolBuilderWidget(QWidget):
 
         # Loop count
         self.line_loop_spin.setValue(line.loop_count if hasattr(line, "loop_count") else 1)
+
+        # Unblock signals after loading complete
+        self.movement_checkbox.blockSignals(False)
+        self.laser_checkbox.blockSignals(False)
+        self.dwell_checkbox.blockSignals(False)
 
     def set_safety_limits(self, limits: SafetyLimits) -> None:
         """
