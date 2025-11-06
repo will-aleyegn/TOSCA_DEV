@@ -106,20 +106,20 @@ class LaserWidget(QWidget):
         # Create master QGroupBox for all laser subsystems
         master_group = QGroupBox("LASER SYSTEMS")
         master_group.setStyleSheet(
-            """
-            QGroupBox {
+            f"""
+            QGroupBox {{
                 font-size: 11pt;
                 font-weight: bold;
-                border: 2px solid #666;
+                border: 2px solid {Colors.BORDER_DEFAULT};
                 border-radius: 6px;
                 margin-top: 12px;
                 padding-top: 12px;
-            }
-            QGroupBox::title {
+            }}
+            QGroupBox::title {{
                 subcontrol-origin: margin;
                 left: 10px;
                 padding: 0 5px;
-            }
+            }}
             """
         )
 
