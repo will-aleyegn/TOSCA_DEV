@@ -315,26 +315,35 @@ class MainWindow(QMainWindow):
         for col in range(4):
             self.hardware_grid_layout.setColumnStretch(col, 1)
 
-        scroll_area.setWidget(scroll_content)
-        hardware_tab_main_layout.addWidget(scroll_area)
-
-        # === SAFETY EVENT LOG (BELOW GRID) ===
-        # SafetyWidget now shows: Event Log only
-        # (Software interlocks moved to persistent header above)
-        # (GPIO hardware diagnostics shown separately above)
+        # === ROW 4+: SAFETY EVENT LOG & CONFIG (INSIDE SCROLL AREA) ===
+        # Add safety log and config to grid so they scroll with hardware modules
         self.safety_widget = SafetyWidget(
             db_manager=self.db_manager, gpio_controller=self.gpio_controller
         )
         # Hide software interlocks section (now in persistent header)
         if hasattr(self.safety_widget, 'software_interlocks_widget'):
             self.safety_widget.software_interlocks_widget.hide()
-        hardware_tab_main_layout.addWidget(self.safety_widget)
 
-        # === CONFIGURATION DISPLAY (BELOW LOG) ===
+        # Set reasonable height constraints for safety log
+        self.safety_widget.setMaximumHeight(300)  # Max 300px to prevent screen dominance
+
+        self.hardware_grid_layout.addWidget(self.safety_widget, 4, 0, 1, 4)  # Row 4, full width
+
         from ui.widgets.config_display_widget import ConfigDisplayWidget
-
         self.config_display_widget = ConfigDisplayWidget()
-        hardware_tab_main_layout.addWidget(self.config_display_widget)
+        self.hardware_grid_layout.addWidget(self.config_display_widget, 5, 0, 1, 4)  # Row 5, full width
+
+        # Set row stretch factors to control vertical space distribution
+        # Rows 0-3 (hardware modules) get equal minimal stretch
+        for row in range(4):
+            self.hardware_grid_layout.setRowStretch(row, 0)  # No stretch - use minimum size
+        # Row 4 (safety log) gets some stretch
+        self.hardware_grid_layout.setRowStretch(4, 1)
+        # Row 5 (config) gets minimal stretch
+        self.hardware_grid_layout.setRowStretch(5, 0)
+
+        scroll_area.setWidget(scroll_content)
+        hardware_tab_main_layout.addWidget(scroll_area)
 
         self.tabs.addTab(hardware_tab, "Hardware & Diagnostics")
 
