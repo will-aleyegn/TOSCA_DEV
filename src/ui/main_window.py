@@ -37,7 +37,6 @@ from core.safety_watchdog import SafetyWatchdog
 from core.session_manager import SessionManager
 from database.db_manager import DatabaseManager
 from ui.dialogs.research_mode_warning_dialog import ResearchModeWarningDialog
-# ActiveTreatmentWidget removed - functionality integrated into Treatment tab layout
 from ui.widgets.camera_widget import CameraWidget
 from ui.widgets.protocol_steps_display_widget import ProtocolStepsDisplayWidget
 from ui.widgets.safety_widget import SafetyWidget
@@ -159,14 +158,6 @@ class MainWindow(QMainWindow):
 
         logger.info("All hardware controllers instantiated in MainWindow")
 
-        # Connect hardware connection signals to update Disconnect All button
-        self.camera_controller.connection_changed.connect(
-            lambda: self._update_hardware_button_states()
-        )
-        self.actuator_controller.connection_changed.connect(
-            lambda: self._update_hardware_button_states()
-        )
-
         # SAFETY-CRITICAL: Initialize watchdog early (before GPIO connection)
         # GPIO controller will be attached later in _connect_safety_system()
         self.safety_watchdog = SafetyWatchdog(
@@ -257,159 +248,93 @@ class MainWindow(QMainWindow):
         # content_layout.addWidget(self.safety_status_panel)
 
         # TAB 1: HARDWARE & DIAGNOSTICS
-        # Hardware connection status and diagnostic controls
-        # Layout: Connection buttons (top) + 2-column (50% controls | 50% diagnostics)
+        # Layout: 4-column grid for compact hardware module arrangement
+        # Individual widgets provide their own connection controls
         hardware_tab = QWidget()
         hardware_tab_main_layout = QVBoxLayout()
         hardware_tab.setLayout(hardware_tab_main_layout)
 
-        # === CONNECTION BUTTONS (TOP BAR) ===
-        connection_buttons_layout = QHBoxLayout()
-        connection_buttons_layout.setContentsMargins(10, 10, 10, 5)
-        connection_buttons_layout.setSpacing(10)
+        # === SCROLLABLE GRID LAYOUT (4-COLUMN) ===
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll_area.setStyleSheet("QScrollArea { border: none; }")
 
-        # Connect All button
-        self.connect_all_btn = QPushButton("[CONN] Connect All")
-        self.connect_all_btn.setMinimumHeight(40)
-        self.connect_all_btn.setStyleSheet(
-            "QPushButton { background-color: #1976D2; color: white; "
-            "padding: 6px 12px; font-weight: bold; }"
-            "QPushButton:hover { background-color: #1565C0; }"
+        scroll_content = QWidget()
+        from PyQt6.QtWidgets import QGridLayout
+        self.hardware_grid_layout = QGridLayout()  # Make instance variable for later actuator insertion
+        self.hardware_grid_layout.setSpacing(12)  # Spacing between grid cells
+        self.hardware_grid_layout.setContentsMargins(8, 8, 8, 8)
+        scroll_content.setLayout(self.hardware_grid_layout)
+
+        # === ROW 0: GPIO CONNECTION (FULL WIDTH - 4 COLUMNS) ===
+        from ui.widgets.gpio_widget import GPIOWidget
+
+        self.gpio_widget = GPIOWidget(controller=self.gpio_controller)
+        self.hardware_grid_layout.addWidget(self.gpio_widget, 0, 0, 1, 4)  # Row 0, Col 0, span 1 row, 4 cols
+
+        # === ROW 1: SAFETY INTERLOCKS (3 COLUMNS) ===
+        from ui.widgets.footpedal_widget import FootpedalWidget
+        from ui.widgets.photodiode_widget import PhotodiodeWidget
+        from ui.widgets.smoothing_module_widget import SmoothingModuleWidget
+
+        self.footpedal_widget = FootpedalWidget(gpio_controller=self.gpio_controller)
+        self.hardware_grid_layout.addWidget(self.footpedal_widget, 1, 0)  # Row 1, Col 0
+
+        self.photodiode_widget = PhotodiodeWidget(gpio_controller=self.gpio_controller)
+        self.hardware_grid_layout.addWidget(self.photodiode_widget, 1, 1)  # Row 1, Col 1
+
+        self.smoothing_module_widget = SmoothingModuleWidget(gpio_controller=self.gpio_controller)
+        self.hardware_grid_layout.addWidget(self.smoothing_module_widget, 1, 2)  # Row 1, Col 2
+
+        # === ROW 2: LASER SYSTEMS (2 COLUMNS) ===
+        # Note: laser_widget contains both aiming and treatment laser controls
+        # User requested these side-by-side; currently they're in one widget with vertical layout
+        # This spans 2 columns to provide space for both sections
+        from ui.widgets.laser_widget import LaserWidget
+
+        self.laser_widget = LaserWidget(
+            controller=self.laser_controller, tec_controller=self.tec_controller
         )
-        self.connect_all_btn.setToolTip("Connect to all hardware (Camera, Laser, Actuator, GPIO)")
-        self.connect_all_btn.clicked.connect(self._on_connect_all_clicked)
-        connection_buttons_layout.addWidget(self.connect_all_btn)
+        self.laser_widget.gpio_controller = self.gpio_controller  # For aiming laser controls
+        self.hardware_grid_layout.addWidget(self.laser_widget, 2, 0, 1, 2)  # Row 2, Col 0-1, span 2 cols
 
-        # Disconnect All button
-        self.disconnect_all_btn = QPushButton("Disconnect All")
-        self.disconnect_all_btn.setMinimumHeight(40)
-        self.disconnect_all_btn.setEnabled(False)
-        self.disconnect_all_btn.setToolTip("Disconnect from all hardware")
-        self.disconnect_all_btn.clicked.connect(self._on_disconnect_all_clicked)
-        connection_buttons_layout.addWidget(self.disconnect_all_btn)
-
-        # Test All Hardware button
-        self.test_all_btn = QPushButton("[TEST] Test All Hardware")
-        self.test_all_btn.setMinimumHeight(40)
-        self.test_all_btn.setStyleSheet(
-            "QPushButton { background-color: #6A1B9A; color: white; "
-            "padding: 6px 12px; font-weight: bold; }"
-            "QPushButton:hover { background-color: #4A148C; }"
-        )
-        self.test_all_btn.setToolTip("Run diagnostic check on all hardware components")
-        self.test_all_btn.clicked.connect(self._on_test_all_clicked)
-        connection_buttons_layout.addWidget(self.test_all_btn)
-
-        connection_buttons_layout.addStretch()  # Push buttons to left
-
-        hardware_tab_main_layout.addLayout(connection_buttons_layout)
-
-        # === TWO-COLUMN HARDWARE LAYOUT ===
-        hardware_tab_layout = QHBoxLayout()
-
-        # === LEFT COLUMN (50%): Core Hardware Controls ===
-        left_scroll = QScrollArea()
-        left_scroll.setWidgetResizable(True)
-        left_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        left_scroll.setStyleSheet("QScrollArea { border: none; }")
-
-        left_content = QWidget()
-        hardware_left_layout = QVBoxLayout()
-        left_content.setLayout(hardware_left_layout)
-
-        # === SECTION 1: CAMERA SYSTEM ===
-        self.camera_header = QLabel("[CAM] Camera System [X]")
-        self.camera_header.setStyleSheet(
-            "font-size: 13px; font-weight: bold; padding: 8px; margin-top: 4px; "
-            "background-color: #37474F; color: #64B5F6; border-radius: 3px;"
-        )
-        hardware_left_layout.addWidget(self.camera_header)
-
-        # Camera connection widget (lightweight status + connect/disconnect)
+        # === ROW 3: CAMERA + ACTUATOR (2 COLUMNS) ===
         from ui.widgets.camera_hardware_panel import CameraHardwarePanel
 
         self.camera_hardware_panel = CameraHardwarePanel(None)  # Will set camera_live_view later
-        hardware_left_layout.addWidget(self.camera_hardware_panel)
+        self.hardware_grid_layout.addWidget(self.camera_hardware_panel, 3, 0)  # Row 3, Col 0
 
-        # === SECTION 2: LINEAR ACTUATOR ===
-        self.actuator_header = QLabel("[ACT] Linear Actuator Controller [X]")
-        self.actuator_header.setStyleSheet(
-            "font-size: 13px; font-weight: bold; padding: 8px; margin-top: 12px; "
-            "background-color: #37474F; color: #81C784; border-radius: 3px;"
-        )
-        hardware_left_layout.addWidget(self.actuator_header)
+        # === MOTION CONTROL (Actuator) ===
+        # Will be created and inserted here after controllers are initialized
+        # Store grid position for later insertion
+        self.actuator_grid_row = 3
+        self.actuator_grid_col = 1
 
-        # Actuator connection widget (will be created later with direct controller)
-        # Placeholder stored for later widget insertion
-        self.actuator_header_index = (
-            hardware_left_layout.count() - 1
-        )  # Remember position for insertion
+        # Set column stretch factors (all equal width)
+        for col in range(4):
+            self.hardware_grid_layout.setColumnStretch(col, 1)
 
-        # === SECTION 3: LASER SYSTEMS ===
-        self.laser_header = QLabel("[LSR] Laser Systems (Driver + TEC) [X]")
-        self.laser_header.setStyleSheet(
-            "font-size: 13px; font-weight: bold; padding: 8px; margin-top: 12px; "
-            "background-color: #37474F; color: #FFD54F; border-radius: 3px;"
-        )
-        hardware_left_layout.addWidget(self.laser_header)
+        scroll_area.setWidget(scroll_content)
+        hardware_tab_main_layout.addWidget(scroll_area)
 
-        # Laser Driver Control Widget (COM10 - laser diode current control)
-        from ui.widgets.laser_widget import LaserWidget
-
-        self.laser_widget = LaserWidget(controller=self.laser_controller)
-        hardware_left_layout.addWidget(self.laser_widget)
-
-        # TEC Control Widget (COM9 - temperature control)
-        from ui.widgets.tec_widget import TECWidget
-
-        self.tec_widget = TECWidget(controller=self.tec_controller)
-        hardware_left_layout.addWidget(self.tec_widget)
-
-        hardware_left_layout.addStretch()
-        left_scroll.setWidget(left_content)
-
-        # === RIGHT COLUMN (50%): Diagnostics & Configuration ===
-        right_scroll = QScrollArea()
-        right_scroll.setWidgetResizable(True)
-        right_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        right_scroll.setStyleSheet("QScrollArea { border: none; }")
-
-        right_content = QWidget()
-        hardware_right_layout = QVBoxLayout()
-        right_content.setLayout(hardware_right_layout)
-
-        # === SECTION 4: GPIO DIAGNOSTICS ===
-        # GPIO widget contains laser spot smoothing module, photodiode monitoring,
-        # and safety interlocks
-        # Widget has its own internal headers and organization
+        # === SAFETY EVENT LOG (BELOW GRID) ===
+        # SafetyWidget now shows: Event Log only
+        # (Software interlocks moved to persistent header above)
+        # (GPIO hardware diagnostics shown separately above)
         self.safety_widget = SafetyWidget(
             db_manager=self.db_manager, gpio_controller=self.gpio_controller
         )
-        hardware_right_layout.addWidget(self.safety_widget)
+        # Hide software interlocks section (now in persistent header)
+        if hasattr(self.safety_widget, 'software_interlocks_widget'):
+            self.safety_widget.software_interlocks_widget.hide()
+        hardware_tab_main_layout.addWidget(self.safety_widget)
 
-        # === SECTION 5: CONFIGURATION DISPLAY ===
-        self.config_header = QLabel("[CFG] System Configuration")
-        self.config_header.setStyleSheet(
-            "font-size: 13px; font-weight: bold; padding: 8px; margin-top: 12px; "
-            "background-color: #37474F; color: #B0BEC5; border-radius: 3px;"
-        )
-        hardware_right_layout.addWidget(self.config_header)
-
-        # Configuration display widget (read-only config.yaml values)
+        # === CONFIGURATION DISPLAY (BELOW LOG) ===
         from ui.widgets.config_display_widget import ConfigDisplayWidget
 
         self.config_display_widget = ConfigDisplayWidget()
-        hardware_right_layout.addWidget(self.config_display_widget)
-
-        hardware_right_layout.addStretch()
-        right_scroll.setWidget(right_content)
-
-        # Add columns to the main hardware tab layout with a 50/50 split
-        hardware_tab_layout.addWidget(left_scroll, 1)
-        hardware_tab_layout.addWidget(right_scroll, 1)
-
-        # Add two-column layout to main tab layout
-        hardware_tab_main_layout.addLayout(hardware_tab_layout)
+        hardware_tab_main_layout.addWidget(self.config_display_widget)
 
         self.tabs.addTab(hardware_tab, "Hardware & Diagnostics")
 
@@ -480,10 +405,7 @@ class MainWindow(QMainWindow):
 
         self.tabs.addTab(treatment_tab, "Treatment Workflow")
 
-        # OLD: ActiveTreatmentWidget removed, no longer need camera connection
-        # Camera feed shown directly in right column of Treatment tab
-
-        # === NEW SIGNAL WIRING FOR REDESIGNED WIDGETS ===
+        # === SIGNAL WIRING ===
 
         # Wire unified session setup to protocol steps display
         self.unified_session_setup.protocol_loaded.connect(self.protocol_steps_display.load_protocol)
@@ -561,11 +483,11 @@ class MainWindow(QMainWindow):
         self.actuator_connection_widget = ActuatorConnectionWidget(
             controller=self.actuator_controller
         )
-        # Insert right after actuator header in LEFT column layout
-        hardware_left_layout.insertWidget(
-            self.actuator_header_index + 1, self.actuator_connection_widget
+        # Insert into grid at stored position (Row 3, Col 1)
+        self.hardware_grid_layout.addWidget(
+            self.actuator_connection_widget, self.actuator_grid_row, self.actuator_grid_col
         )
-        logger.info("Actuator connection widget added to Hardware tab (direct controller)")
+        logger.info("Actuator connection widget added to Hardware tab grid (Row 3, Col 1)")
 
         # Initialize safety manager
         self.safety_manager = SafetyManager()
@@ -781,6 +703,12 @@ class MainWindow(QMainWindow):
         self.unified_header.update_safety_state(self.safety_manager.state)
         logger.info("Safety manager connected to unified header safety display")
 
+        # Software interlocks updates -> Unified header software interlocks display
+        self.safety_manager.safety_state_changed.connect(self._update_software_interlocks_header)
+        # Emit initial state
+        self._update_software_interlocks_header(self.safety_manager.state)
+        logger.info("Safety manager connected to unified header software interlocks")
+
         # Interlock status updates -> Unified header interlock indicators
         # Wire GPIO interlock signals when GPIO connects (will be set in _handle_hardware_connection)
         # self.gpio_controller.safety_interlock_changed.connect(self.unified_header.update_interlock_status)
@@ -986,35 +914,14 @@ class MainWindow(QMainWindow):
                 "background-color: #37474F; color: #64B5F6; border-radius: 3px;"
             )
 
-    def _update_actuator_header_status(self, connected: bool) -> None:
-        """Update actuator section header with connection status."""
-        if connected:
-            self.actuator_header.setText("[ACT] Linear Actuator Controller [OK]")
-            self.actuator_header.setStyleSheet(
-                "font-size: 13px; font-weight: bold; padding: 8px; margin-top: 12px; "
-                "background-color: #2E7D32; color: white; border-radius: 3px;"
-            )
-        else:
-            self.actuator_header.setText("[ACT] Linear Actuator Controller [X]")
-            self.actuator_header.setStyleSheet(
-                "font-size: 13px; font-weight: bold; padding: 8px; margin-top: 12px; "
-                "background-color: #37474F; color: #81C784; border-radius: 3px;"
-            )
-
-    def _update_laser_header_status(self, connected: bool) -> None:
-        """Update laser section header with connection status."""
-        if connected:
-            self.laser_header.setText("[LSR] Laser Systems (Aiming + Treatment) [OK]")
-            self.laser_header.setStyleSheet(
-                "font-size: 13px; font-weight: bold; padding: 8px; margin-top: 12px; "
-                "background-color: #2E7D32; color: white; border-radius: 3px;"
-            )
-        else:
-            self.laser_header.setText("[LSR] Laser Systems (Aiming + Treatment) [X]")
-            self.laser_header.setStyleSheet(
-                "font-size: 13px; font-weight: bold; padding: 8px; margin-top: 12px; "
-                "background-color: #37474F; color: #FFD54F; border-radius: 3px;"
-            )
+    # NOTE: Header status methods removed - hardware tab now uses individual widget controls
+    # def _update_actuator_header_status(self, connected: bool) -> None:
+    #     """Update actuator section header with connection status."""
+    #     pass
+    #
+    # def _update_laser_header_status(self, connected: bool) -> None:
+    #     """Update laser section header with connection status."""
+    #     pass
 
     def _connect_safety_system(self) -> None:
         """Connect safety system components."""
@@ -1025,8 +932,8 @@ class MainWindow(QMainWindow):
         # Connect to GPIO widget's connection status signal
         # Controller doesn't exist yet - created when user clicks Connect
         # So we connect to widget's forwarding signal instead
-        if hasattr(self.safety_widget, "gpio_widget") and self.safety_widget.gpio_widget:
-            gpio_widget = self.safety_widget.gpio_widget
+        if hasattr(self, "gpio_widget") and self.gpio_widget:
+            gpio_widget = self.gpio_widget
             # Connect to GPIO widget's stable signal (not controller's)
             gpio_widget.gpio_connection_changed.connect(self._on_gpio_connection_changed)
             logger.info("Main window connected to GPIO widget connection signal")
@@ -1036,6 +943,26 @@ class MainWindow(QMainWindow):
         if hasattr(self, "laser_widget"):
             self.laser_widget.safety_manager = self.safety_manager
             logger.info("Safety manager connected to laser widget")
+
+        # Connect GPIO controller safety interlock signal to safety manager (one-time connection)
+        # Note: Controller exists from __init__, so connect immediately
+        self.gpio_controller.safety_interlock_changed.connect(
+            self.safety_manager.set_gpio_interlock_status
+        )
+        logger.info("GPIO controller safety interlocks -> safety manager (connected)")
+
+        # Connect safety manager interlock status to unified header (one-time connection)
+        self.safety_manager.interlock_status_changed.connect(self._update_unified_header_interlocks)
+        logger.info("Safety manager interlocks -> unified header (connected)")
+
+        # Connect watchdog signals (one-time connection)
+        self.safety_watchdog.heartbeat_failed.connect(
+            lambda msg: logger.error(f"Watchdog heartbeat failed: {msg}")
+        )
+        self.safety_watchdog.watchdog_timeout_detected.connect(
+            self._handle_watchdog_timeout
+        )
+        logger.info("Safety watchdog signals connected")
 
         # Log safety events (in addition to widget display)
         self.safety_manager.safety_state_changed.connect(
@@ -1118,63 +1045,24 @@ class MainWindow(QMainWindow):
         """
         if connected:
             # GPIO connected - attach to watchdog and start heartbeat
-            gpio_widget = self.safety_widget.gpio_widget
+            gpio_widget = self.gpio_widget
             if gpio_widget and gpio_widget.controller:
-                # Connect GPIO safety interlock to safety manager
-                try:
-                    gpio_widget.controller.safety_interlock_changed.connect(
-                        self.safety_manager.set_gpio_interlock_status
-                    )
-                    logger.info("GPIO safety interlocks connected to safety manager")
-                except RuntimeError:
-                    # Signal already connected, ignore
-                    pass
-
-                # Note: Smoothing status widget removed with ActiveTreatmentWidget redesign
-                # Smoothing motor controls are now in GPIO widget on Hardware tab
-
                 # Attach GPIO controller to watchdog
                 self.safety_watchdog.gpio_controller = gpio_widget.controller
                 logger.info("GPIO controller attached to safety watchdog")
 
-                # Connect GPIO interlock status to unified header display
-                # Use safety manager's interlock_status_changed signal
-                try:
-                    self.safety_manager.interlock_status_changed.connect(self._update_unified_header_interlocks)
-                    # Emit initial state
-                    self._update_unified_header_interlocks()
-                    logger.info("GPIO interlock status connected to unified header")
-                except RuntimeError:
-                    # Signal already connected, ignore
-                    pass
-
-                # Connect watchdog signals if not already connected
-                try:
-                    self.safety_watchdog.heartbeat_failed.connect(
-                        lambda msg: logger.error(f"Watchdog heartbeat failed: {msg}")
-                    )
-                    self.safety_watchdog.watchdog_timeout_detected.connect(
-                        self._handle_watchdog_timeout
-                    )
-                except RuntimeError:
-                    # Signals already connected, ignore
-                    pass
+                # Update initial interlock state
+                self._update_unified_header_interlocks()
 
                 # Start heartbeat - CRITICAL for Arduino stability
                 if self.safety_watchdog.start():
                     logger.info("Safety watchdog started (500ms heartbeat, 1000ms timeout)")
                 else:
                     logger.error("CRITICAL: Safety watchdog failed to start!")
-
-            # Update disconnect button state
-            self._update_hardware_button_states()
         else:
             # GPIO disconnected - stop heartbeat
             self.safety_watchdog.stop()
             logger.info("Safety watchdog stopped (GPIO disconnected)")
-
-            # Update disconnect button state
-            self._update_hardware_button_states()
 
     def _update_unified_header_interlocks(self) -> None:
         """
@@ -1185,6 +1073,35 @@ class MainWindow(QMainWindow):
         """
         interlocks = self.safety_manager.get_interlock_status()
         self.unified_header.update_interlock_status(interlocks)
+
+    def _update_software_interlocks_header(self, state) -> None:
+        """
+        Update unified header software interlocks from safety manager state.
+
+        Args:
+            state: SafetyState from safety manager
+        """
+        from core.safety import SafetyState
+
+        # Determine software interlock states
+        estop_active = state == SafetyState.EMERGENCY_STOP
+        power_ok = True  # TODO: Wire to actual power limit monitoring
+        session_valid = hasattr(self, 'session_manager') and self.session_manager.get_current_session() is not None
+
+        # Get session ID if active
+        session_id = None
+        if session_valid:
+            session = self.session_manager.get_current_session()
+            if session:
+                session_id = str(session.session_id)
+
+        # Update unified header
+        self.unified_header.update_software_interlocks(
+            estop_active=estop_active,
+            power_ok=power_ok,
+            session_valid=session_valid,
+            session_id=session_id
+        )
 
     def _init_protocol_engine(self) -> None:
         """Initialize protocol engine and wire to hardware controllers."""
@@ -1214,9 +1131,6 @@ class MainWindow(QMainWindow):
         self.line_protocol_engine.on_progress_update = self._on_protocol_progress_update
         self.line_protocol_engine.on_state_change = self._on_protocol_state_change
 
-        # OLD: ActiveTreatmentWidget removed - no longer need protocol engine/safety manager connections
-        # Protocol monitoring now handled by Protocol Steps Display widget
-
         logger.info(
             f"Protocol engines initialized with MainWindow controllers "
             f"(laser: {self.laser_controller is not None}, "
@@ -1229,6 +1143,14 @@ class MainWindow(QMainWindow):
         # Connect session manager signals
         self.session_manager.session_started.connect(self._on_event_logger_session_started)
         self.session_manager.session_ended.connect(self._on_event_logger_session_ended)
+
+        # Connect session changes to software interlocks header update
+        self.session_manager.session_started.connect(
+            lambda session_id: self._update_software_interlocks_header(self.safety_manager.state)
+        )
+        self.session_manager.session_ended.connect(
+            lambda session_id: self._update_software_interlocks_header(self.safety_manager.state)
+        )
 
         # Connect event logger to safety widget for display
         if hasattr(self.safety_widget, "event_log"):
@@ -1433,106 +1355,6 @@ class MainWindow(QMainWindow):
             self.global_estop_btn.setEnabled(False)
             self.global_estop_btn.setText("[STOP] E-STOP ACTIVE")
 
-    def _update_hardware_button_states(self) -> None:
-        """Update Connect All / Disconnect All button states based on hardware connections."""
-        # Check if ANY hardware is connected
-        any_connected = False
-
-        # Check GPIO
-        if hasattr(self, "safety_widget") and hasattr(self.safety_widget, "gpio_widget"):
-            if self.safety_widget.gpio_widget and self.safety_widget.gpio_widget.is_connected:
-                any_connected = True
-
-        # Check Camera
-        if hasattr(self, "camera_controller") and self.camera_controller:
-            if self.camera_controller.is_connected:
-                any_connected = True
-
-        # Check Laser
-        if hasattr(self, "laser_widget") and self.laser_widget:
-            if hasattr(self.laser_widget, "is_connected") and self.laser_widget.is_connected:
-                any_connected = True
-
-        # Check Actuator
-        if hasattr(self, "actuator_controller") and self.actuator_controller:
-            if self.actuator_controller.is_connected:
-                any_connected = True
-
-        # Update button states
-        self.disconnect_all_btn.setEnabled(any_connected)
-
-    def _on_connect_all_clicked(self) -> None:
-        """Handle Connect All button click."""
-        logger.info("Connecting to all hardware...")
-
-        # Connect GPIO (Safety tab)
-        if hasattr(self.safety_widget, "gpio_widget") and self.safety_widget.gpio_widget:
-            gpio_widget = self.safety_widget.gpio_widget
-            if not gpio_widget.is_connected:
-                logger.info("Connecting GPIO...")
-                gpio_widget.connect_device()  # Use public API
-
-        # Connect Camera
-        if hasattr(self.camera_live_view, "connect_camera"):
-            logger.info("Connecting Camera...")
-            self.camera_live_view.connect_camera()
-
-        # Connect Laser (Hardware & Diagnostics tab)
-        if hasattr(self, "laser_widget"):
-            if hasattr(self.laser_widget, "is_connected") and not self.laser_widget.is_connected:
-                logger.info("Connecting Laser...")
-                self.laser_widget.connect_device()  # Use public API
-
-        # Connect Actuator (Hardware tab)
-        if hasattr(self, "actuator_connection_widget"):
-            if (
-                hasattr(self.actuator_connection_widget, "is_connected")
-                and not self.actuator_connection_widget.is_connected
-            ):
-                logger.info("Connecting Actuator...")
-                if hasattr(self.actuator_connection_widget, "_on_connect_clicked"):
-                    self.actuator_connection_widget._on_connect_clicked()
-
-        # Update button states
-        self._update_hardware_button_states()
-        logger.info("Connect All completed")
-
-    def _on_disconnect_all_clicked(self) -> None:
-        """Handle Disconnect All button click."""
-        logger.info("Disconnecting from all hardware...")
-
-        # Disconnect GPIO
-        if hasattr(self.safety_widget, "gpio_widget") and self.safety_widget.gpio_widget:
-            gpio_widget = self.safety_widget.gpio_widget
-            if gpio_widget.is_connected:
-                logger.info("Disconnecting GPIO...")
-                gpio_widget.disconnect_device()  # Use public API
-
-        # Disconnect Camera
-        if hasattr(self.camera_live_view, "disconnect_camera"):
-            logger.info("Disconnecting Camera...")
-            self.camera_live_view.disconnect_camera()
-
-        # Disconnect Laser
-        if hasattr(self, "laser_widget"):
-            if hasattr(self.laser_widget, "is_connected") and self.laser_widget.is_connected:
-                logger.info("Disconnecting Laser...")
-                self.laser_widget.disconnect_device()  # Use public API
-
-        # Disconnect Actuator
-        if hasattr(self, "actuator_connection_widget"):
-            if (
-                hasattr(self.actuator_connection_widget, "is_connected")
-                and self.actuator_connection_widget.is_connected
-            ):
-                logger.info("Disconnecting Actuator...")
-                if hasattr(self.actuator_connection_widget, "_on_disconnect_clicked"):
-                    self.actuator_connection_widget._on_disconnect_clicked()
-
-        # Update button states
-        self._update_hardware_button_states()
-        logger.info("Disconnect All completed")
-
     def _on_test_all_clicked(self) -> None:
         """Run diagnostic test on all hardware components."""
         logger.info("Starting hardware diagnostic test...")
@@ -1691,8 +1513,8 @@ class MainWindow(QMainWindow):
         result = {"name": "[CONN] GPIO Diagnostics", "passed": False, "details": []}
 
         if hasattr(self, "safety_widget") and self.safety_widget:
-            if hasattr(self.safety_widget, "gpio_widget") and self.safety_widget.gpio_widget:
-                gpio_widget = self.safety_widget.gpio_widget
+            if hasattr(self, "gpio_widget") and self.gpio_widget:
+                gpio_widget = self.gpio_widget
 
                 # Check GPIO connection
                 if hasattr(gpio_widget, "is_connected") and gpio_widget.is_connected:
@@ -1802,8 +1624,8 @@ class MainWindow(QMainWindow):
                 self.laser_status.setStyleSheet("color: #f44336; font-size: 16px;")  # Red dot
                 self.laser_status.setToolTip("Laser: Disconnected")
 
-        # Update hardware tab header
-        self._update_laser_header_status(connected)
+        # Hardware tab headers removed (individual widget controls used instead)
+        # self._update_laser_header_status(connected)
 
     def update_actuator_status(self, connected: bool) -> None:
         """Update actuator connection status indicator."""
@@ -1818,8 +1640,8 @@ class MainWindow(QMainWindow):
                 self.actuator_status.setStyleSheet("color: #f44336; font-size: 16px;")  # Red dot
                 self.actuator_status.setToolTip("Actuator: Disconnected")
 
-        # Update hardware tab header
-        self._update_actuator_header_status(connected)
+        # Hardware tab headers removed (individual widget controls used instead)
+        # self._update_actuator_header_status(connected)
 
     def _disable_dev_mode_on_close(self) -> None:
         """Auto-disable developer mode on application close (safety default)."""
@@ -1924,6 +1746,16 @@ class MainWindow(QMainWindow):
             self.laser_widget.cleanup()
         if hasattr(self, "safety_widget") and self.safety_widget:
             self.safety_widget.cleanup()
+
+        # Modular GPIO widgets
+        if hasattr(self, "gpio_widget") and self.gpio_widget:
+            self.gpio_widget.cleanup()
+        if hasattr(self, "footpedal_widget") and self.footpedal_widget:
+            self.footpedal_widget.cleanup()
+        if hasattr(self, "photodiode_widget") and self.photodiode_widget:
+            self.photodiode_widget.cleanup()
+        if hasattr(self, "smoothing_module_widget") and self.smoothing_module_widget:
+            self.smoothing_module_widget.cleanup()
 
         # Protocol Builder
         if hasattr(self, "actuator_connection_widget") and self.actuator_connection_widget:

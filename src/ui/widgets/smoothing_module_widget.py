@@ -23,7 +23,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from ui.constants import WIDGET_WIDTH_STANDARD
+from ui.constants import WIDGET_WIDTH_GRID
 from ui.design_tokens import ButtonSizes, Colors
 
 logger = logging.getLogger(__name__)
@@ -56,7 +56,7 @@ class SmoothingModuleWidget(QWidget):
         self.is_connected = False
 
         # Constrain width for consistent hardware tab layout
-        self.setMaximumWidth(WIDGET_WIDTH_STANDARD)
+        self.setMaximumWidth(WIDGET_WIDTH_GRID)
 
         self._init_ui()
         self._connect_signals()
@@ -172,7 +172,7 @@ class SmoothingModuleWidget(QWidget):
         button_layout.setSpacing(8)
 
         self.start_motor_btn = QPushButton("Start Motor")
-        self.start_motor_btn.setFixedWidth(120)  # Primary action width
+        self.start_motor_btn.setFixedWidth(100)  # Primary action width (grid layout)
         self.start_motor_btn.setMinimumHeight(ButtonSizes.SECONDARY)  # 40px
         self.start_motor_btn.setEnabled(False)  # Disabled until GPIO connects
         self.start_motor_btn.setStyleSheet(
@@ -200,7 +200,7 @@ class SmoothingModuleWidget(QWidget):
         button_layout.addWidget(self.start_motor_btn)
 
         self.stop_motor_btn = QPushButton("Stop Motor")
-        self.stop_motor_btn.setFixedWidth(100)  # Secondary action width
+        self.stop_motor_btn.setFixedWidth(90)  # Secondary action width (grid layout)
         self.stop_motor_btn.setMinimumHeight(ButtonSizes.SECONDARY)  # 40px
         self.stop_motor_btn.setEnabled(False)  # Disabled until GPIO connects
         self.stop_motor_btn.setStyleSheet(
