@@ -315,6 +315,16 @@ class ConfigDisplayWidget(QWidget):
             label.setText(error_text)
             label.setStyleSheet(f"font-weight: bold; color: {Colors.DANGER};")
 
+    def _toggle_visibility(self) -> None:
+        """Toggle visibility of configuration content."""
+        self._is_collapsed = not self._is_collapsed
+        self.content_widget.setVisible(not self._is_collapsed)
+
+        if self._is_collapsed:
+            self.toggle_btn.setText("▶ Configuration Display (click to expand)")
+        else:
+            self.toggle_btn.setText("▼ Configuration Display (click to collapse)")
+
     def _open_config_file(self) -> None:
         """Open config.yaml in the system default editor."""
         try:
