@@ -20,6 +20,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from ui.constants import WIDGET_WIDTH_GRID
 from ui.design_tokens import ButtonSizes, Colors, Spacing
 
 
@@ -50,6 +51,9 @@ class PhotodiodeWidget(QWidget):
 
     def _init_ui(self) -> None:
         """Initialize UI components."""
+        # Constrain width for 4-column grid layout
+        self.setMaximumWidth(WIDGET_WIDTH_GRID)
+
         # Main group box
         group = QGroupBox("PHOTODIODE MONITOR  (monitors laser)")
         group.setStyleSheet(
@@ -139,7 +143,7 @@ class PhotodiodeWidget(QWidget):
 
         # Calibrate button
         self.calibrate_btn = QPushButton("📈 Calibrate")
-        self.calibrate_btn.setFixedWidth(120)  # Primary action width
+        self.calibrate_btn.setFixedWidth(100)  # Primary action width (grid layout)
         self.calibrate_btn.setMinimumHeight(ButtonSizes.SECONDARY)  # 40px
         self.calibrate_btn.setEnabled(False)  # Disabled until GPIO connects
         self.calibrate_btn.setStyleSheet(
@@ -168,7 +172,7 @@ class PhotodiodeWidget(QWidget):
 
         # View Curve button
         self.view_curve_btn = QPushButton("📋 View Curve")
-        self.view_curve_btn.setFixedWidth(120)  # Primary action width
+        self.view_curve_btn.setFixedWidth(100)  # Primary action width (grid layout)
         self.view_curve_btn.setMinimumHeight(ButtonSizes.SECONDARY)  # 40px
         self.view_curve_btn.setEnabled(False)  # Disabled until GPIO connects
         self.view_curve_btn.setStyleSheet(

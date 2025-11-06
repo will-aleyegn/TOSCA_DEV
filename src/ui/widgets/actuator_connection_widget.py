@@ -22,6 +22,9 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from ui.constants import WIDGET_WIDTH_GRID
+from ui.design_tokens import ButtonSizes, Colors
+
 logger = logging.getLogger(__name__)
 
 # Preferences file location
@@ -61,7 +64,7 @@ class ActuatorConnectionWidget(QWidget):
 
         # Constrain maximum width to prevent excessive horizontal stretching
         # Increased from 600 to accommodate 2-row button layout
-        self.setMaximumWidth(700)
+        self.setMaximumWidth(WIDGET_WIDTH_GRID)
 
         # Connection controls
         connection_group = self._create_connection_group()
@@ -130,7 +133,7 @@ class ActuatorConnectionWidget(QWidget):
 
     def _create_connection_group(self) -> QGroupBox:
         """Create connection control group."""
-        group = QGroupBox("Connection & Homing")
+        group = QGroupBox("MOTION CONTROL  (linear actuator)")
         main_layout = QVBoxLayout()
 
         # Row 1: Port selection and connection controls
@@ -169,15 +172,15 @@ class ActuatorConnectionWidget(QWidget):
 
         # Connect button
         self.connect_btn = QPushButton("Connect")
-        self.connect_btn.setFixedWidth(100)
-        self.connect_btn.setMinimumHeight(32)
+        self.connect_btn.setFixedWidth(100)  # Primary action width (grid layout)
+        self.connect_btn.setMinimumHeight(ButtonSizes.SECONDARY)  # 40px
         self.connect_btn.clicked.connect(self._on_connect_clicked)
         row1_layout.addWidget(self.connect_btn)
 
         # Disconnect button
         self.disconnect_btn = QPushButton("Disconnect")
-        self.disconnect_btn.setFixedWidth(100)
-        self.disconnect_btn.setMinimumHeight(32)
+        self.disconnect_btn.setFixedWidth(90)  # Secondary action width (grid layout)
+        self.disconnect_btn.setMinimumHeight(ButtonSizes.SECONDARY)  # 40px
         self.disconnect_btn.clicked.connect(self._on_disconnect_clicked)
         self.disconnect_btn.setEnabled(False)
         row1_layout.addWidget(self.disconnect_btn)
@@ -190,16 +193,16 @@ class ActuatorConnectionWidget(QWidget):
 
         # Home button
         self.home_btn = QPushButton("Find Home")
-        self.home_btn.setFixedWidth(120)
-        self.home_btn.setMinimumHeight(32)
+        self.home_btn.setFixedWidth(100)  # Primary action width (grid layout)
+        self.home_btn.setMinimumHeight(ButtonSizes.SECONDARY)  # 40px
         self.home_btn.clicked.connect(self._on_home_clicked)
         self.home_btn.setEnabled(False)
         row2_layout.addWidget(self.home_btn)
 
         # Query Settings button - for verifying device-stored settings
         self.query_settings_btn = QPushButton("Query Settings")
-        self.query_settings_btn.setFixedWidth(120)
-        self.query_settings_btn.setMinimumHeight(32)
+        self.query_settings_btn.setFixedWidth(100)  # Primary action width (grid layout)
+        self.query_settings_btn.setMinimumHeight(ButtonSizes.SECONDARY)  # 40px
         self.query_settings_btn.setToolTip(
             "Query device-stored settings\n(Best used after homing completes)"
         )
@@ -220,12 +223,12 @@ class ActuatorConnectionWidget(QWidget):
 
         # Row 1: Connection and Homing
         self.connection_status_label = QLabel("Disconnected")
-        self.connection_status_label.setStyleSheet("font-weight: bold; color: #f44336;")
-        layout.addWidget(QLabel("Connection:"), 0, 0)
+        self.connection_status_label.setStyleSheet(f"font-weight: bold; color: {Colors.DANGER};")
+        layout.addWidget(QLabel("Status:"), 0, 0)  # Simplified from "Connection:"
         layout.addWidget(self.connection_status_label, 0, 1)
 
         self.homing_status_label = QLabel("Not Homed")
-        self.homing_status_label.setStyleSheet("font-weight: bold; color: #f44336;")
+        self.homing_status_label.setStyleSheet(f"font-weight: bold; color: {Colors.DANGER};")
         layout.addWidget(QLabel("Homed:"), 0, 2)
         layout.addWidget(self.homing_status_label, 0, 3)
 
@@ -358,11 +361,11 @@ class ActuatorConnectionWidget(QWidget):
 
         # Color code based on status
         if "error" in status.lower():
-            self.motion_status_label.setStyleSheet("font-weight: bold; color: #f44336;")
+            self.motion_status_label.setStyleSheet(f"font-weight: bold; color: {Colors.DANGER};")
         elif status.lower() in ["homing", "moving"]:
             self.motion_status_label.setStyleSheet("font-weight: bold; color: #2196F3;")
         elif status.lower() == "ready":
-            self.motion_status_label.setStyleSheet("font-weight: bold; color: #4CAF50;")
+            self.motion_status_label.setStyleSheet(f"font-weight: bold; color: {Colors.SAFE};")
         else:
             self.motion_status_label.setStyleSheet("font-weight: bold;")
 
@@ -377,7 +380,7 @@ class ActuatorConnectionWidget(QWidget):
         # Connection status
         if self.is_connected:
             self.connection_status_label.setText("Connected")
-            self.connection_status_label.setStyleSheet("font-weight: bold; color: #4CAF50;")
+            self.connection_status_label.setStyleSheet(f"font-weight: bold; color: {Colors.SAFE};")
             self.connect_btn.setEnabled(False)
             self.disconnect_btn.setEnabled(True)
             self.home_btn.setEnabled(not self.is_homed)
@@ -385,7 +388,7 @@ class ActuatorConnectionWidget(QWidget):
             self.query_settings_btn.setEnabled(True)
         else:
             self.connection_status_label.setText("Disconnected")
-            self.connection_status_label.setStyleSheet("font-weight: bold; color: #f44336;")
+            self.connection_status_label.setStyleSheet(f"font-weight: bold; color: {Colors.DANGER};")
             self.connect_btn.setEnabled(True)
             self.disconnect_btn.setEnabled(False)
             self.home_btn.setEnabled(False)
@@ -394,10 +397,10 @@ class ActuatorConnectionWidget(QWidget):
         # Homing status
         if self.is_homed:
             self.homing_status_label.setText("Homed")
-            self.homing_status_label.setStyleSheet("font-weight: bold; color: #4CAF50;")
+            self.homing_status_label.setStyleSheet(f"font-weight: bold; color: {Colors.SAFE};")
         else:
             self.homing_status_label.setText("Not Homed")
-            self.homing_status_label.setStyleSheet("font-weight: bold; color: #f44336;")
+            self.homing_status_label.setStyleSheet(f"font-weight: bold; color: {Colors.DANGER};")
 
     def _on_query_settings_clicked(self) -> None:
         """Handle query settings button click - queries and displays device settings."""

@@ -23,7 +23,7 @@ from PyQt6.QtWidgets import (
 
 from config.config_loader import get_config
 from hardware.gpio_controller import GPIOController
-from ui.constants import WIDGET_WIDTH_MEDIUM
+from ui.constants import WIDGET_WIDTH_GRID
 from ui.design_tokens import ButtonSizes, Colors
 
 logger = logging.getLogger(__name__)
@@ -73,8 +73,8 @@ class GPIOWidget(QWidget):
         layout = QVBoxLayout(self)
         layout.setSpacing(12)  # Consistent spacing between sections
 
-        # Constrain maximum width to prevent excessive horizontal stretching
-        self.setMaximumWidth(WIDGET_WIDTH_MEDIUM)
+        # Constrain maximum width for 4-column grid layout
+        self.setMaximumWidth(WIDGET_WIDTH_GRID)
 
         # (1) GPIO Connection - Connect first to enable downstream systems
         connection_group = self._create_connection_group()
@@ -210,14 +210,14 @@ class GPIOWidget(QWidget):
 
         # Connect button
         self.connect_btn = QPushButton("Connect")
-        self.connect_btn.setFixedWidth(120)  # Primary action width
+        self.connect_btn.setFixedWidth(100)  # Primary action width (grid layout)
         self.connect_btn.setMinimumHeight(ButtonSizes.SECONDARY)  # 40px
         self.connect_btn.clicked.connect(self._on_connect_clicked)
         layout.addWidget(self.connect_btn)
 
         # Disconnect button
         self.disconnect_btn = QPushButton("Disconnect")
-        self.disconnect_btn.setFixedWidth(100)  # Secondary action width
+        self.disconnect_btn.setFixedWidth(90)  # Secondary action width (grid layout)
         self.disconnect_btn.setMinimumHeight(ButtonSizes.SECONDARY)  # 40px
         self.disconnect_btn.clicked.connect(self._on_disconnect_clicked)
         self.disconnect_btn.setEnabled(False)

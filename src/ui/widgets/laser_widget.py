@@ -16,13 +16,14 @@ from PyQt6.QtWidgets import (
     QLabel,
     QPushButton,
     QSlider,
+    QSpinBox,
     QVBoxLayout,
     QWidget,
 )
 
 from hardware.laser_controller import LaserController
 from hardware.tec_controller import TECController
-from ui.constants import WIDGET_WIDTH_STANDARD
+from ui.constants import WIDGET_WIDTH_GRID
 from ui.design_tokens import ButtonSizes
 
 if TYPE_CHECKING:
@@ -101,7 +102,7 @@ class LaserWidget(QWidget):
         main_layout.setContentsMargins(0, 0, 0, 0)
 
         # Constrain maximum width to prevent excessive horizontal stretching
-        self.setMaximumWidth(WIDGET_WIDTH_STANDARD)
+        self.setMaximumWidth(WIDGET_WIDTH_GRID)
 
         # Create master QGroupBox for all laser subsystems
         master_group = QGroupBox("LASER SYSTEMS")
@@ -140,15 +141,15 @@ class LaserWidget(QWidget):
         )
         layout.addWidget(treatment_label)
 
-        # Treatment Laser controls
-        connection_group = self._create_connection_group()
-        layout.addWidget(connection_group)
-
-        # Status display
+        # Status display (first - observe current state)
         status_group = self._create_status_group()
         layout.addWidget(status_group)
 
-        # Power control
+        # Connection controls (second - establish connection)
+        connection_group = self._create_connection_group()
+        layout.addWidget(connection_group)
+
+        # Power control (third - control output after connection)
         power_group = self._create_power_control_group()
         layout.addWidget(power_group)
 
@@ -172,14 +173,14 @@ class LaserWidget(QWidget):
 
         # Connect button
         self.connect_btn = QPushButton("Connect")
-        self.connect_btn.setFixedWidth(120)  # Primary action width
+        self.connect_btn.setFixedWidth(100)  # Primary action width (grid layout)
         self.connect_btn.setMinimumHeight(ButtonSizes.SECONDARY)  # 40px
         self.connect_btn.clicked.connect(self._on_connect_clicked)
         layout.addWidget(self.connect_btn)
 
         # Disconnect button
         self.disconnect_btn = QPushButton("Disconnect")
-        self.disconnect_btn.setFixedWidth(100)  # Secondary action width
+        self.disconnect_btn.setFixedWidth(90)  # Secondary action width (grid layout)
         self.disconnect_btn.setMinimumHeight(ButtonSizes.SECONDARY)  # 40px
         self.disconnect_btn.clicked.connect(self._on_disconnect_clicked)
         self.disconnect_btn.setEnabled(False)
@@ -215,7 +216,7 @@ class LaserWidget(QWidget):
 
     def _create_power_control_group(self) -> QGroupBox:
         """Create power control group."""
-        group = QGroupBox("Laser Power")
+        group = QGroupBox("Treatment Laser Power")
         layout = QVBoxLayout()
         layout.setSpacing(8)  # Consistent spacing within power controls
 
@@ -248,7 +249,7 @@ class LaserWidget(QWidget):
         btn_layout = QHBoxLayout()
 
         self.enable_btn = QPushButton("ENABLE OUTPUT")
-        self.enable_btn.setFixedWidth(180)  # Critical action width
+        self.enable_btn.setFixedWidth(140)  # Critical action width (grid layout)
         self.enable_btn.setMinimumHeight(ButtonSizes.PRIMARY)  # 50px
         self.enable_btn.setStyleSheet(
             "font-size: 16px; font-weight: bold; background-color: #4CAF50; color: white;"
@@ -258,7 +259,7 @@ class LaserWidget(QWidget):
         btn_layout.addWidget(self.enable_btn)
 
         self.disable_btn = QPushButton("DISABLE OUTPUT")
-        self.disable_btn.setFixedWidth(180)  # Critical action width
+        self.disable_btn.setFixedWidth(140)  # Critical action width (grid layout)
         self.disable_btn.setMinimumHeight(ButtonSizes.PRIMARY)  # 50px
         self.disable_btn.setStyleSheet(
             "font-size: 16px; font-weight: bold; background-color: #f44336; color: white;"
@@ -273,32 +274,66 @@ class LaserWidget(QWidget):
         return group
 
     def _create_aiming_laser_group(self) -> QGroupBox:
-        """Create aiming laser control group."""
-        group = QGroupBox("Aiming Laser  (ON / OFF)")
-        layout = QHBoxLayout()
-        layout.setSpacing(8)  # Consistent button spacing
+        """Create aiming laser control group with power and ON/OFF controls."""
+        group = QGroupBox("Aiming Laser Power Control")
+        main_layout = QVBoxLayout()
+        main_layout.setSpacing(8)
+
+        # Power control row (spinbox + slider)
+        power_layout = QHBoxLayout()
+        power_layout.setSpacing(8)
+
+        power_label = QLabel("Power (DAC):")
+        power_label.setStyleSheet("font-size: 10pt; font-weight: bold;")
+        power_layout.addWidget(power_label)
+
+        self.aiming_power_spinbox = QSpinBox()
+        self.aiming_power_spinbox.setRange(0, 4095)  # 12-bit DAC (MCP4725)
+        self.aiming_power_spinbox.setValue(2048)  # Default 50% power
+        self.aiming_power_spinbox.setFixedWidth(80)
+        self.aiming_power_spinbox.setEnabled(False)
+        self.aiming_power_spinbox.valueChanged.connect(self._on_aiming_power_spinbox_changed)
+        power_layout.addWidget(self.aiming_power_spinbox)
+
+        self.aiming_power_slider = QSlider(Qt.Orientation.Horizontal)
+        self.aiming_power_slider.setRange(0, 4095)
+        self.aiming_power_slider.setValue(2048)
+        self.aiming_power_slider.setMinimumWidth(200)
+        self.aiming_power_slider.setEnabled(False)
+        self.aiming_power_slider.valueChanged.connect(self._on_aiming_power_slider_changed)
+        power_layout.addWidget(self.aiming_power_slider)
+
+        power_layout.addStretch()
+        main_layout.addLayout(power_layout)
+
+        # ON/OFF button row
+        button_layout = QHBoxLayout()
+        button_layout.setSpacing(8)
 
         self.aiming_laser_on_btn = QPushButton("Aiming ON")
-        self.aiming_laser_on_btn.setFixedWidth(120)  # Primary action width
+        self.aiming_laser_on_btn.setFixedWidth(100)  # Primary action width (grid layout)
         self.aiming_laser_on_btn.setMinimumHeight(ButtonSizes.SECONDARY)  # 40px
         self.aiming_laser_on_btn.setStyleSheet(
             "font-size: 14px; font-weight: bold; background-color: #2196F3; color: white;"
         )
         self.aiming_laser_on_btn.clicked.connect(lambda: self._on_aiming_laser_clicked(True))
         self.aiming_laser_on_btn.setEnabled(False)
-        layout.addWidget(self.aiming_laser_on_btn)
+        button_layout.addWidget(self.aiming_laser_on_btn)
 
         self.aiming_laser_off_btn = QPushButton("Aiming OFF")
-        self.aiming_laser_off_btn.setFixedWidth(120)  # Primary action width
+        self.aiming_laser_off_btn.setFixedWidth(100)  # Primary action width (grid layout)
         self.aiming_laser_off_btn.setMinimumHeight(ButtonSizes.SECONDARY)  # 40px
         self.aiming_laser_off_btn.setStyleSheet(
             "font-size: 14px; font-weight: bold; background-color: #9E9E9E; color: white;"
         )
         self.aiming_laser_off_btn.clicked.connect(lambda: self._on_aiming_laser_clicked(False))
         self.aiming_laser_off_btn.setEnabled(False)
-        layout.addWidget(self.aiming_laser_off_btn)
+        button_layout.addWidget(self.aiming_laser_off_btn)
 
-        group.setLayout(layout)
+        button_layout.addStretch()
+        main_layout.addLayout(button_layout)
+
+        group.setLayout(main_layout)
         return group
 
     def _create_tec_control_group(self) -> QGroupBox:
@@ -310,13 +345,13 @@ class LaserWidget(QWidget):
         # Connection controls
         connection_layout = QHBoxLayout()
         self.tec_connect_btn = QPushButton("TEC Connect")
-        self.tec_connect_btn.setFixedWidth(120)  # Primary action width
+        self.tec_connect_btn.setFixedWidth(100)  # Primary action width (grid layout)
         self.tec_connect_btn.setMinimumHeight(ButtonSizes.SECONDARY)  # 40px
         self.tec_connect_btn.clicked.connect(self._on_tec_connect_clicked)
         connection_layout.addWidget(self.tec_connect_btn)
 
         self.tec_disconnect_btn = QPushButton("TEC Disconnect")
-        self.tec_disconnect_btn.setFixedWidth(120)  # Primary action width
+        self.tec_disconnect_btn.setFixedWidth(100)  # Primary action width (grid layout)
         self.tec_disconnect_btn.setMinimumHeight(ButtonSizes.SECONDARY)  # 40px
         self.tec_disconnect_btn.clicked.connect(self._on_tec_disconnect_clicked)
         self.tec_disconnect_btn.setEnabled(False)
@@ -363,7 +398,7 @@ class LaserWidget(QWidget):
         setpoint_layout.addWidget(self.tec_temp_spinbox)
 
         self.tec_set_temp_btn = QPushButton("Set Temperature")
-        self.tec_set_temp_btn.setFixedWidth(140)  # Primary action width (longer text)
+        self.tec_set_temp_btn.setFixedWidth(120)  # Primary action width (grid layout)
         self.tec_set_temp_btn.setMinimumHeight(ButtonSizes.SECONDARY)  # 40px
         self.tec_set_temp_btn.clicked.connect(self._on_tec_set_temperature)
         self.tec_set_temp_btn.setEnabled(False)
@@ -376,7 +411,7 @@ class LaserWidget(QWidget):
         btn_layout = QHBoxLayout()
 
         self.tec_enable_btn = QPushButton("ENABLE TEC")
-        self.tec_enable_btn.setFixedWidth(160)  # Critical action width
+        self.tec_enable_btn.setFixedWidth(130)  # Critical action width (grid layout)
         self.tec_enable_btn.setMinimumHeight(ButtonSizes.PRIMARY)  # 50px
         self.tec_enable_btn.setStyleSheet(
             "font-size: 16px; font-weight: bold; background-color: #2196F3; color: white;"
@@ -386,7 +421,7 @@ class LaserWidget(QWidget):
         btn_layout.addWidget(self.tec_enable_btn)
 
         self.tec_disable_btn = QPushButton("DISABLE TEC")
-        self.tec_disable_btn.setFixedWidth(160)  # Critical action width
+        self.tec_disable_btn.setFixedWidth(130)  # Critical action width (grid layout)
         self.tec_disable_btn.setMinimumHeight(ButtonSizes.PRIMARY)  # 50px
         self.tec_disable_btn.setStyleSheet(
             "font-size: 16px; font-weight: bold; background-color: #9E9E9E; color: white;"
@@ -437,8 +472,10 @@ class LaserWidget(QWidget):
         self.enable_btn.setEnabled(controls_enabled and not self.is_output_enabled)
         self.disable_btn.setEnabled(controls_enabled and self.is_output_enabled)
 
-        # Aiming laser buttons (enabled when GPIO is connected)
+        # Aiming laser controls (enabled when GPIO is connected)
         gpio_connected = bool(self.gpio_controller and self.gpio_controller.is_connected)
+        self.aiming_power_spinbox.setEnabled(gpio_connected)
+        self.aiming_power_slider.setEnabled(gpio_connected)
         self.aiming_laser_on_btn.setEnabled(gpio_connected and not self.is_aiming_laser_enabled)
         self.aiming_laser_off_btn.setEnabled(gpio_connected and self.is_aiming_laser_enabled)
 
@@ -556,6 +593,32 @@ class LaserWidget(QWidget):
         # Update UI to show error to user
         self.connection_status_label.setText(f"Error: {error_msg}")
         self.connection_status_label.setStyleSheet("color: red; font-weight: bold;")
+
+    @pyqtSlot(int)
+    def _on_aiming_power_spinbox_changed(self, value: int) -> None:
+        """Handle aiming power spinbox value change."""
+        # Update slider (block signals to prevent loop)
+        self.aiming_power_slider.blockSignals(True)
+        self.aiming_power_slider.setValue(value)
+        self.aiming_power_slider.blockSignals(False)
+
+        # Send power command to GPIO controller
+        if self.gpio_controller and self.gpio_controller.is_connected:
+            self.gpio_controller.set_aiming_laser_power(value)
+            logger.debug(f"Aiming laser power set to {value} DAC")
+
+    @pyqtSlot(int)
+    def _on_aiming_power_slider_changed(self, value: int) -> None:
+        """Handle aiming power slider value change."""
+        # Update spinbox (block signals to prevent loop)
+        self.aiming_power_spinbox.blockSignals(True)
+        self.aiming_power_spinbox.setValue(value)
+        self.aiming_power_spinbox.blockSignals(False)
+
+        # Send power command to GPIO controller
+        if self.gpio_controller and self.gpio_controller.is_connected:
+            self.gpio_controller.set_aiming_laser_power(value)
+            logger.debug(f"Aiming laser power set to {value} DAC")
 
     @pyqtSlot(bool)
     def _on_aiming_laser_clicked(self, enable: bool) -> None:
