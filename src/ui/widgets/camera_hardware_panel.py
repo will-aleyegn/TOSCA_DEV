@@ -74,7 +74,7 @@ class CameraHardwarePanel(QWidget):
         master_group.setStyleSheet(
             f"""
             QGroupBox {{
-                font-size: 11pt;
+                font-size: 12pt;
                 font-weight: bold;
                 border: 2px solid {Colors.BORDER_DEFAULT};
                 border-radius: 6px;
@@ -206,7 +206,7 @@ class CameraHardwarePanel(QWidget):
         self.exposure_slider.setMinimum(100)  # 100µs = 0.1ms
         self.exposure_slider.setMaximum(200000)  # 200000µs = 200ms (5 FPS minimum)
         self.exposure_slider.setValue(10000)  # Default 10ms
-        self.exposure_slider.setMinimumWidth(200)
+        self.exposure_slider.setMinimumWidth(250)  # Increased for better control precision
         self.exposure_slider.setTickPosition(QSlider.TickPosition.TicksBelow)
         self.exposure_slider.setTickInterval(20000)
         self.exposure_slider.valueChanged.connect(self._on_exposure_slider_changed)
@@ -241,7 +241,7 @@ class CameraHardwarePanel(QWidget):
         self.gain_slider.setMinimum(0)  # 0 dB
         self.gain_slider.setMaximum(240)  # 24.0 dB (scaled by 10 for 0.1dB precision)
         self.gain_slider.setValue(0)  # Default 0dB
-        self.gain_slider.setMinimumWidth(200)
+        self.gain_slider.setMinimumWidth(250)  # Increased for better control precision
         self.gain_slider.setTickPosition(QSlider.TickPosition.TicksBelow)
         self.gain_slider.setTickInterval(50)
         self.gain_slider.valueChanged.connect(self._on_gain_slider_changed)
