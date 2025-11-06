@@ -47,38 +47,68 @@ class ConfigDisplayWidget(QWidget):
         super().__init__()
 
         self.config = None
+        self._is_collapsed = True  # Start collapsed to save screen space
 
         self._init_ui()
         self._load_config()
 
     def _init_ui(self) -> None:
-        """Initialize the user interface."""
+        """Initialize the user interface with collapsible functionality."""
         layout = QVBoxLayout(self)
 
         # Constrain maximum width
         self.setMaximumWidth(800)
 
+        # Collapsible header with expand/collapse button
+        self.toggle_btn = QPushButton("▶ Configuration Display (click to expand)")
+        self.toggle_btn.setStyleSheet("""
+            QPushButton {
+                text-align: left;
+                padding: 8px;
+                background-color: #2b2b2b;
+                border: 1px solid #555;
+                border-radius: 4px;
+                font-weight: bold;
+                font-size: 10pt;
+            }
+            QPushButton:hover {
+                background-color: #3c3c3c;
+            }
+        """)
+        self.toggle_btn.clicked.connect(self._toggle_visibility)
+        layout.addWidget(self.toggle_btn)
+
+        # Container for all content (will be hidden/shown)
+        self.content_widget = QWidget()
+        content_layout = QVBoxLayout()
+        self.content_widget.setLayout(content_layout)
+
         # Config file location section
         location_group = self._create_location_group()
-        layout.addWidget(location_group)
+        content_layout.addWidget(location_group)
 
         # Serial connection settings
         serial_group = self._create_serial_group()
-        layout.addWidget(serial_group)
+        content_layout.addWidget(serial_group)
 
         # Motor control settings
         motor_group = self._create_motor_group()
-        layout.addWidget(motor_group)
+        content_layout.addWidget(motor_group)
 
         # Camera settings
         camera_group = self._create_camera_group()
-        layout.addWidget(camera_group)
+        content_layout.addWidget(camera_group)
 
         # Safety timings
         safety_group = self._create_safety_group()
-        layout.addWidget(safety_group)
+        content_layout.addWidget(safety_group)
 
-        layout.addStretch()
+        content_layout.addStretch()
+
+        layout.addWidget(self.content_widget)
+
+        # Start collapsed
+        self.content_widget.setVisible(False)
 
     def _create_location_group(self) -> QGroupBox:
         """Create config file location display."""
