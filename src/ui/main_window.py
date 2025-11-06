@@ -320,7 +320,7 @@ class MainWindow(QMainWindow):
             self.safety_widget.software_interlocks_widget.hide()
 
         # Set reasonable height constraints for safety log
-        self.safety_widget.setMaximumHeight(300)  # Max 300px to prevent screen dominance
+        self.safety_widget.setMaximumHeight(200)  # Max 200px for better vertical space balance
 
         self.hardware_grid_layout.addWidget(self.safety_widget, 3, 0, 1, 4)  # Row 3, full width
 

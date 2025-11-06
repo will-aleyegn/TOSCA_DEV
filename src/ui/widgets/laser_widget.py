@@ -108,7 +108,7 @@ class LaserWidget(QWidget):
         master_group.setStyleSheet(
             f"""
             QGroupBox {{
-                font-size: 11pt;
+                font-size: 12pt;
                 font-weight: bold;
                 border: 2px solid {Colors.BORDER_DEFAULT};
                 border-radius: 6px;
@@ -125,7 +125,7 @@ class LaserWidget(QWidget):
 
         # Inner layout for all subsystems
         layout = QVBoxLayout()
-        layout.setSpacing(12)  # Consistent spacing between sections
+        layout.setSpacing(16)  # Increased spacing between sections for better visual separation
         master_group.setLayout(layout)
 
         # (2) TEC Temperature Control - Initialize first for thermal stabilization
