@@ -37,11 +37,14 @@ from core.safety_watchdog import SafetyWatchdog
 from core.session_manager import SessionManager
 from database.db_manager import DatabaseManager
 from ui.dialogs.research_mode_warning_dialog import ResearchModeWarningDialog
-from ui.widgets.active_treatment_widget import ActiveTreatmentWidget
+# ActiveTreatmentWidget removed - functionality integrated into Treatment tab layout
 from ui.widgets.camera_widget import CameraWidget
+from ui.widgets.protocol_steps_display_widget import ProtocolStepsDisplayWidget
 from ui.widgets.safety_widget import SafetyWidget
-from ui.widgets.subject_widget import SubjectWidget
-from ui.widgets.treatment_setup_widget import TreatmentSetupWidget
+from ui.widgets.unified_header_widget import UnifiedHeaderWidget
+from ui.widgets.unified_session_setup_widget import UnifiedSessionSetupWidget
+from ui.widgets.workflow_step_indicator import WorkflowStepIndicator
+# OLD imports removed: SubjectWidget, TreatmentSetupWidget (replaced by unified widgets)
 
 logger = logging.getLogger(__name__)
 
@@ -182,8 +185,6 @@ class MainWindow(QMainWindow):
 
         self._init_ui()
         self._init_menubar()
-        self._init_toolbar()
-        self._init_status_bar()
 
         logger.info("Main window initialized")
 
@@ -233,21 +234,78 @@ class MainWindow(QMainWindow):
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
 
-        layout = QVBoxLayout()
-        central_widget.setLayout(layout)
+        # Main vertical layout
+        main_layout = QVBoxLayout()
+        central_widget.setLayout(main_layout)
 
-        # Title removed - redundant with window title bar
-        # More vertical space for content
+        # NEW: Unified header at top (replaces toolbar + right panel + status bar)
+        self.unified_header = UnifiedHeaderWidget()
+        main_layout.addWidget(self.unified_header)
 
+        # OLD: Horizontal split with right panel (COMMENTED OUT)
+        # from PyQt6.QtWidgets import QHBoxLayout
+        # content_layout = QHBoxLayout()
+        # main_layout.addLayout(content_layout)
+
+        # Tabs (main content) - now full width without right panel
         self.tabs = QTabWidget()
-        layout.addWidget(self.tabs)
+        main_layout.addWidget(self.tabs)  # Changed from content_layout to main_layout
+
+        # OLD: Right side safety panel (COMMENTED OUT - moved to unified header)
+        # from ui.widgets.safety_status_panel import SafetyStatusPanel
+        # self.safety_status_panel = SafetyStatusPanel()
+        # content_layout.addWidget(self.safety_status_panel)
 
         # TAB 1: HARDWARE & DIAGNOSTICS
         # Hardware connection status and diagnostic controls
-        # Layout: 2-column (50% controls | 50% diagnostics) with independent scrolling
+        # Layout: Connection buttons (top) + 2-column (50% controls | 50% diagnostics)
         hardware_tab = QWidget()
+        hardware_tab_main_layout = QVBoxLayout()
+        hardware_tab.setLayout(hardware_tab_main_layout)
+
+        # === CONNECTION BUTTONS (TOP BAR) ===
+        connection_buttons_layout = QHBoxLayout()
+        connection_buttons_layout.setContentsMargins(10, 10, 10, 5)
+        connection_buttons_layout.setSpacing(10)
+
+        # Connect All button
+        self.connect_all_btn = QPushButton("[CONN] Connect All")
+        self.connect_all_btn.setMinimumHeight(40)
+        self.connect_all_btn.setStyleSheet(
+            "QPushButton { background-color: #1976D2; color: white; "
+            "padding: 6px 12px; font-weight: bold; }"
+            "QPushButton:hover { background-color: #1565C0; }"
+        )
+        self.connect_all_btn.setToolTip("Connect to all hardware (Camera, Laser, Actuator, GPIO)")
+        self.connect_all_btn.clicked.connect(self._on_connect_all_clicked)
+        connection_buttons_layout.addWidget(self.connect_all_btn)
+
+        # Disconnect All button
+        self.disconnect_all_btn = QPushButton("Disconnect All")
+        self.disconnect_all_btn.setMinimumHeight(40)
+        self.disconnect_all_btn.setEnabled(False)
+        self.disconnect_all_btn.setToolTip("Disconnect from all hardware")
+        self.disconnect_all_btn.clicked.connect(self._on_disconnect_all_clicked)
+        connection_buttons_layout.addWidget(self.disconnect_all_btn)
+
+        # Test All Hardware button
+        self.test_all_btn = QPushButton("[TEST] Test All Hardware")
+        self.test_all_btn.setMinimumHeight(40)
+        self.test_all_btn.setStyleSheet(
+            "QPushButton { background-color: #6A1B9A; color: white; "
+            "padding: 6px 12px; font-weight: bold; }"
+            "QPushButton:hover { background-color: #4A148C; }"
+        )
+        self.test_all_btn.setToolTip("Run diagnostic check on all hardware components")
+        self.test_all_btn.clicked.connect(self._on_test_all_clicked)
+        connection_buttons_layout.addWidget(self.test_all_btn)
+
+        connection_buttons_layout.addStretch()  # Push buttons to left
+
+        hardware_tab_main_layout.addLayout(connection_buttons_layout)
+
+        # === TWO-COLUMN HARDWARE LAYOUT ===
         hardware_tab_layout = QHBoxLayout()
-        hardware_tab.setLayout(hardware_tab_layout)
 
         # === LEFT COLUMN (50%): Core Hardware Controls ===
         left_scroll = QScrollArea()
@@ -350,6 +408,9 @@ class MainWindow(QMainWindow):
         hardware_tab_layout.addWidget(left_scroll, 1)
         hardware_tab_layout.addWidget(right_scroll, 1)
 
+        # Add two-column layout to main tab layout
+        hardware_tab_main_layout.addLayout(hardware_tab_layout)
+
         self.tabs.addTab(hardware_tab, "Hardware & Diagnostics")
 
         # TAB 2: TREATMENT WORKFLOW
@@ -367,76 +428,97 @@ class MainWindow(QMainWindow):
 
         left_content = QWidget()
         left_layout = QVBoxLayout()
+        left_layout.setSpacing(12)
         left_content.setLayout(left_layout)
 
-        # Subject Selection
-        self.subject_widget = SubjectWidget()
-        self.subject_widget.set_managers(self.db_manager, self.session_manager)
-        self.subject_widget.session_started.connect(self._on_session_started)
-        left_layout.addWidget(self.subject_widget)
+        # Top row: Session Setup (left) + Camera Controls (right) side-by-side
+        top_horizontal = QHBoxLayout()
+        top_horizontal.setSpacing(8)
 
-        # Treatment Setup/Active QStackedWidget
-        self.treatment_stack = QStackedWidget()
+        # Left sub-column: Unified Session Setup
+        self.unified_session_setup = UnifiedSessionSetupWidget(
+            session_manager=self.session_manager,
+            db_manager=self.db_manager
+        )
+        top_horizontal.addWidget(self.unified_session_setup, 1)  # 50% of left column
 
-        # Add Setup view (index 0) - Protocol selector + Ready check
-        self.treatment_setup_widget = TreatmentSetupWidget()
-        self.treatment_stack.addWidget(self.treatment_setup_widget)
+        # Right sub-column: Camera Controls (compact)
+        self.camera_controls_widget = self._create_compact_camera_controls()
+        top_horizontal.addWidget(self.camera_controls_widget, 1)  # 50% of left column
 
-        # Add Active view (index 1) - Monitoring during execution
-        self.active_treatment_widget = ActiveTreatmentWidget()
-        self.treatment_stack.addWidget(self.active_treatment_widget)
+        left_layout.addLayout(top_horizontal)
 
-        # Start in Setup view
-        self.treatment_stack.setCurrentIndex(0)
-
-        left_layout.addWidget(self.treatment_stack)
-        left_layout.addStretch()
+        # Bottom: Protocol Steps Display (full width within left column)
+        self.protocol_steps_display = ProtocolStepsDisplayWidget()
+        left_layout.addWidget(self.protocol_steps_display)
 
         left_scroll.setWidget(left_content)
         left_scroll.setMinimumWidth(400)  # Prevent excessive squishing
         treatment_main_layout.addWidget(left_scroll, 2)  # 40% width (stretch=2)
 
-        # === RIGHT COLUMN (60%): Camera View ===
-        right_scroll = QScrollArea()
-        right_scroll.setWidgetResizable(True)
-        right_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        right_scroll.setStyleSheet("QScrollArea { border: none; }")
+        # === RIGHT COLUMN (60%): Camera Feed ONLY (No scroll area for maximum space) ===
+        # Camera Feed ONLY (no controls, no chart below) - maximized for best visibility
+        self.camera_live_view = CameraWidget(
+            camera_controller=self.camera_controller,
+            show_settings=False  # Hide exposure/gain controls - Hardware tab only
+        )
+        # Hide ENTIRE control panel (connection, streaming, capture, record)
+        # Controls moved to left column in compact format
+        self.camera_live_view.hide_all_controls()
+        self.camera_live_view.setMinimumWidth(900)  # Ensure minimum width for camera visibility
+        treatment_main_layout.addWidget(self.camera_live_view, 3)  # 60% width (stretch=3)
 
-        right_content = QWidget()
-        right_layout = QVBoxLayout()
-        right_content.setLayout(right_layout)
-
-        # Camera Widget with VISIBLE streaming controls
-        self.camera_live_view = CameraWidget(camera_controller=self.camera_controller)
-        # NOTE: NOT hiding connection controls - users need streaming during treatment
-        # Connection button connects to hardware, Start/Stop streaming controls feed
-        right_layout.addWidget(self.camera_live_view)
-        right_layout.addStretch()
-
-        right_scroll.setWidget(right_content)
-        right_scroll.setMinimumWidth(640)  # Camera minimum size
-        treatment_main_layout.addWidget(right_scroll, 3)  # 60% width (stretch=3)
+        # NOTE: Position chart removed from Treatment tab - can be added back to Protocol Builder if needed
 
         # NOTE: CameraController already instantiated in __init__
         # and injected into camera_live_view widget
 
         # Wire camera connection widget to main camera widget for status updates
         self.camera_hardware_panel.camera_live_view = self.camera_live_view
-        logger.info("Camera connection widget wired to main camera widget")
+        self.camera_hardware_panel._connect_signals()  # Connect signals now that camera_live_view is set
+        logger.info("Camera hardware panel wired to camera widget signals")
 
         self.tabs.addTab(treatment_tab, "Treatment Workflow")
 
-        # Connect camera widget to active treatment dashboard for monitoring
-        self.active_treatment_widget.set_camera_live_view(self.camera_live_view)
-        logger.info("Camera widget connected to active treatment dashboard")
+        # OLD: ActiveTreatmentWidget removed, no longer need camera connection
+        # Camera feed shown directly in right column of Treatment tab
 
-        # Connect "Start Treatment" button to switch to Active view
-        self.treatment_setup_widget.ready_button.clicked.connect(self._on_start_treatment)
-        logger.info("Start Treatment button connected to view transition")
+        # === NEW SIGNAL WIRING FOR REDESIGNED WIDGETS ===
+
+        # Wire unified session setup to protocol steps display
+        self.unified_session_setup.protocol_loaded.connect(self.protocol_steps_display.load_protocol)
+        logger.info("Unified session setup protocol_loaded -> protocol steps display")
+
+        # Wire unified session setup to workflow step indicator
+        self.unified_session_setup.session_started.connect(
+            lambda subject_id, technician, protocol_path: self.unified_header.set_workflow_step(2)
+        )
+        self.unified_session_setup.protocol_loaded.connect(
+            lambda path: self.unified_header.set_workflow_step(3)
+        )
+        self.unified_session_setup.session_ended.connect(
+            lambda: self.unified_header.set_workflow_step(1)
+        )
+        logger.info("Unified session setup -> workflow step indicator (unified header)")
+
+        # Wire unified session setup to safety manager for session validation
+        self.unified_session_setup.session_started.connect(
+            lambda subject_id, technician, protocol_path: self._on_session_started_new(subject_id, technician, protocol_path)
+        )
+        logger.info("Unified session setup -> safety manager session validation")
+
+        # Wire protocol steps display pause/stop buttons to line protocol engine
+        self.protocol_steps_display.pause_requested.connect(
+            lambda: self.line_protocol_engine.pause() if hasattr(self, 'line_protocol_engine') else None
+        )
+        self.protocol_steps_display.stop_requested.connect(
+            lambda: self.line_protocol_engine.stop() if hasattr(self, 'line_protocol_engine') else None
+        )
+        logger.info("Protocol steps display pause/stop buttons wired to line protocol engine")
 
         # Connect dev mode signal to widgets (after widgets are created)
         self.dev_mode_changed.connect(self.camera_live_view.set_dev_mode)
-        self.dev_mode_changed.connect(self.treatment_setup_widget.set_dev_mode)
+        # OLD: treatment_setup_widget removed in redesign
         # Motor widget removed from treatment setup - now only in GPIO diagnostics
 
         # TAB 3: LINE-BASED PROTOCOL BUILDER
@@ -468,6 +550,10 @@ class MainWindow(QMainWindow):
 
         self.tabs.addTab(protocol_builder_tab, "Protocol Builder")
 
+        # Set default tab to Treatment Workflow (index 1) instead of Hardware (index 0)
+        self.tabs.setCurrentIndex(1)
+        logger.info("Default tab set to Treatment Workflow")
+
         # Add Actuator Connection widget to Hardware tab
         # (ActuatorController already instantiated in __init__ with other hardware controllers)
         from ui.widgets.actuator_connection_widget import ActuatorConnectionWidget
@@ -486,11 +572,176 @@ class MainWindow(QMainWindow):
         self._connect_safety_system()
         logger.info("Safety manager initialized and connected")
 
+        # OLD: Safety status panel connections (COMMENTED OUT - now in unified header)
+        # self.safety_status_panel.set_safety_manager(self.safety_manager)
+        # self.safety_status_panel.set_session_manager(self.session_manager)
+        # logger.info("Safety status panel connected to managers")
+
         # Initialize protocol engine with hardware controllers
         self._init_protocol_engine()
 
         # Connect event logger to widgets
         self._connect_event_logger()
+
+        # Wire unified header signals (must be after safety_manager is created)
+        self._wire_unified_header_signals()
+
+
+    def _create_compact_camera_controls(self) -> Any:
+        """
+        Create compact camera controls for Treatment tab left column.
+
+        Includes:
+        - Start/Stop Streaming button
+        - Capture Image button
+        - Start/Stop Recording button
+        - Brightness slider (optional - TODO)
+
+        Returns:
+            QGroupBox with compact camera controls
+        """
+        from PyQt6.QtWidgets import QGroupBox, QVBoxLayout, QPushButton, QHBoxLayout
+        from ui.design_tokens import Colors
+
+        group = QGroupBox("Camera Controls")
+        group.setStyleSheet(
+            f"""
+            QGroupBox {{
+                background-color: {Colors.PANEL};
+                border: 1px solid {Colors.BORDER_DEFAULT};
+                border-radius: 4px;
+                padding: 12px;
+                font-size: 11pt;
+                font-weight: bold;
+            }}
+            QGroupBox::title {{
+                color: {Colors.TEXT_PRIMARY};
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 5px;
+            }}
+        """
+        )
+
+        layout = QVBoxLayout()
+        layout.setSpacing(8)
+
+        # Stream button (PRIMARY ACTION - prominent, green, large)
+        self.treatment_stream_btn = QPushButton("▶ Start Streaming")
+        self.treatment_stream_btn.setMinimumHeight(50)  # Touch-friendly
+        self.treatment_stream_btn.setStyleSheet(
+            f"""
+            QPushButton {{
+                background-color: {Colors.SAFE};
+                color: white;
+                border: none;
+                border-radius: 4px;
+                padding: 12px;
+                font-size: 12pt;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: {Colors.CONNECTED};
+            }}
+            QPushButton:disabled {{
+                background-color: {Colors.SECONDARY};
+                color: {Colors.TEXT_DISABLED};
+            }}
+        """
+        )
+        self.treatment_stream_btn.clicked.connect(self._on_treatment_stream_clicked)
+        layout.addWidget(self.treatment_stream_btn)
+
+        # Capture/Record buttons row (SECONDARY ACTIONS - blue, side-by-side)
+        capture_layout = QHBoxLayout()
+        capture_layout.setSpacing(8)
+
+        self.treatment_capture_btn = QPushButton("📷 Capture")
+        self.treatment_capture_btn.setMinimumHeight(45)  # Touch-friendly
+        self.treatment_capture_btn.setEnabled(False)  # Disabled until streaming
+        self.treatment_capture_btn.setStyleSheet(
+            f"""
+            QPushButton {{
+                background-color: #2979FF;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                padding: 10px;
+                font-size: 11pt;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: #2962FF;
+            }}
+            QPushButton:disabled {{
+                background-color: {Colors.BACKGROUND};
+                color: {Colors.TEXT_DISABLED};
+            }}
+        """
+        )
+        self.treatment_capture_btn.clicked.connect(
+            lambda: self.camera_live_view._on_capture_image() if hasattr(self, "camera_live_view") else None
+        )
+        capture_layout.addWidget(self.treatment_capture_btn)
+
+        self.treatment_record_btn = QPushButton("🔴 Record")
+        self.treatment_record_btn.setMinimumHeight(45)  # Touch-friendly
+        self.treatment_record_btn.setEnabled(False)  # Disabled until streaming
+        self.treatment_record_btn.setStyleSheet(
+            f"""
+            QPushButton {{
+                background-color: #2979FF;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                padding: 10px;
+                font-size: 11pt;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: #2962FF;
+            }}
+            QPushButton:disabled {{
+                background-color: {Colors.BACKGROUND};
+                color: {Colors.TEXT_DISABLED};
+            }}
+        """
+        )
+        self.treatment_record_btn.clicked.connect(self._on_treatment_record_clicked)
+        capture_layout.addWidget(self.treatment_record_btn)
+
+        layout.addLayout(capture_layout)
+
+        group.setLayout(layout)
+        return group
+
+    def _on_treatment_stream_clicked(self) -> None:
+        """Handle treatment tab stream button click."""
+        if self.camera_live_view.is_streaming:
+            self.camera_controller.stop_streaming()
+            self.camera_live_view.is_streaming = False
+            self.treatment_stream_btn.setText("Start Streaming")
+            self.treatment_capture_btn.setEnabled(False)
+            self.treatment_record_btn.setEnabled(False)
+        else:
+            self.camera_controller.start_streaming()
+            self.camera_live_view.is_streaming = True
+            self.treatment_stream_btn.setText("Stop Streaming")
+            self.treatment_capture_btn.setEnabled(True)
+            self.treatment_record_btn.setEnabled(True)
+
+    def _on_treatment_record_clicked(self) -> None:
+        """Handle treatment tab record button click."""
+        if self.camera_controller.is_recording:
+            self.camera_controller.stop_recording()
+            self.treatment_record_btn.setText("Start Recording")
+        else:
+            base_filename = "treatment_recording"
+            self.camera_controller.start_recording(base_filename)
+            self.treatment_record_btn.setText("Stop Recording")
+
+    # NOTE: Protocol chart removed from Treatment tab (camera feed takes full 60%)
+    # This method can be added back to Protocol Builder tab if needed
 
     def _init_menubar(self) -> None:
         """Initialize menubar with File and Developer menus."""
@@ -518,147 +769,108 @@ class MainWindow(QMainWindow):
 
         logger.info("Menubar initialized")
 
-    def _init_toolbar(self) -> None:
-        """Initialize global toolbar with critical controls."""
-        toolbar = QToolBar("Main Toolbar")
-        toolbar.setMovable(False)
-        self.addToolBar(toolbar)
+    def _wire_unified_header_signals(self) -> None:
+        """Wire unified header widget signals to main window functionality."""
+        # E-Stop button -> Global E-Stop handler
+        self.unified_header.e_stop_clicked.connect(self._on_global_estop_clicked)
+        logger.info("Unified header E-Stop connected to global handler")
 
-        # Global E-STOP button (always accessible)
-        self.global_estop_btn = QPushButton("[STOP] EMERGENCY STOP")
-        self.global_estop_btn.setMinimumHeight(40)
-        self.global_estop_btn.setStyleSheet(
-            "QPushButton { background-color: #d32f2f; color: white; "
-            "padding: 8px 16px; font-weight: bold; font-size: 14px; }"
-            "QPushButton:hover { background-color: #b71c1c; }"
-        )
-        self.global_estop_btn.setToolTip("Emergency stop - immediately disable treatment laser")
-        self.global_estop_btn.clicked.connect(self._on_global_estop_clicked)
-        toolbar.addWidget(self.global_estop_btn)
+        # Safety state updates -> Unified header safety display
+        self.safety_manager.safety_state_changed.connect(self.unified_header.update_safety_state)
+        # Emit initial state
+        self.unified_header.update_safety_state(self.safety_manager.state)
+        logger.info("Safety manager connected to unified header safety display")
 
-        toolbar.addSeparator()
+        # Interlock status updates -> Unified header interlock indicators
+        # Wire GPIO interlock signals when GPIO connects (will be set in _handle_hardware_connection)
+        # self.gpio_controller.safety_interlock_changed.connect(self.unified_header.update_interlock_status)
 
-        # Connect All button
-        self.connect_all_btn = QPushButton("[CONN] Connect All")
-        self.connect_all_btn.setMinimumHeight(35)
-        self.connect_all_btn.setStyleSheet(
-            "QPushButton { background-color: #1976D2; color: white; "
-            "padding: 6px 12px; font-weight: bold; }"
-            "QPushButton:hover { background-color: #1565C0; }"
-        )
-        self.connect_all_btn.setToolTip("Connect to all hardware (Camera, Laser, Actuator, GPIO)")
-        self.connect_all_btn.clicked.connect(self._on_connect_all_clicked)
-        toolbar.addWidget(self.connect_all_btn)
+        # Workflow step updates (from subject/treatment widgets)
+        # Already connected in _init_ui, but we'll redirect to unified header
+        # Disconnect old workflow_steps widget connections and reconnect to unified header
+        # (Will be done after we fix the workflow_steps references below)
 
-        # Disconnect All button
-        self.disconnect_all_btn = QPushButton("Disconnect All")
-        self.disconnect_all_btn.setMinimumHeight(35)
-        self.disconnect_all_btn.setEnabled(False)
-        self.disconnect_all_btn.setToolTip("Disconnect from all hardware")
-        self.disconnect_all_btn.clicked.connect(self._on_disconnect_all_clicked)
-        toolbar.addWidget(self.disconnect_all_btn)
+        logger.info("Unified header signals wired successfully")
 
-        toolbar.addSeparator()
+    # ========================================================================
+    def _update_session_indicator(self) -> None:
+        """Update session indicator in status bar with current session info."""
+        current_session = self.session_manager.get_current_session()
 
-        # Test All Hardware button
-        self.test_all_btn = QPushButton("[TEST] Test All Hardware")
-        self.test_all_btn.setMinimumHeight(35)
-        self.test_all_btn.setStyleSheet(
-            "QPushButton { background-color: #6A1B9A; color: white; "
-            "padding: 6px 12px; font-weight: bold; }"
-            "QPushButton:hover { background-color: #4A148C; }"
-        )
-        self.test_all_btn.setToolTip("Run diagnostic check on all hardware components")
-        self.test_all_btn.clicked.connect(self._on_test_all_clicked)
-        toolbar.addWidget(self.test_all_btn)
+        if current_session:
+            # Session active - show indicator
+            from datetime import datetime, timezone
 
-        toolbar.addSeparator()
+            subject_code = current_session.subject_code
+            tech_name = current_session.tech_name
+            start_time = current_session.start_time
 
-        # Pause Protocol button
-        self.pause_protocol_btn = QPushButton("⏸ Pause")
-        self.pause_protocol_btn.setMinimumHeight(35)
-        self.pause_protocol_btn.setEnabled(False)
-        self.pause_protocol_btn.setToolTip("Pause current treatment protocol")
-        self.pause_protocol_btn.clicked.connect(self._on_pause_protocol_clicked)
-        toolbar.addWidget(self.pause_protocol_btn)
+            # Calculate duration
+            if start_time.tzinfo is None:
+                start_time = start_time.replace(tzinfo=timezone.utc)
+            duration = datetime.now(timezone.utc) - start_time
+            hours, remainder = divmod(int(duration.total_seconds()), 3600)
+            minutes, seconds = divmod(remainder, 60)
+            duration_str = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
 
-        # Resume Protocol button
-        self.resume_protocol_btn = QPushButton("[>] Resume")
-        self.resume_protocol_btn.setMinimumHeight(35)
-        self.resume_protocol_btn.setEnabled(False)
-        self.resume_protocol_btn.setToolTip("Resume paused treatment protocol")
-        self.resume_protocol_btn.clicked.connect(self._on_resume_protocol_clicked)
-        toolbar.addWidget(self.resume_protocol_btn)
-
-        logger.info("Global toolbar initialized")
-
-    def _init_status_bar(self) -> None:
-        """Initialize status bar with connection indicators."""
-        status_bar = QStatusBar()
-        self.setStatusBar(status_bar)
-
-        status_layout = QHBoxLayout()
-
-        # Research mode watermark (if configured)
-        config = get_config()
-        if config.gui.research_mode:
-            self.research_mode_label = QLabel("RESEARCH MODE - NOT FOR CLINICAL USE")
-            self.research_mode_label.setStyleSheet(
-                "QLabel { background-color: #D32F2F; color: white; "
-                "padding: 8px 16px; font-weight: bold; font-size: 12px; "
-                "border-radius: 3px; margin-right: 10px; }"
+            # Update label
+            self.session_info_label.setText(
+                f"SESSION: {subject_code} | Tech: {tech_name} | Duration: {duration_str}"
             )
-            self.research_mode_label.setToolTip(
-                "This system is for research use only and not approved for clinical use"
+            self.session_info_label.setStyleSheet(
+                "font-size: 11pt; padding: 4px 8px; color: #1976D2; font-weight: bold; "
+                "background-color: #E3F2FD; border-radius: 3px;"
             )
-            status_layout.addWidget(self.research_mode_label)
+            self.session_panel_widget.setVisible(True)
 
-        # Connection status with icons (Dev Mode moved to menubar)
-        self.camera_status = QLabel("[CAM] Camera [X]")
-        self.camera_status.setToolTip("Camera connection status")
-        self.camera_status.setStyleSheet("color: #f44336;")  # Red when disconnected
+            # Start duration timer (updates every second)
+            if not self.session_duration_timer.isActive():
+                self.session_duration_timer.start(1000)  # 1 second interval
 
-        self.laser_status = QLabel("[LSR] Laser [X]")
-        self.laser_status.setToolTip("Laser controller connection status")
-        self.laser_status.setStyleSheet("color: #f44336;")  # Red when disconnected
-
-        self.actuator_status = QLabel("[ACT] Actuator [X]")
-        self.actuator_status.setToolTip("Actuator controller connection status")
-        self.actuator_status.setStyleSheet("color: #f44336;")  # Red when disconnected
-
-        status_layout.addWidget(self.camera_status)
-        status_layout.addWidget(QLabel("|"))
-        status_layout.addWidget(self.laser_status)
-        status_layout.addWidget(QLabel("|"))
-        status_layout.addWidget(self.actuator_status)
-        status_layout.addStretch()
-
-        # Master Safety Indicator (always visible, right side)
-        # Note: Close button removed - use File->Exit from menubar
-        self.master_safety_indicator = QLabel("SYSTEM SAFE")
-        self.master_safety_indicator.setStyleSheet(
-            "QLabel { background-color: #4CAF50; color: white; "
-            "padding: 8px 16px; font-weight: bold; font-size: 14px; "
-            "border-radius: 3px; }"
-        )
-        self.master_safety_indicator.setToolTip(
-            "Master safety status - reflects all interlock conditions"
-        )
-        status_layout.addWidget(self.master_safety_indicator)
-
-        status_widget = QWidget()
-        status_widget.setLayout(status_layout)
-        status_bar.addWidget(status_widget)
-
-        # Connect safety manager to master indicator
-        if hasattr(self, "safety_manager") and self.safety_manager:
-            self.safety_manager.safety_state_changed.connect(self._update_master_safety_indicator)
-            # Emit initial state immediately to update status bar on startup
-            self._update_master_safety_indicator(self.safety_manager.state)
-            logger.info(
-                f"Master safety indicator connected to SafetyManager "
-                f"(initial state: {self.safety_manager.state.value})"
+            logger.info(f"Session indicator updated: {subject_code} - {duration_str}")
+        else:
+            # No active session - hide indicator
+            self.session_info_label.setText("No active session")
+            self.session_info_label.setStyleSheet(
+                "font-size: 11pt; padding: 4px 8px; color: #757575; "
+                "background-color: #F5F5F5; border-radius: 3px;"
             )
+            self.session_panel_widget.setVisible(False)
+
+            # Stop timer
+            if self.session_duration_timer.isActive():
+                self.session_duration_timer.stop()
+
+            logger.info("Session indicator cleared (no active session)")
+
+    def _update_session_duration(self) -> None:
+        """Update session duration display (called every second by timer)."""
+        current_session = self.session_manager.get_current_session()
+
+        if current_session:
+            from datetime import datetime, timezone
+
+            subject_code = current_session.subject_code
+            tech_name = current_session.tech_name
+            start_time = current_session.start_time
+
+            # Calculate duration
+            if start_time.tzinfo is None:
+                start_time = start_time.replace(tzinfo=timezone.utc)
+            duration = datetime.now(timezone.utc) - start_time
+            hours, remainder = divmod(int(duration.total_seconds()), 3600)
+            minutes, seconds = divmod(remainder, 60)
+            duration_str = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+
+            # Update label (keep same styling)
+            self.session_info_label.setText(
+                f"SESSION: {subject_code} | Tech: {tech_name} | Duration: {duration_str}"
+            )
+        else:
+            # Session ended - stop timer
+            if self.session_duration_timer.isActive():
+                self.session_duration_timer.stop()
+            self._update_session_indicator()  # Refresh to "No active session"
 
     def _show_dev_mode_confirmation(self) -> bool:
         """
@@ -918,15 +1130,23 @@ class MainWindow(QMainWindow):
                     # Signal already connected, ignore
                     pass
 
-                # Connect smoothing status widget in active treatment dashboard
-                if hasattr(self.active_treatment_widget, "smoothing_status_widget"):
-                    smoothing_widget = self.active_treatment_widget.smoothing_status_widget
-                    smoothing_widget.set_gpio_controller(gpio_widget.controller)
-                    logger.info("Smoothing status widget connected to GPIO controller")
+                # Note: Smoothing status widget removed with ActiveTreatmentWidget redesign
+                # Smoothing motor controls are now in GPIO widget on Hardware tab
 
                 # Attach GPIO controller to watchdog
                 self.safety_watchdog.gpio_controller = gpio_widget.controller
                 logger.info("GPIO controller attached to safety watchdog")
+
+                # Connect GPIO interlock status to unified header display
+                # Use safety manager's interlock_status_changed signal
+                try:
+                    self.safety_manager.interlock_status_changed.connect(self._update_unified_header_interlocks)
+                    # Emit initial state
+                    self._update_unified_header_interlocks()
+                    logger.info("GPIO interlock status connected to unified header")
+                except RuntimeError:
+                    # Signal already connected, ignore
+                    pass
 
                 # Connect watchdog signals if not already connected
                 try:
@@ -956,6 +1176,16 @@ class MainWindow(QMainWindow):
             # Update disconnect button state
             self._update_hardware_button_states()
 
+    def _update_unified_header_interlocks(self) -> None:
+        """
+        Update unified header interlock indicators from safety manager.
+
+        Adapter method that fetches interlock status from safety manager
+        and passes it to unified header widget.
+        """
+        interlocks = self.safety_manager.get_interlock_status()
+        self.unified_header.update_interlock_status(interlocks)
+
     def _init_protocol_engine(self) -> None:
         """Initialize protocol engine and wire to hardware controllers."""
         # All hardware controllers are managed directly by MainWindow (Dependency Injection pattern)
@@ -984,13 +1214,8 @@ class MainWindow(QMainWindow):
         self.line_protocol_engine.on_progress_update = self._on_protocol_progress_update
         self.line_protocol_engine.on_state_change = self._on_protocol_state_change
 
-        # Pass protocol engine to active treatment widget for monitoring
-        if hasattr(self.active_treatment_widget, "set_protocol_engine"):
-            self.active_treatment_widget.set_protocol_engine(self.protocol_engine)
-
-        # Pass safety manager to active treatment widget for interlock monitoring
-        if hasattr(self.active_treatment_widget, "set_safety_manager"):
-            self.active_treatment_widget.set_safety_manager(self.safety_manager)
+        # OLD: ActiveTreatmentWidget removed - no longer need protocol engine/safety manager connections
+        # Protocol monitoring now handled by Protocol Steps Display widget
 
         logger.info(
             f"Protocol engines initialized with MainWindow controllers "
@@ -1045,14 +1270,37 @@ class MainWindow(QMainWindow):
 
     def _on_session_started(self, session_id: int) -> None:
         """
-        Handle session started event.
+        Handle session started event (OLD - for SubjectWidget).
 
         Args:
             session_id: ID of started session
         """
-        logger.info(f"Session {session_id} started - updating safety system")
+        logger.info(f"Session {session_id} started - updating safety system and session indicator")
         # Mark session as valid for safety system
         self.safety_manager.set_session_valid(True)
+
+        # Update session indicator in status bar
+        self._update_session_indicator()
+
+    def _on_session_started_new(self, subject_id: str, technician: str, protocol_path: str) -> None:
+        """
+        Handle session started event (NEW - for UnifiedSessionSetupWidget).
+
+        Args:
+            subject_id: Subject ID from database
+            technician: Technician name
+            protocol_path: Path to protocol JSON file
+        """
+        logger.info(f"NEW session started: Subject={subject_id}, Tech={technician}, Protocol={protocol_path}")
+
+        # Mark session as valid for safety system
+        self.safety_manager.set_session_valid(True)
+
+        # Update session indicator in status bar (if exists)
+        if hasattr(self, '_update_session_indicator'):
+            self._update_session_indicator()
+
+        logger.info("Session validated for safety system")
 
     def _on_start_treatment(self) -> None:
         """
@@ -1530,35 +1778,45 @@ class MainWindow(QMainWindow):
     def update_camera_status(self, connected: bool) -> None:
         """Update camera connection status indicator."""
         if connected:
-            self.camera_status.setText("[CAM] Camera [OK]")
-            self.camera_status.setStyleSheet("color: #4CAF50;")  # Green
+            self.camera_status.setText("●")
+            self.camera_status.setStyleSheet("color: #4CAF50; font-size: 16px;")  # Green dot
+            self.camera_status.setToolTip("Camera: Connected")
         else:
-            self.camera_status.setText("[CAM] Camera [X]")
-            self.camera_status.setStyleSheet("color: #f44336;")  # Red
+            self.camera_status.setText("●")
+            self.camera_status.setStyleSheet("color: #f44336; font-size: 16px;")  # Red dot
+            self.camera_status.setToolTip("Camera: Disconnected")
 
         # Update hardware tab header
         self._update_camera_header_status(connected)
 
     def update_laser_status(self, connected: bool) -> None:
         """Update laser connection status indicator."""
-        if connected:
-            self.laser_status.setText("[LSR] Laser [OK]")
-            self.laser_status.setStyleSheet("color: #4CAF50;")  # Green
-        else:
-            self.laser_status.setText("[LSR] Laser [X]")
-            self.laser_status.setStyleSheet("color: #f44336;")  # Red
+        # Update status label if it exists (may be removed in some UI configurations)
+        if hasattr(self, 'laser_status'):
+            if connected:
+                self.laser_status.setText("●")
+                self.laser_status.setStyleSheet("color: #4CAF50; font-size: 16px;")  # Green dot
+                self.laser_status.setToolTip("Laser: Connected")
+            else:
+                self.laser_status.setText("●")
+                self.laser_status.setStyleSheet("color: #f44336; font-size: 16px;")  # Red dot
+                self.laser_status.setToolTip("Laser: Disconnected")
 
         # Update hardware tab header
         self._update_laser_header_status(connected)
 
     def update_actuator_status(self, connected: bool) -> None:
         """Update actuator connection status indicator."""
-        if connected:
-            self.actuator_status.setText("[ACT] Actuator [OK]")
-            self.actuator_status.setStyleSheet("color: #4CAF50;")  # Green
-        else:
-            self.actuator_status.setText("[ACT] Actuator [X]")
-            self.actuator_status.setStyleSheet("color: #f44336;")  # Red
+        # Update status label if it exists (may be removed in some UI configurations)
+        if hasattr(self, 'actuator_status'):
+            if connected:
+                self.actuator_status.setText("●")
+                self.actuator_status.setStyleSheet("color: #4CAF50; font-size: 16px;")  # Green dot
+                self.actuator_status.setToolTip("Actuator: Connected")
+            else:
+                self.actuator_status.setText("●")
+                self.actuator_status.setStyleSheet("color: #f44336; font-size: 16px;")  # Red dot
+                self.actuator_status.setToolTip("Actuator: Disconnected")
 
         # Update hardware tab header
         self._update_actuator_header_status(connected)
@@ -1605,17 +1863,61 @@ class MainWindow(QMainWindow):
         except Exception as e:
             logger.warning(f"Error during {controller_name} auto-disconnect: {e}")
 
+    def _rebuild_all_stylesheets(self) -> None:
+        """
+        Rebuild all widget stylesheets after theme change.
+
+        Called by unified_header when user toggles theme.
+        Re-evaluates all f-string color interpolations with new theme values.
+        """
+        from ui.design_tokens import Colors
+
+        # Rebuild unified header (it handles its own rebuild)
+        if hasattr(self, "unified_header") and self.unified_header:
+            self.unified_header._rebuild_stylesheets()
+
+        # Rebuild main window background
+        self.setStyleSheet(f"background-color: {Colors.BACKGROUND};")
+
+        # Rebuild tab widget
+        if hasattr(self, "tabs") and self.tabs:
+            self.tabs.setStyleSheet(f"""
+                QTabWidget::pane {{
+                    border: 1px solid {Colors.BORDER_DEFAULT};
+                    background-color: {Colors.BACKGROUND};
+                }}
+                QTabBar::tab {{
+                    background-color: {Colors.PANEL};
+                    color: {Colors.TEXT_PRIMARY};
+                    padding: 8px 16px;
+                    border: 1px solid {Colors.BORDER_DEFAULT};
+                }}
+                QTabBar::tab:selected {{
+                    background-color: {Colors.PRIMARY};
+                    color: white;
+                }}
+            """)
+
+        # Note: Individual widgets will need their own stylesheet rebuild methods
+        # This is a simplified implementation - full theme support requires:
+        # 1. Each widget implements _rebuild_stylesheets() method
+        # 2. Main window calls widget._rebuild_stylesheets() for each child
+        # 3. Widgets re-evaluate all f-string color interpolations
+
+        logger.info("Main window stylesheets rebuilt for theme change")
+
     def _cleanup_all_widgets(self) -> None:
         """Clean up all widget resources."""
         # Camera
         if hasattr(self, "camera_live_view") and self.camera_live_view:
             self.camera_live_view.cleanup()
 
-        # Treatment widgets
-        if hasattr(self, "treatment_setup_widget") and self.treatment_setup_widget:
-            self.treatment_setup_widget.cleanup()
-        if hasattr(self, "active_treatment_widget") and self.active_treatment_widget:
-            self.active_treatment_widget.cleanup()
+        # NEW Treatment widgets
+        if hasattr(self, "unified_session_setup") and self.unified_session_setup:
+            self.unified_session_setup.cleanup()
+        if hasattr(self, "protocol_steps_display") and self.protocol_steps_display:
+            self.protocol_steps_display.cleanup()
+        # OLD: active_treatment_widget removed in redesign
 
         # Hardware & Diagnostics
         if hasattr(self, "laser_widget") and self.laser_widget:
