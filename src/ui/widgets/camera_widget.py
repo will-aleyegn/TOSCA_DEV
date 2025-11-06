@@ -129,46 +129,46 @@ class CameraWidget(QWidget):
         self.camera_display.setScaledContents(False)
         layout.addWidget(self.camera_display, 1)  # Stretch to fill available space
 
-        # Stream control buttons (optional - shown in Treatment tab)
-        if self.show_stream_controls:
-            button_layout = self._create_stream_control_buttons()
-            layout.addLayout(button_layout)
-
-        # Status bar (compact)
+        # Combined status bar (connection, exposure, gain, FPS, recording - all on one line)
         status_layout = QHBoxLayout()
         status_layout.setSpacing(8)
+
+        # Connection status
         self.connection_status = QLabel("Status: Not Connected")
         self.connection_status.setStyleSheet("font-size: 10px; color: #aaa;")
+        status_layout.addWidget(self.connection_status)
+
+        # Exposure info
+        self.exposure_info = QLabel("Exposure: --")
+        self.exposure_info.setStyleSheet("color: #888; font-size: 9px;")
+        status_layout.addWidget(QLabel("|"))
+        status_layout.addWidget(self.exposure_info)
+
+        # Gain info
+        self.gain_info = QLabel("Gain: --")
+        self.gain_info.setStyleSheet("color: #888; font-size: 9px;")
+        status_layout.addWidget(QLabel("|"))
+        status_layout.addWidget(self.gain_info)
+
+        # FPS
         self.fps_label = QLabel("FPS: --")
         self.fps_label.setStyleSheet("font-size: 10px; color: #aaa;")
+        status_layout.addWidget(QLabel("|"))
+        status_layout.addWidget(self.fps_label)
+
+        # Recording indicator
         self.recording_indicator = QLabel("")
         self.recording_indicator.setStyleSheet("color: red; font-weight: bold; font-size: 11px;")
-
-        status_layout.addWidget(self.connection_status)
-        status_layout.addStretch()
-        status_layout.addWidget(self.fps_label)
         status_layout.addWidget(self.recording_indicator)
+
+        status_layout.addStretch()
 
         layout.addLayout(status_layout)
 
-        # Camera settings info bar (compact)
-        settings_layout = QHBoxLayout()
-        settings_layout.setSpacing(6)
-        self.exposure_info = QLabel("Exposure: --")
-        self.exposure_info.setStyleSheet("color: #888; font-size: 9px;")
-        self.gain_info = QLabel("Gain: --")
-        self.gain_info.setStyleSheet("color: #888; font-size: 9px;")
-        self.resolution_info = QLabel("Resolution: --")
-        self.resolution_info.setStyleSheet("color: #888; font-size: 9px;")
-
-        settings_layout.addWidget(self.exposure_info)
-        settings_layout.addWidget(QLabel("|"))
-        settings_layout.addWidget(self.gain_info)
-        settings_layout.addWidget(QLabel("|"))
-        settings_layout.addWidget(self.resolution_info)
-        settings_layout.addStretch()
-
-        layout.addLayout(settings_layout)
+        # Stream control buttons (optional - shown in Treatment tab, below status line)
+        if self.show_stream_controls:
+            button_layout = self._create_stream_control_buttons()
+            layout.addLayout(button_layout)
 
         container.setLayout(layout)
         return container
