@@ -101,8 +101,7 @@ class LaserWidget(QWidget):
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
 
-        # Constrain maximum width to prevent excessive horizontal stretching
-        self.setMaximumWidth(WIDGET_WIDTH_GRID)
+        # Let grid layout control width (removed max width constraint for better horizontal space usage)
 
         # Create master QGroupBox for all laser subsystems
         master_group = QGroupBox("LASER SYSTEMS")

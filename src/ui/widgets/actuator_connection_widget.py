@@ -62,9 +62,7 @@ class ActuatorConnectionWidget(QWidget):
         """Initialize the user interface."""
         layout = QVBoxLayout(self)
 
-        # Constrain maximum width to prevent excessive horizontal stretching
-        # Increased from 600 to accommodate 2-row button layout
-        self.setMaximumWidth(WIDGET_WIDTH_GRID)
+        # Let grid layout control width (removed max width constraint for better horizontal space usage)
 
         # Connection controls
         connection_group = self._create_connection_group()

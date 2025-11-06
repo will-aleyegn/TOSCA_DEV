@@ -25,6 +25,7 @@ from PyQt6.QtWidgets import (
 from ui.widgets.interlocks_widget import InterlocksWidget
 from ui.widgets.smoothing_status_widget import SmoothingStatusWidget
 from ui.workers.protocol_worker import ProtocolWorker
+from ui.design_tokens import Colors
 
 logger = logging.getLogger(__name__)
 
@@ -130,13 +131,13 @@ class ActiveTreatmentWidget(QWidget):
         layout.setSpacing(2)
 
         label_widget = QLabel(label)
-        label_widget.setStyleSheet("font-size: 11px; color: #888;")
+        label_widget.setStyleSheet("font-size: 14px; color: #888;")  # Increased from 11px for clinical readability
         label_widget.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(label_widget)
 
         value_widget = QLabel(initial_value)
         value_widget.setStyleSheet(
-            "font-size: 13px; font-weight: bold; "
+            "font-size: 18px; font-weight: bold; "  # Increased from 13px for 60cm viewing distance
             "padding: 4px; background-color: #3c3c3c; border-radius: 2px;"
         )
         value_widget.setAlignment(Qt.AlignmentFlag.AlignCenter)

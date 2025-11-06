@@ -24,6 +24,8 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from ui.design_tokens import Colors
+
 logger = logging.getLogger(__name__)
 
 # Config file location
@@ -281,7 +283,7 @@ class ConfigDisplayWidget(QWidget):
             self.actuator_timer_label,
         ]:
             label.setText(error_text)
-            label.setStyleSheet("font-weight: bold; color: #f44336;")
+            label.setStyleSheet(f"font-weight: bold; color: {Colors.DANGER};")
 
     def _open_config_file(self) -> None:
         """Open config.yaml in the system default editor."""

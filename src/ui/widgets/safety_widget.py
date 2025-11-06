@@ -17,68 +17,45 @@ from PyQt6.QtWidgets import (
 )
 
 from core.safety import SafetyManager, SafetyState
-from ui.widgets.gpio_widget import GPIOWidget
 
 
 class SafetyWidget(QWidget):
     """
-    System Diagnostics interface for engineering and troubleshooting.
+    Safety Event Log and Software Interlocks display.
 
-    Provides comprehensive technical information and diagnostic tools:
-    - GPIO hardware controls and monitoring (laser spot smoothing module, photodiode laser pickoff measurement, accelerometer)
-    - Software interlock status and E-stop controls
-    - Comprehensive safety event log with filtering
-    - Hardware connection diagnostics
+    Provides:
+    - Software interlock status (E-stop, power limit, session)
+    - Comprehensive safety event log with database loading
 
-    NOTE: Operator-critical safety info is displayed in:
-    - Global master safety indicator (status bar)
-    - InterlocksWidget (Treatment Dashboard)
-    This tab is for engineering/technical staff only.
+    NOTE: This widget focuses on software safety monitoring.
+    GPIO hardware diagnostics are shown separately in the hardware tab.
+    Operator-critical safety info is displayed in status bar and treatment dashboard.
     """
 
     def __init__(
         self, db_manager: Optional[Any] = None, gpio_controller: Optional[Any] = None
     ) -> None:
         super().__init__()
-        # Create GPIOWidget with injected controller
-        self.gpio_widget: GPIOWidget = GPIOWidget(controller=gpio_controller)
+        # Note: gpio_controller parameter kept for backward compatibility but not used
+        # GPIO widget is now managed separately in main_window
         self.safety_manager: Optional[SafetyManager] = None
         self.db_manager = db_manager
         self._init_ui()
 
     def _init_ui(self) -> None:
-        """Initialize UI components for System Diagnostics view."""
+        """Initialize UI components for Safety Event Log display."""
         main_layout = QVBoxLayout()
         self.setLayout(main_layout)
 
         # Constrain maximum width to prevent excessive horizontal stretching
         self.setMaximumWidth(800)
 
-        # Diagnostic header
-        header = QLabel("⚙ SYSTEM DIAGNOSTICS - Engineering Interface")
-        header.setStyleSheet(
-            "font-size: 14px; font-weight: bold; padding: 8px; "
-            "background-color: #424242; color: #FFA726; border-radius: 3px;"
-        )
-        main_layout.addWidget(header)
+        # Software interlocks status (can be hidden if shown in persistent header)
+        self.software_interlocks_widget = self._create_software_interlocks()
+        main_layout.addWidget(self.software_interlocks_widget)
 
-        # Horizontal layout for main content
-        content_layout = QHBoxLayout()
-        main_layout.addLayout(content_layout)
-
-        # Left side: GPIO hardware diagnostics (66%)
-        left_layout = QVBoxLayout()
-        gpio_header = QLabel("Hardware Diagnostics (GPIO)")
-        gpio_header.setStyleSheet("font-size: 12px; font-weight: bold; padding: 4px;")
-        left_layout.addWidget(gpio_header)
-        left_layout.addWidget(self.gpio_widget)
-        content_layout.addLayout(left_layout, 2)
-
-        # Right side: Software interlocks and event log (33%)
-        right_layout = QVBoxLayout()
-        right_layout.addWidget(self._create_software_interlocks())
-        right_layout.addWidget(self._create_event_log())
-        content_layout.addLayout(right_layout, 1)
+        # Safety event log (elevated for visibility)
+        main_layout.addWidget(self._create_event_log())
 
     def _create_software_interlocks(self) -> QGroupBox:
         """Create software interlock status group."""
@@ -94,12 +71,8 @@ class SafetyWidget(QWidget):
         self.session_status = self._create_status_indicator("Session Valid", "NO SESSION")
         layout.addWidget(self.session_status)
 
-        self.estop_button = QPushButton("EMERGENCY STOP")
-        self.estop_button.setMinimumHeight(80)
-        self.estop_button.setStyleSheet(
-            "font-size: 24px; font-weight: bold; background-color: #d32f2f; color: white;"
-        )
-        layout.addWidget(self.estop_button)
+        # Note: E-Stop button removed - use toolbar E-Stop button (always visible)
+        # Toolbar E-Stop is the primary emergency control per IEC 62366-1 standards
 
         group.setLayout(layout)
         return group
@@ -109,14 +82,7 @@ class SafetyWidget(QWidget):
         group = QGroupBox("Safety Event Log")
         layout = QVBoxLayout()
 
-        # Add refresh button
-        self.refresh_button = QPushButton("Load Database Events")
-        self.refresh_button.clicked.connect(self._load_database_events)
-        if not self.db_manager:
-            self.refresh_button.setEnabled(False)
-            self.refresh_button.setToolTip("Database not available")
-        layout.addWidget(self.refresh_button)
-
+        # Event log text display
         self.event_log = QTextEdit()
         self.event_log.setReadOnly(True)
         self.event_log.setMaximumHeight(200)
@@ -124,6 +90,14 @@ class SafetyWidget(QWidget):
             "Safety events will appear here...\nAll safety-critical events are logged."
         )
         layout.addWidget(self.event_log)
+
+        # Load button below the text display (better UX - action after viewing area)
+        self.refresh_button = QPushButton("Load Database Events")
+        self.refresh_button.clicked.connect(self._load_database_events)
+        if not self.db_manager:
+            self.refresh_button.setEnabled(False)
+            self.refresh_button.setToolTip("Database not available")
+        layout.addWidget(self.refresh_button)
 
         group.setLayout(layout)
         return group
@@ -171,19 +145,14 @@ class SafetyWidget(QWidget):
         safety_manager.laser_enable_changed.connect(self._on_laser_enable_changed)
         safety_manager.safety_event.connect(self._on_safety_event)
 
-        # Wire emergency stop button
-        self.estop_button.clicked.connect(self._on_estop_clicked)
+        # Note: E-Stop button signal connection removed (button no longer exists)
+        # Use toolbar E-Stop button for emergency shutdown
 
         # Log initial connection
         self._log_event("Safety system initialized")
 
-    @pyqtSlot()
-    def _on_estop_clicked(self) -> None:
-        """Handle emergency stop button click."""
-        if self.safety_manager:
-            self.safety_manager.trigger_emergency_stop()
-            self.estop_button.setEnabled(False)
-            self.estop_button.setText("E-STOP ACTIVE")
+    # Note: _on_estop_clicked() method removed (redundant E-Stop button eliminated)
+    # Toolbar E-Stop button in main_window.py is the primary emergency control
 
     @pyqtSlot(SafetyState)
     def _on_safety_state_changed(self, state: SafetyState) -> None:
@@ -342,5 +311,6 @@ class SafetyWidget(QWidget):
 
     def cleanup(self) -> None:
         """Cleanup resources."""
-        if self.gpio_widget:
-            self.gpio_widget.cleanup()
+        # Note: GPIO widget removed from SafetyWidget (now shown separately)
+        # No cleanup needed - event log is just a QTextEdit
+        pass
