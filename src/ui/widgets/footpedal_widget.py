@@ -49,8 +49,7 @@ class FootpedalWidget(QWidget):
 
     def _init_ui(self) -> None:
         """Initialize UI components."""
-        # Constrain width for 4-column grid layout
-        self.setMaximumWidth(WIDGET_WIDTH_GRID)
+        # Let grid layout control width (removed max width constraint for better horizontal space usage)
         # Main group box
         group = QGroupBox("FOOTPEDAL DEADMAN SWITCH (D5)")
         group.setStyleSheet(

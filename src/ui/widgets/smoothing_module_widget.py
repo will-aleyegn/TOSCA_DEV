@@ -55,8 +55,7 @@ class SmoothingModuleWidget(QWidget):
         self.gpio_controller = gpio_controller
         self.is_connected = False
 
-        # Constrain width for consistent hardware tab layout
-        self.setMaximumWidth(WIDGET_WIDTH_GRID)
+        # Let grid layout control width (removed max width constraint for better horizontal space usage)
 
         self._init_ui()
         self._connect_signals()

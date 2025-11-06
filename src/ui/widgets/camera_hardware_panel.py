@@ -67,8 +67,7 @@ class CameraHardwarePanel(QWidget):
         main_layout = QVBoxLayout()
         self.setLayout(main_layout)
 
-        # Constrain width for 4-column grid layout
-        self.setMaximumWidth(WIDGET_WIDTH_GRID)
+        # Let grid layout control width (removed max width constraint for better horizontal space usage)
 
         # Master group box: "IMAGING SYSTEM" (similar to LASER SYSTEMS)
         master_group = QGroupBox("IMAGING SYSTEM")

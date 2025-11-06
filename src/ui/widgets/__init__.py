@@ -13,6 +13,7 @@ from .laser_widget import LaserWidget
 from .safety_widget import SafetyWidget
 from .subject_widget import SubjectWidget
 from .tec_widget import TECWidget
+from .workflow_step_indicator import WorkflowStepIndicator
 
 __all__ = [
     "CameraWidget",
@@ -21,4 +22,5 @@ __all__ = [
     "SafetyWidget",
     "SubjectWidget",
     "TECWidget",
+    "WorkflowStepIndicator",
 ]

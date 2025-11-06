@@ -86,24 +86,103 @@ class SubjectWidget(QWidget):
 
         # Input for last 4 digits only
         self.subject_id_input = QLineEdit()
-        self.subject_id_input.setPlaceholderText("0001")
+        self.subject_id_input.setPlaceholderText("____")  # Format hint: 4 digits
         self.subject_id_input.setMaxLength(4)  # Only 4 digits
-        self.subject_id_input.setFixedWidth(80)
+        self.subject_id_input.setFixedWidth(200)  # Increased from 80px
+        self.subject_id_input.setMinimumHeight(40)  # Touch-friendly
+        self.subject_id_input.textChanged.connect(self._validate_subject_id_input)  # Real-time validation
         id_layout.addWidget(self.subject_id_input)
         id_layout.addStretch()
 
         layout.addLayout(id_layout)
 
+        # Helper text below input field
+        self.subject_id_helper = QLabel("Enter last 4 digits (e.g., 0001)")
+        self.subject_id_helper.setStyleSheet(
+            "font-size: 10pt; font-style: italic; color: #757575; margin-top: 4px;"
+        )
+        layout.addWidget(self.subject_id_helper)
+
+        # Validation error label (hidden by default)
+        self.subject_id_error = QLabel("")
+        self.subject_id_error.setStyleSheet(
+            "font-size: 10pt; color: #F44336; margin-top: 4px;"
+        )
+        self.subject_id_error.setVisible(False)
+        layout.addWidget(self.subject_id_error)
+
+        # Button layout for proper spacing
+        button_layout = QHBoxLayout()
+        button_layout.setSpacing(8)
+
+        # Primary button (Search) - Blue background
         self.search_button = QPushButton("Search Subject")
         self.search_button.clicked.connect(self._on_search_subject)
-        layout.addWidget(self.search_button)
+        self.search_button.setStyleSheet(
+            "QPushButton { "
+            "  background-color: #1976D2; "
+            "  color: white; "
+            "  font-size: 12pt; "
+            "  font-weight: bold; "
+            "  padding: 10px 20px; "
+            "  border-radius: 4px; "
+            "  min-height: 40px; "
+            "  min-width: 140px; "
+            "}"
+            "QPushButton:hover { "
+            "  background-color: #1565C0; "
+            "}"
+            "QPushButton:disabled { "
+            "  background-color: #BDBDBD; "
+            "  color: #757575; "
+            "}"
+        )
+        button_layout.addWidget(self.search_button)
 
-        self.create_button = QPushButton("Create New Subject")
+        # Secondary button (Create) - Gray background
+        self.create_button = QPushButton("Create New")
         self.create_button.clicked.connect(self._on_create_subject)
-        layout.addWidget(self.create_button)
+        self.create_button.setStyleSheet(
+            "QPushButton { "
+            "  background-color: #F5F5F5; "
+            "  color: #424242; "
+            "  border: 1px solid #BDBDBD; "
+            "  font-size: 12pt; "
+            "  padding: 10px 20px; "
+            "  border-radius: 4px; "
+            "  min-height: 40px; "
+            "  min-width: 120px; "
+            "}"
+            "QPushButton:hover { "
+            "  background-color: #EEEEEE; "
+            "}"
+            "QPushButton:disabled { "
+            "  background-color: #FAFAFA; "
+            "  color: #BDBDBD; "
+            "}"
+        )
+        button_layout.addWidget(self.create_button)
 
+        button_layout.addStretch()
+        layout.addLayout(button_layout)
+
+        # Tertiary button (View Sessions) - Text link style
         self.view_sessions_button = QPushButton("View Sessions")
         self.view_sessions_button.clicked.connect(self._on_view_sessions)
+        self.view_sessions_button.setStyleSheet(
+            "QPushButton { "
+            "  background-color: transparent; "
+            "  color: #1976D2; "
+            "  font-size: 11pt; "
+            "  border: none; "
+            "  padding: 8px 16px; "
+            "  text-align: left; "
+            "  text-decoration: underline; "
+            "}"
+            "QPushButton:hover { "
+            "  color: #1565C0; "
+            "}"
+        )
         layout.addWidget(self.view_sessions_button)
 
         self.subject_info_display = QTextEdit()
@@ -171,6 +250,71 @@ class SubjectWidget(QWidget):
         self.db_manager = db_manager
         self.session_manager = session_manager
         logger.info("Subject widget managers configured")
+
+    def _validate_subject_id_input(self, text: str) -> None:
+        """
+        Real-time validation of subject ID input.
+
+        Updates input field styling based on validation state:
+        - Neutral: Gray border (empty or partial entry)
+        - Valid: Green border with checkmark (4 digits)
+        - Invalid: Red border with error message (non-digits or too long)
+
+        Args:
+            text: Current input text
+        """
+        # Clear error message
+        self.subject_id_error.setVisible(False)
+
+        if len(text) == 0:
+            # Neutral state - empty field
+            self.subject_id_input.setStyleSheet(
+                "QLineEdit { "
+                "  border: 1px solid #BDBDBD; "
+                "  border-radius: 4px; "
+                "  padding: 8px; "
+                "  background-color: white; "
+                "}"
+            )
+            return
+
+        if len(text) < 4:
+            # Invalid - too short
+            self.subject_id_input.setStyleSheet(
+                "QLineEdit { "
+                "  border: 2px solid #F44336; "
+                "  border-radius: 4px; "
+                "  padding: 8px; "
+                "  background-color: #FFEBEE; "
+                "}"
+            )
+            self.subject_id_error.setText("Must be exactly 4 digits")
+            self.subject_id_error.setVisible(True)
+            return
+
+        if text.isdigit() and len(text) == 4:
+            # Valid - 4 digits
+            self.subject_id_input.setStyleSheet(
+                "QLineEdit { "
+                "  border: 2px solid #4CAF50; "
+                "  border-radius: 4px; "
+                "  padding: 8px; "
+                "  background-color: #E8F5E9; "
+                "}"
+            )
+            return
+
+        # Invalid - non-digit characters
+        self.subject_id_input.setStyleSheet(
+            "QLineEdit { "
+            "  border: 2px solid #F44336; "
+            "  border-radius: 4px; "
+            "  padding: 8px; "
+            "  background-color: #FFEBEE; "
+            "}"
+        )
+        self.subject_id_error.setText("Only digits 0-9 allowed")
+        self.subject_id_error.setVisible(True)
 
     @pyqtSlot()
     def _on_search_subject(self) -> None:
@@ -353,13 +497,14 @@ class SubjectWidget(QWidget):
                 )
                 return
 
+            # Simplified display - status bar shows Subject/Tech/Duration (T3 implementation)
+            # Only show unique information here to avoid redundancy
             self.subject_info_display.setText(
-                f"Session started\n\n"
+                f"✓ Session Active\n\n"
                 f"Session ID: {session.session_id}\n"
-                f"Subject: {self.current_subject.subject_code}\n"
-                f"Technician: {tech.full_name}\n"
-                f"Start Time: {session.start_time.strftime('%Y-%m-%d %H:%M:%S')}\n"
-                f"Folder: {session.session_folder_path if session.session_folder_path else 'Not created'}"
+                f"Start: {session.start_time.strftime('%H:%M:%S')}\n"
+                f"Data: {session.session_folder_path if session.session_folder_path else 'Not created'}\n\n"
+                f"→ See status bar for Subject/Tech/Duration"
             )
 
             # Disable controls after session start and enable end button

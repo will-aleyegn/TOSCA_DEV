@@ -271,12 +271,13 @@ class MainWindow(QMainWindow):
         from ui.widgets.gpio_widget import GPIOWidget
 
         self.gpio_widget = GPIOWidget(controller=self.gpio_controller)
-        self.hardware_grid_layout.addWidget(self.gpio_widget, 0, 0, 1, 4)  # Row 0, Col 0, span 1 row, 4 cols
+        self.hardware_grid_layout.addWidget(self.gpio_widget, 0, 0, 1, 4)  # Row 0, full width
 
-        # === ROW 1: SAFETY INTERLOCKS (3 COLUMNS) ===
+        # === ROW 1: SAFETY INTERLOCKS + CAMERA (ALL 4 COLUMNS FILLED) ===
         from ui.widgets.footpedal_widget import FootpedalWidget
         from ui.widgets.photodiode_widget import PhotodiodeWidget
         from ui.widgets.smoothing_module_widget import SmoothingModuleWidget
+        from ui.widgets.camera_hardware_panel import CameraHardwarePanel
 
         self.footpedal_widget = FootpedalWidget(gpio_controller=self.gpio_controller)
         self.hardware_grid_layout.addWidget(self.footpedal_widget, 1, 0)  # Row 1, Col 0
@@ -287,10 +288,10 @@ class MainWindow(QMainWindow):
         self.smoothing_module_widget = SmoothingModuleWidget(gpio_controller=self.gpio_controller)
         self.hardware_grid_layout.addWidget(self.smoothing_module_widget, 1, 2)  # Row 1, Col 2
 
-        # === ROW 2: LASER SYSTEMS (2 COLUMNS) ===
-        # Note: laser_widget contains both aiming and treatment laser controls
-        # User requested these side-by-side; currently they're in one widget with vertical layout
-        # This spans 2 columns to provide space for both sections
+        self.camera_hardware_panel = CameraHardwarePanel(None)  # Will set camera_live_view later
+        self.hardware_grid_layout.addWidget(self.camera_hardware_panel, 1, 3)  # Row 1, Col 3
+
+        # === ROW 2: LASER SYSTEMS + ACTUATOR (ALL 4 COLUMNS FILLED) ===
         from ui.widgets.laser_widget import LaserWidget
 
         self.laser_widget = LaserWidget(
@@ -299,17 +300,11 @@ class MainWindow(QMainWindow):
         self.laser_widget.gpio_controller = self.gpio_controller  # For aiming laser controls
         self.hardware_grid_layout.addWidget(self.laser_widget, 2, 0, 1, 2)  # Row 2, Col 0-1, span 2 cols
 
-        # === ROW 3: CAMERA + ACTUATOR (2 COLUMNS) ===
-        from ui.widgets.camera_hardware_panel import CameraHardwarePanel
-
-        self.camera_hardware_panel = CameraHardwarePanel(None)  # Will set camera_live_view later
-        self.hardware_grid_layout.addWidget(self.camera_hardware_panel, 3, 0)  # Row 3, Col 0
-
         # === MOTION CONTROL (Actuator) ===
         # Will be created and inserted here after controllers are initialized
         # Store grid position for later insertion
-        self.actuator_grid_row = 3
-        self.actuator_grid_col = 1
+        self.actuator_grid_row = 2
+        self.actuator_grid_col = 2  # Cols 2-3 (span 2)
 
         # Set column stretch factors (all equal width)
         for col in range(4):
@@ -327,20 +322,20 @@ class MainWindow(QMainWindow):
         # Set reasonable height constraints for safety log
         self.safety_widget.setMaximumHeight(300)  # Max 300px to prevent screen dominance
 
-        self.hardware_grid_layout.addWidget(self.safety_widget, 4, 0, 1, 4)  # Row 4, full width
+        self.hardware_grid_layout.addWidget(self.safety_widget, 3, 0, 1, 4)  # Row 3, full width
 
         from ui.widgets.config_display_widget import ConfigDisplayWidget
         self.config_display_widget = ConfigDisplayWidget()
-        self.hardware_grid_layout.addWidget(self.config_display_widget, 5, 0, 1, 4)  # Row 5, full width
+        self.hardware_grid_layout.addWidget(self.config_display_widget, 4, 0, 1, 4)  # Row 4, full width
 
         # Set row stretch factors to control vertical space distribution
-        # Rows 0-3 (hardware modules) get equal minimal stretch
-        for row in range(4):
+        # Rows 0-2 (hardware modules) get equal minimal stretch
+        for row in range(3):
             self.hardware_grid_layout.setRowStretch(row, 0)  # No stretch - use minimum size
-        # Row 4 (safety log) gets some stretch
-        self.hardware_grid_layout.setRowStretch(4, 1)
-        # Row 5 (config) gets minimal stretch
-        self.hardware_grid_layout.setRowStretch(5, 0)
+        # Row 3 (safety log) gets some stretch
+        self.hardware_grid_layout.setRowStretch(3, 1)
+        # Row 4 (config) gets minimal stretch
+        self.hardware_grid_layout.setRowStretch(4, 0)
 
         scroll_area.setWidget(scroll_content)
         hardware_tab_main_layout.addWidget(scroll_area)
@@ -492,11 +487,11 @@ class MainWindow(QMainWindow):
         self.actuator_connection_widget = ActuatorConnectionWidget(
             controller=self.actuator_controller
         )
-        # Insert into grid at stored position (Row 3, Col 1)
+        # Insert into grid at stored position (Row 2, Cols 2-3, span 2)
         self.hardware_grid_layout.addWidget(
-            self.actuator_connection_widget, self.actuator_grid_row, self.actuator_grid_col
+            self.actuator_connection_widget, self.actuator_grid_row, self.actuator_grid_col, 1, 2
         )
-        logger.info("Actuator connection widget added to Hardware tab grid (Row 3, Col 1)")
+        logger.info("Actuator connection widget added to Hardware tab grid (Row 2, Cols 2-3)")
 
         # Initialize safety manager
         self.safety_manager = SafetyManager()

@@ -21,6 +21,7 @@ from PyQt6.QtWidgets import (
 
 from hardware.tec_controller import TECController
 from ui.constants import WIDGET_WIDTH_STANDARD
+from ui.design_tokens import ButtonSizes
 
 logger = logging.getLogger(__name__)
 
@@ -95,11 +96,15 @@ class TECWidget(QWidget):
 
         # Connect button
         self.connect_btn = QPushButton("Connect")
+        self.connect_btn.setFixedWidth(120)  # Primary action width
+        self.connect_btn.setMinimumHeight(ButtonSizes.SECONDARY)  # 40px
         self.connect_btn.clicked.connect(self._on_connect_clicked)
         layout.addWidget(self.connect_btn)
 
         # Disconnect button
         self.disconnect_btn = QPushButton("Disconnect")
+        self.disconnect_btn.setFixedWidth(100)  # Secondary action width
+        self.disconnect_btn.setMinimumHeight(ButtonSizes.SECONDARY)  # 40px
         self.disconnect_btn.clicked.connect(self._on_disconnect_clicked)
         self.disconnect_btn.setEnabled(False)
         layout.addWidget(self.disconnect_btn)
@@ -115,7 +120,7 @@ class TECWidget(QWidget):
         # Row 1: Connection and Output
         self.connection_status_label = QLabel("Disconnected")
         self.connection_status_label.setStyleSheet("font-weight: bold;")
-        layout.addWidget(QLabel("Connection:"), 0, 0)
+        layout.addWidget(QLabel("Status:"), 0, 0)  # Simplified from "Connection:"
         layout.addWidget(self.connection_status_label, 0, 1)
 
         self.output_status_label = QLabel("OFF")
@@ -168,6 +173,8 @@ class TECWidget(QWidget):
         setpoint_layout.addWidget(self.temp_spinbox)
 
         self.set_temp_btn = QPushButton("Set Temperature")
+        self.set_temp_btn.setFixedWidth(140)  # Primary action width (longer text)
+        self.set_temp_btn.setMinimumHeight(ButtonSizes.SECONDARY)  # 40px
         self.set_temp_btn.clicked.connect(self._on_set_temperature)
         self.set_temp_btn.setEnabled(False)
         setpoint_layout.addWidget(self.set_temp_btn)
@@ -179,7 +186,8 @@ class TECWidget(QWidget):
         btn_layout = QHBoxLayout()
 
         self.enable_btn = QPushButton("ENABLE TEC OUTPUT")
-        self.enable_btn.setMinimumHeight(50)
+        self.enable_btn.setFixedWidth(200)  # Critical action width (longer text)
+        self.enable_btn.setMinimumHeight(ButtonSizes.PRIMARY)  # 50px
         self.enable_btn.setStyleSheet(
             "font-size: 16px; font-weight: bold; background-color: #2196F3; color: white;"
         )
@@ -188,7 +196,8 @@ class TECWidget(QWidget):
         btn_layout.addWidget(self.enable_btn)
 
         self.disable_btn = QPushButton("DISABLE TEC OUTPUT")
-        self.disable_btn.setMinimumHeight(50)
+        self.disable_btn.setFixedWidth(200)  # Critical action width (longer text)
+        self.disable_btn.setMinimumHeight(ButtonSizes.PRIMARY)  # 50px
         self.disable_btn.setStyleSheet(
             "font-size: 16px; font-weight: bold; background-color: #9E9E9E; color: white;"
         )

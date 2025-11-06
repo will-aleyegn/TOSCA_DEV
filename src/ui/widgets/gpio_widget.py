@@ -73,8 +73,7 @@ class GPIOWidget(QWidget):
         layout = QVBoxLayout(self)
         layout.setSpacing(12)  # Consistent spacing between sections
 
-        # Constrain maximum width for 4-column grid layout
-        self.setMaximumWidth(WIDGET_WIDTH_GRID)
+        # Let grid layout control width (removed max width constraint for better horizontal space usage)
 
         # (1) GPIO Connection - Connect first to enable downstream systems
         connection_group = self._create_connection_group()

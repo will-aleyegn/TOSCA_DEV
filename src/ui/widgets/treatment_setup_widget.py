@@ -19,9 +19,11 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+from PyQt6.QtCore import pyqtSignal
 
 from core.protocol import Protocol
 from core.protocol_line import LineBasedProtocol
+from ui.design_tokens import Colors
 
 # Hardware widgets removed - now in Hardware & Diagnostics and Protocol Builder tabs
 # This widget is protocol-centric
@@ -42,7 +44,13 @@ class TreatmentSetupWidget(QWidget):
 
     This is the "building" interface - all controls are active and editable.
     No camera feed needed (camera alignment done in Setup tab).
+
+    Signals:
+        protocol_loaded: Emitted when a protocol is successfully loaded (protocol_path: str)
     """
+
+    # Signal emitted when protocol is successfully loaded
+    protocol_loaded = pyqtSignal(str)  # protocol_path
 
     def __init__(self) -> None:
         super().__init__()
@@ -201,6 +209,10 @@ class TreatmentSetupWidget(QWidget):
                     f"Line-based protocol loaded: {protocol.protocol_name} ({line_count} lines)"
                 )
 
+                # Emit signal for workflow step indicator
+                self.protocol_loaded.emit(file_path)
+                logger.info(f"Protocol loaded signal emitted: {file_path}")
+
             elif "actions" in protocol_data:
                 # Old action-based Protocol format
                 protocol = Protocol.from_dict(protocol_data)
@@ -218,6 +230,10 @@ class TreatmentSetupWidget(QWidget):
                     f"Action-based protocol loaded: {protocol.protocol_name} "
                     f"({action_count} actions)"
                 )
+
+                # Emit signal for workflow step indicator
+                self.protocol_loaded.emit(file_path)
+                logger.info(f"Protocol loaded signal emitted: {file_path}")
 
             else:
                 raise ValueError("Unknown protocol format - missing 'lines' or 'actions' key")
