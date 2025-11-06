@@ -360,24 +360,14 @@ class MainWindow(QMainWindow):
         left_layout.setSpacing(12)
         left_content.setLayout(left_layout)
 
-        # Top row: Session Setup (left) + Camera Controls (right) side-by-side
-        top_horizontal = QHBoxLayout()
-        top_horizontal.setSpacing(8)
-
-        # Left sub-column: Unified Session Setup
+        # Unified Session Setup (full width)
         self.unified_session_setup = UnifiedSessionSetupWidget(
             session_manager=self.session_manager,
             db_manager=self.db_manager
         )
-        top_horizontal.addWidget(self.unified_session_setup, 1)  # 50% of left column
+        left_layout.addWidget(self.unified_session_setup)
 
-        # Right sub-column: Camera Controls (compact)
-        self.camera_controls_widget = self._create_compact_camera_controls()
-        top_horizontal.addWidget(self.camera_controls_widget, 1)  # 50% of left column
-
-        left_layout.addLayout(top_horizontal)
-
-        # Bottom: Protocol Steps Display (full width within left column)
+        # Protocol Steps Display (full width within left column)
         self.protocol_steps_display = ProtocolStepsDisplayWidget()
         left_layout.addWidget(self.protocol_steps_display)
 
@@ -385,19 +375,31 @@ class MainWindow(QMainWindow):
         left_scroll.setMinimumWidth(400)  # Prevent excessive squishing
         treatment_main_layout.addWidget(left_scroll, 2)  # 40% width (stretch=2)
 
-        # === RIGHT COLUMN (60%): Camera Feed ONLY (No scroll area for maximum space) ===
-        # Camera Feed ONLY (no controls, no chart below) - maximized for best visibility
+        # === RIGHT COLUMN (60%): Camera Feed + Protocol Chart ===
+        right_column = QWidget()
+        right_layout = QVBoxLayout()
+        right_layout.setContentsMargins(0, 0, 0, 0)
+        right_layout.setSpacing(8)
+        right_column.setLayout(right_layout)
+
+        # Camera Feed with integrated stream controls (Start/Capture/Record buttons below display)
         self.camera_live_view = CameraWidget(
             camera_controller=self.camera_controller,
-            show_settings=False  # Hide exposure/gain controls - Hardware tab only
+            show_settings=False,  # Hide exposure/gain controls - Hardware tab only
+            show_stream_controls=True  # Show Start/Capture/Record buttons below stream
         )
-        # Hide ENTIRE control panel (connection, streaming, capture, record)
-        # Controls moved to left column in compact format
+        # Hide external control panel (exposure/gain sliders) but keep integrated buttons
         self.camera_live_view.hide_all_controls()
         self.camera_live_view.setMinimumWidth(900)  # Ensure minimum width for camera visibility
-        treatment_main_layout.addWidget(self.camera_live_view, 3)  # 60% width (stretch=3)
+        right_layout.addWidget(self.camera_live_view, 2)  # Camera takes 2/3 of vertical space
 
-        # NOTE: Position chart removed from Treatment tab - can be added back to Protocol Builder if needed
+        # Protocol Chart (shows when protocol is loaded)
+        from ui.widgets.protocol_chart_widget import ProtocolChartWidget
+        self.treatment_protocol_chart = ProtocolChartWidget()
+        self.treatment_protocol_chart.setVisible(False)  # Hidden until protocol loads
+        right_layout.addWidget(self.treatment_protocol_chart, 1)  # Chart takes 1/3 of vertical space
+
+        treatment_main_layout.addWidget(right_column, 3)  # 60% width (stretch=3)
 
         # NOTE: CameraController already instantiated in __init__
         # and injected into camera_live_view widget
@@ -414,6 +416,10 @@ class MainWindow(QMainWindow):
         # Wire unified session setup to protocol steps display
         self.unified_session_setup.protocol_loaded.connect(self.protocol_steps_display.load_protocol)
         logger.info("Unified session setup protocol_loaded -> protocol steps display")
+
+        # Wire unified session setup to treatment protocol chart
+        self.unified_session_setup.protocol_loaded.connect(self._on_treatment_protocol_loaded)
+        logger.info("Unified session setup protocol_loaded -> treatment protocol chart")
 
         # Wire unified session setup to workflow step indicator
         self.unified_session_setup.session_started.connect(
@@ -511,163 +517,6 @@ class MainWindow(QMainWindow):
 
         # Wire unified header signals (must be after safety_manager is created)
         self._wire_unified_header_signals()
-
-
-    def _create_compact_camera_controls(self) -> Any:
-        """
-        Create compact camera controls for Treatment tab left column.
-
-        Includes:
-        - Start/Stop Streaming button
-        - Capture Image button
-        - Start/Stop Recording button
-        - Brightness slider (optional - TODO)
-
-        Returns:
-            QGroupBox with compact camera controls
-        """
-        from PyQt6.QtWidgets import QGroupBox, QVBoxLayout, QPushButton, QHBoxLayout
-        from ui.design_tokens import Colors
-
-        group = QGroupBox("Camera Controls")
-        group.setStyleSheet(
-            f"""
-            QGroupBox {{
-                background-color: {Colors.PANEL};
-                border: 1px solid {Colors.BORDER_DEFAULT};
-                border-radius: 4px;
-                padding: 12px;
-                font-size: 11pt;
-                font-weight: bold;
-            }}
-            QGroupBox::title {{
-                color: {Colors.TEXT_PRIMARY};
-                subcontrol-origin: margin;
-                left: 10px;
-                padding: 0 5px;
-            }}
-        """
-        )
-
-        layout = QVBoxLayout()
-        layout.setSpacing(8)
-
-        # Stream button (PRIMARY ACTION - prominent, green, large)
-        self.treatment_stream_btn = QPushButton("▶ Start Streaming")
-        self.treatment_stream_btn.setMinimumHeight(50)  # Touch-friendly
-        self.treatment_stream_btn.setStyleSheet(
-            f"""
-            QPushButton {{
-                background-color: {Colors.SAFE};
-                color: white;
-                border: none;
-                border-radius: 4px;
-                padding: 12px;
-                font-size: 12pt;
-                font-weight: bold;
-            }}
-            QPushButton:hover {{
-                background-color: {Colors.CONNECTED};
-            }}
-            QPushButton:disabled {{
-                background-color: {Colors.SECONDARY};
-                color: {Colors.TEXT_DISABLED};
-            }}
-        """
-        )
-        self.treatment_stream_btn.clicked.connect(self._on_treatment_stream_clicked)
-        layout.addWidget(self.treatment_stream_btn)
-
-        # Capture/Record buttons row (SECONDARY ACTIONS - blue, side-by-side)
-        capture_layout = QHBoxLayout()
-        capture_layout.setSpacing(8)
-
-        self.treatment_capture_btn = QPushButton("📷 Capture")
-        self.treatment_capture_btn.setMinimumHeight(45)  # Touch-friendly
-        self.treatment_capture_btn.setEnabled(False)  # Disabled until streaming
-        self.treatment_capture_btn.setStyleSheet(
-            f"""
-            QPushButton {{
-                background-color: #2979FF;
-                color: white;
-                border: none;
-                border-radius: 4px;
-                padding: 10px;
-                font-size: 11pt;
-                font-weight: bold;
-            }}
-            QPushButton:hover {{
-                background-color: #2962FF;
-            }}
-            QPushButton:disabled {{
-                background-color: {Colors.BACKGROUND};
-                color: {Colors.TEXT_DISABLED};
-            }}
-        """
-        )
-        self.treatment_capture_btn.clicked.connect(
-            lambda: self.camera_live_view._on_capture_image() if hasattr(self, "camera_live_view") else None
-        )
-        capture_layout.addWidget(self.treatment_capture_btn)
-
-        self.treatment_record_btn = QPushButton("🔴 Record")
-        self.treatment_record_btn.setMinimumHeight(45)  # Touch-friendly
-        self.treatment_record_btn.setEnabled(False)  # Disabled until streaming
-        self.treatment_record_btn.setStyleSheet(
-            f"""
-            QPushButton {{
-                background-color: #2979FF;
-                color: white;
-                border: none;
-                border-radius: 4px;
-                padding: 10px;
-                font-size: 11pt;
-                font-weight: bold;
-            }}
-            QPushButton:hover {{
-                background-color: #2962FF;
-            }}
-            QPushButton:disabled {{
-                background-color: {Colors.BACKGROUND};
-                color: {Colors.TEXT_DISABLED};
-            }}
-        """
-        )
-        self.treatment_record_btn.clicked.connect(self._on_treatment_record_clicked)
-        capture_layout.addWidget(self.treatment_record_btn)
-
-        layout.addLayout(capture_layout)
-
-        group.setLayout(layout)
-        return group
-
-    def _on_treatment_stream_clicked(self) -> None:
-        """Handle treatment tab stream button click."""
-        if self.camera_live_view.is_streaming:
-            self.camera_controller.stop_streaming()
-            self.camera_live_view.is_streaming = False
-            self.treatment_stream_btn.setText("Start Streaming")
-            self.treatment_capture_btn.setEnabled(False)
-            self.treatment_record_btn.setEnabled(False)
-        else:
-            self.camera_controller.start_streaming()
-            self.camera_live_view.is_streaming = True
-            self.treatment_stream_btn.setText("Stop Streaming")
-            self.treatment_capture_btn.setEnabled(True)
-            self.treatment_record_btn.setEnabled(True)
-
-    def _on_treatment_record_clicked(self) -> None:
-        """Handle treatment tab record button click."""
-        if self.camera_controller.is_recording:
-            self.camera_controller.stop_recording()
-            self.treatment_record_btn.setText("Start Recording")
-        else:
-            base_filename = "treatment_recording"
-            self.camera_controller.start_recording(base_filename)
-            self.treatment_record_btn.setText("Stop Recording")
-
-    # NOTE: Protocol chart removed from Treatment tab (camera feed takes full 60%)
-    # This method can be added back to Protocol Builder tab if needed
 
     def _init_menubar(self) -> None:
         """Initialize menubar with File and Developer menus."""
@@ -1243,6 +1092,55 @@ class MainWindow(QMainWindow):
         # Optional: Disable Start Treatment button to prevent re-clicks
         self.treatment_setup_widget.ready_button.setEnabled(False)
         self.treatment_setup_widget.ready_button.setText("Treatment Active")
+
+    def _on_treatment_protocol_loaded(self, protocol_path: str) -> None:
+        """
+        Handle protocol loaded signal for Treatment tab.
+
+        Shows protocol chart with trajectory visualization when a protocol is loaded.
+
+        Args:
+            protocol_path: Path to the loaded protocol JSON file
+        """
+        import json
+        from pathlib import Path
+        from core.protocol_line import LineBasedProtocol
+
+        try:
+            # Load protocol from file
+            protocol_file = Path(protocol_path)
+            if not protocol_file.exists():
+                logger.warning(f"Protocol file not found: {protocol_path}")
+                self.treatment_protocol_chart.setVisible(False)
+                return
+
+            with open(protocol_file, "r") as f:
+                protocol_data = json.load(f)
+
+            # Parse protocol
+            protocol = LineBasedProtocol(**protocol_data)
+
+            # Update chart with protocol lines
+            self.treatment_protocol_chart.set_protocol_lines(protocol.lines)
+
+            # Set safety limits if available
+            from core.protocol_line import SafetyLimits
+            safety_limits = SafetyLimits(
+                max_power_watts=10.0,
+                max_duration_seconds=300.0,
+                min_actuator_position_mm=-20.0,
+                max_actuator_position_mm=20.0,
+                max_actuator_speed_mm_per_s=5.0,
+            )
+            self.treatment_protocol_chart.set_safety_limits(safety_limits)
+
+            # Show chart
+            self.treatment_protocol_chart.setVisible(True)
+            logger.info(f"Protocol chart updated and shown: {protocol.protocol_name}")
+
+        except Exception as e:
+            logger.error(f"Failed to load protocol for chart: {e}")
+            self.treatment_protocol_chart.setVisible(False)
 
     def _on_line_protocol_ready(self, protocol: Any) -> None:
         """

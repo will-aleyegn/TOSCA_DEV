@@ -29,6 +29,8 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from ui.design_tokens import Colors
+
 logger = logging.getLogger(__name__)
 
 
@@ -50,12 +52,18 @@ class CameraWidget(QWidget):
     # Signal emitted when camera connection state changes
     connection_changed = pyqtSignal(bool)  # True = connected, False = disconnected
 
-    def __init__(self, camera_controller: Optional[Any] = None, show_settings: bool = True) -> None:
+    def __init__(
+        self,
+        camera_controller: Optional[Any] = None,
+        show_settings: bool = True,
+        show_stream_controls: bool = False,
+    ) -> None:
         super().__init__()
 
         # Reference to CameraController (created and managed by MainWindow)
         self.camera_controller = camera_controller
         self.show_settings = show_settings  # Show exposure/gain controls (True=Hardware tab, False=Treatment tab)
+        self.show_stream_controls = show_stream_controls  # Show Start/Capture/Record buttons below display (True=Treatment tab)
 
         # State
         self.is_connected = False
@@ -64,6 +72,11 @@ class CameraWidget(QWidget):
         self.dev_mode = False
         self.custom_video_path: Optional[Path] = None
         self.custom_image_path: Optional[Path] = None
+
+        # Button references (created if show_stream_controls=True)
+        self.stream_btn: Optional[QPushButton] = None
+        self.capture_btn: Optional[QPushButton] = None
+        self.record_btn: Optional[QPushButton] = None
 
         self._init_ui()
 
@@ -116,6 +129,11 @@ class CameraWidget(QWidget):
         self.camera_display.setScaledContents(False)
         layout.addWidget(self.camera_display, 1)  # Stretch to fill available space
 
+        # Stream control buttons (optional - shown in Treatment tab)
+        if self.show_stream_controls:
+            button_layout = self._create_stream_control_buttons()
+            layout.addLayout(button_layout)
+
         # Status bar (compact)
         status_layout = QHBoxLayout()
         status_layout.setSpacing(8)
@@ -154,6 +172,142 @@ class CameraWidget(QWidget):
 
         container.setLayout(layout)
         return container
+
+    def _create_stream_control_buttons(self) -> QHBoxLayout:
+        """
+        Create stream control buttons for Treatment tab.
+
+        Returns horizontal layout with:
+        - Start/Stop Streaming button (green, primary)
+        - Capture Image button (blue, secondary)
+        - Record Video button (blue, secondary)
+        """
+        button_layout = QHBoxLayout()
+        button_layout.setSpacing(8)
+        button_layout.setContentsMargins(0, 8, 0, 8)  # Spacing above and below buttons
+
+        # Stream button (PRIMARY ACTION - prominent, green, large)
+        self.stream_btn = QPushButton("▶ Start Streaming")
+        self.stream_btn.setMinimumHeight(50)  # Touch-friendly
+        self.stream_btn.setStyleSheet(
+            f"""
+            QPushButton {{
+                background-color: {Colors.SAFE};
+                color: white;
+                border: none;
+                border-radius: 4px;
+                padding: 12px;
+                font-size: 12pt;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: {Colors.CONNECTED};
+            }}
+            QPushButton:disabled {{
+                background-color: {Colors.SECONDARY};
+                color: {Colors.TEXT_DISABLED};
+            }}
+        """
+        )
+        self.stream_btn.clicked.connect(self._on_stream_button_clicked)
+        button_layout.addWidget(self.stream_btn, 2)  # Wider than other buttons
+
+        # Capture button (SECONDARY ACTION - blue)
+        self.capture_btn = QPushButton("📷 Capture")
+        self.capture_btn.setMinimumHeight(50)  # Touch-friendly
+        self.capture_btn.setEnabled(False)  # Disabled until streaming
+        self.capture_btn.setStyleSheet(
+            f"""
+            QPushButton {{
+                background-color: #2979FF;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                padding: 10px;
+                font-size: 11pt;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: #2962FF;
+            }}
+            QPushButton:disabled {{
+                background-color: {Colors.BACKGROUND};
+                color: {Colors.TEXT_DISABLED};
+            }}
+        """
+        )
+        self.capture_btn.clicked.connect(self._on_capture_image)
+        button_layout.addWidget(self.capture_btn, 1)
+
+        # Record button (SECONDARY ACTION - blue)
+        self.record_btn = QPushButton("🔴 Record")
+        self.record_btn.setMinimumHeight(50)  # Touch-friendly
+        self.record_btn.setEnabled(False)  # Disabled until streaming
+        self.record_btn.setStyleSheet(
+            f"""
+            QPushButton {{
+                background-color: #2979FF;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                padding: 10px;
+                font-size: 11pt;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: #2962FF;
+            }}
+            QPushButton:disabled {{
+                background-color: {Colors.BACKGROUND};
+                color: {Colors.TEXT_DISABLED};
+            }}
+        """
+        )
+        self.record_btn.clicked.connect(self._on_record_button_clicked)
+        button_layout.addWidget(self.record_btn, 1)
+
+        return button_layout
+
+    def _on_stream_button_clicked(self) -> None:
+        """Handle stream button click (Start/Stop streaming)."""
+        if not self.camera_controller:
+            logger.warning("No camera controller available")
+            return
+
+        if self.is_streaming:
+            self.camera_controller.stop_streaming()
+            self.is_streaming = False
+            if self.stream_btn:
+                self.stream_btn.setText("▶ Start Streaming")
+            if self.capture_btn:
+                self.capture_btn.setEnabled(False)
+            if self.record_btn:
+                self.record_btn.setEnabled(False)
+        else:
+            self.camera_controller.start_streaming()
+            self.is_streaming = True
+            if self.stream_btn:
+                self.stream_btn.setText("■ Stop Streaming")
+            if self.capture_btn:
+                self.capture_btn.setEnabled(True)
+            if self.record_btn:
+                self.record_btn.setEnabled(True)
+
+    def _on_record_button_clicked(self) -> None:
+        """Handle record button click (Start/Stop recording)."""
+        if not self.camera_controller:
+            logger.warning("No camera controller available")
+            return
+
+        if self.camera_controller.is_recording:
+            self.camera_controller.stop_recording()
+            if self.record_btn:
+                self.record_btn.setText("🔴 Record")
+        else:
+            base_filename = "treatment_recording"
+            self.camera_controller.start_recording(base_filename)
+            if self.record_btn:
+                self.record_btn.setText("■ Stop Recording")
 
     def _create_control_panel(self) -> QGroupBox:
         """Create camera control panel."""
