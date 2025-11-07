@@ -167,3 +167,28 @@ node_modules/
 # === Added 2025-11-06: External Tools ===
 # zen-mcp-server is an external MCP tool, not part of TOSCA repository
 zen-mcp-server/
+
+# === Added 2025-11-06: Project Cleanup Prevention ===
+
+# Screenshots (archive in docs/archive/screenshots-YYYY-MM/)
+/*.png
+/*.jpg
+Screenshot*.png
+
+# Temporary analysis files
+*-compact.txt
+layout*.png
+
+# Test artifacts
+test_*.py.tmp
+test_output_*.txt
+
+# External tool directories (already added zen-mcp-server above)
+claude-wsl-migration-package/
+
+# Backup files (use git for version control)
+*.backup
+*.backup_*
+*_backup
+*.bak
+
