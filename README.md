@@ -1,8 +1,8 @@
 # TOSCA Laser Control System
 
-**Last Updated:** 2025-11-04
+**Last Updated:** 2025-11-06
 
-**Version:** 0.9.12-alpha
+**Version:** 0.9.15-alpha
 **Status:** Research Mode - Not for Clinical Use
 **Platform:** Windows 10/11, Python 3.12+
 
