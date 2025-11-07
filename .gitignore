@@ -40,7 +40,7 @@ ENV/
 htmlcov/
 *.cover
 
-# Medical Device Data - DO NOT COMMIT
+# Medical Device Data
 data/
 *.db
 *.sqlite
@@ -49,12 +49,12 @@ sessions/
 logs/
 *.log
 
-# Subject Data - CRITICAL: Never commit
+# Subject Data
 *patient*
 *subject*
 *PHI*
 
-# Hardware Calibration - Project Specific
+# Hardware Calibration
 calibration/
 *.cal
 
@@ -110,12 +110,10 @@ safety_report.json
 *.bandit
 *.safety
 
-# Local analysis reports (keep local only)
+# Local analysis reports
 reports/
 
-# AI Development Tools - NOT FOR MEDICAL DEVICE REPOSITORY
-# These files contain AI assistant configurations and development context
-# Keep them locally but do NOT commit to git for regulatory compliance
+# AI Development Tools
 .claude/
 .gemini/
 .taskmaster/
@@ -123,16 +121,16 @@ reports/
 CLAUDE.md
 presubmit/
 
-# AI-related documentation and installation
+# AI-related documentation
 COMPONENT_RECOMMENDATIONS.md
 install.txt
 docs/TOOL_*.md
 docs/UI_REDESIGN_PLAN.md
 
-# Regulatory/FDA Strategy Documents (archive only)
+# Regulatory/FDA Strategy Documents
 docs/regulatory_archive/
 
-# Project Archive (old files moved here during cleanup)
+# Project Archive
 /archive/
 
 # Logs
@@ -141,54 +139,38 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 dev-debug.log
+
 # Dependency directories
 node_modules/
-# Environment variables
+
 # Editor directories and files
 .idea
 .vscode
 *.suo
 *.ntvs*
-*.njsproj
+*.njsproj*
 *.sln
 *.sw?
-# OS specific
 
 # Task files
-# tasks.json
-# tasks/
 .cursor/
 
-# Prevent backup and duplicate files
+# Backup and duplicate files
 *.backup
 *~
 *(1)*
 
-# === Added 2025-11-06: External Tools ===
-# zen-mcp-server is an external MCP tool, not part of TOSCA repository
+# External Tools
 zen-mcp-server/
 
-# === Added 2025-11-06: Project Cleanup Prevention ===
-
-# Screenshots (archive in docs/archive/screenshots-YYYY-MM/)
+# Project Cleanup Prevention
 /*.png
 /*.jpg
 Screenshot*.png
-
-# Temporary analysis files
 *-compact.txt
 layout*.png
-
-# Test artifacts
 test_*.py.tmp
 test_output_*.txt
-
-# External tool directories (already added zen-mcp-server above)
 claude-wsl-migration-package/
-
-# Backup files (use git for version control)
-*.backup
 *.backup_*
 *_backup
-*.bak
-
