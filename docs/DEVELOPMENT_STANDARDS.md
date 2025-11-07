@@ -64,7 +64,7 @@ TOSCA is FDA-regulated medical device software under development. While AI-power
 # This function was written by Claude AI assistant
 def calculate_dose(power, duration):
     ...
-```
+```text
 
 ✅ **CORRECT:**
 ```python
@@ -72,7 +72,7 @@ def calculate_dose(power, duration):
 # Implements dose calculation per IEC 60601-2-22
 def calculate_dose(power, duration):
     ...
-```
+```text
 
 ❌ **INCORRECT (Documentation):**
 ```markdown
@@ -80,7 +80,7 @@ def calculate_dose(power, duration):
 
 **Reviewer:** AI Code Review (Gemini 2.5 Pro)
 **Date:** 2025-10-27
-```
+```text
 
 ✅ **CORRECT (Documentation):**
 ```markdown
@@ -88,7 +88,7 @@ def calculate_dose(power, duration):
 
 **Reviewer:** Code Review - October 27, 2025
 **Focus:** Safety architecture validation
-```
+```text
 
 ### Bypass Procedure
 
@@ -96,7 +96,7 @@ If you must commit content with AI references (rare, requires justification):
 
 ```bash
 git commit --no-verify -m "docs: add AI tool usage guide"
-```
+```bash
 
 **When to bypass:**
 - Documenting AI tool usage policies (this file)
@@ -118,14 +118,14 @@ All code reviews must use professional, auditable attribution:
 **Reviewer:** Code Review - [Month Day, Year]
 **Focus:** [Review scope]
 **Findings:** [Key findings]
-```
+```text
 
 **Example:**
 ```
 **Reviewer:** Code Review - October 30, 2025
 **Focus:** Safety interlock architecture
 **Findings:** Selective shutdown policy correctly implemented
-```
+```text
 
 ### Review Documentation
 
@@ -157,7 +157,7 @@ All documentation files must include:
 **Last Updated:** YYYY-MM-DD
 **Version:** v0.9.12-alpha
 **Purpose:** Brief description
-```
+```text
 
 ### Version Format
 
@@ -212,7 +212,7 @@ All documentation files must include:
 [optional body]
 
 [optional footer]
-```
+```text
 
 **Types:**
 - `feat:` New feature
@@ -239,7 +239,7 @@ test: add hardware controller thread safety tests
 
 85% pass rate (68/80 tests). Remaining failures are minor
 mock configuration issues, not production code defects.
-```
+```python
 
 ### Pre-commit Validation
 
@@ -260,7 +260,7 @@ All commits automatically validated for:
 
 ```bash
 git commit --no-verify -m "message"
-```
+```text
 
 **Valid reasons to bypass:**
 - MyPy false positives (document in commit message)
@@ -317,7 +317,7 @@ Test hook directly:
 
 ```bash
 python .pre-commit-hooks/detect-ai-references.py path/to/file.py
-```
+```text
 
 ### Updating Hook
 
@@ -326,7 +326,7 @@ After modifying `detect-ai-references.py`:
 ```bash
 git add .pre-commit-hooks/detect-ai-references.py
 pre-commit run --all-files  # Test on all files
-```
+```text
 
 ---
 
@@ -354,7 +354,7 @@ Periodic manual review to:
 
 ```bash
 python scripts/audit_ai_references.py
-```
+```text
 
 This script:
 - Scans all git-tracked files for AI references
@@ -378,7 +378,7 @@ Generate quarterly audit report:
 
 ```bash
 python scripts/audit_ai_references.py --output audit_reports/YYYY-QX-audit-report.md
-```
+```text
 
 **Report includes:**
 - Files scanned count
@@ -474,13 +474,13 @@ If you discover AI references in production code:
 # TODO: Fix this later
 # FIXME: This doesn't work right
 # HACK: Temporary workaround
-```
+```text
 
 ✅ **CORRECT:**
 ```python
 # TODO(#127): Implement database persistence for protocol execution
 # TODO(#128): Add power mode support when hardware available
-```
+```text
 
 **Enforcement:** Pre-commit hook `detect-informal-comments.py` blocks commits with untracked TODOs.
 
@@ -510,14 +510,14 @@ If you discover AI references in production code:
 # This is gonna break if we're not careful
 # WTF is this code doing?
 # Stupid bug that keeps happening
-```
+```text
 
 ✅ **CORRECT:**
 ```python
 # This will fail if input validation is bypassed
 # Investigate unexpected behavior in edge cases
 # Persistent defect requiring root cause analysis
-```
+```text
 
 **Enforcement:** Pre-commit hook `detect-informal-comments.py` scans for informal language patterns.
 
@@ -536,7 +536,7 @@ Project: TOSCA Laser Control System
 Purpose: [Brief description of module's role]
 Safety Critical: [Yes/No]
 """
-```
+```text
 
 **Optional Elements:**
 - Author: (use git history for attribution)
@@ -559,7 +559,7 @@ Safety Critical: Yes
 import threading
 from enum import Enum
 ...
-```
+```bash
 
 **Enforcement:** Pre-commit hook `verify-file-headers.py` checks src/ files for required elements.
 
@@ -586,7 +586,7 @@ from enum import Enum
 API_KEY = "sk_live_abcdef123456789"
 password = "admin123"
 db_url = "mysql://root:password123@localhost/tosca"
-```
+```text
 
 ✅ **CORRECT:**
 ```python

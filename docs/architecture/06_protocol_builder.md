@@ -1,5 +1,7 @@
 # TOSCA Protocol Builder - Enhanced Action-Based Design
 
+**Last Updated:** 2025-11-04
+
 **Document Version:** 2.0
 **Date:** 2025-10-22
 **Supersedes:** Section of 04_treatment_protocols.md
@@ -261,39 +263,28 @@ The Protocol Builder provides a visual interface for creating action-based treat
 ### Protocol Builder Tab Layout
 
 ```
-┌────────────────────────────────────────────────────────────────┐
-│  Protocol Builder                                      [?] [⚙]│
-├────────────────────────────────────────────────────────────────┤
-│ Protocol: [Unnamed Protocol         ] [Open] [Save] [Save As] │
-│ Description: [___________________________________________]      │
-├────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  Action Sequence                                                │
-│  ┌──────────────────────────────────────────────────────────┐ │
-│  │ # │ Type              │ Parameters        │ [↑][↓][✎][✗]│ │
-│  ├───┼───────────────────┼───────────────────┼──────────────┤ │
-│  │ 1 │ SetLaserPower    │ 5.0 W            │ [↑][↓][✎][✗]│ │
-│  │ 2 │ Wait             │ 10.0 s           │ [↑][↓][✎][✗]│ │
-│  │ 3 │ MoveActuator     │ 2500 µm @ 100 µ/s│ [↑][↓][✎][✗]│ │
-│  │ 4 │ Loop (3x)        │ ▼ 4 actions      │ [↑][↓][✎][✗]│ │
-│  │   │   RampLaserPower │   2→8W, 30s     │              │ │
-│  │   │   Wait           │   5s             │              │ │
-│  │   │   SetLaserPower  │   0W             │              │ │
-│  │   │   Wait           │   2s             │              │ │
-│  └───┴───────────────────┴───────────────────┴──────────────┘ │
-│                                                                 │
-│  [+ Add Action ▼]                                              │
-│     • Set Laser Power                                          │
-│     • Ramp Laser Power                                         │
-│     • Move Actuator                                            │
-│     • Wait                                                     │
-│     • Loop                                                     │
-│                                                                 │
-├────────────────────────────────────────────────────────────────┤
-│ Total Duration: ~120s  │  Max Power: 8.0W  │                  │
-│                        │                    │  [Execute]       │
-│ Status: Ready         │  Safety: [DONE] OK      │  [Execute & Rec] │
-└────────────────────────────────────────────────────────────────┘
+1. **Protocol Builder                                      [?] [⚙]**
+2. **Protocol** - [Unnamed Protocol         ] [Open] [Save] [Save As]
+3. **Description** - [___________________________________________]
+4. **Action Sequence**
+5. **#   Type                Parameters          [][][✎][✗]**
+6. **1   SetLaserPower      5.0 W              [][][✎][✗]**
+7. **2   Wait               10.0 s             [][][✎][✗]**
+8. **3   MoveActuator       2500 µm @ 100 µ/s  [][][✎][✗]**
+9. **4   Loop (3x)          ▼ 4 actions        [][][✎][✗]**
+10. **RampLaserPower     28W, 30s**
+11. **Wait               5s**
+12. **SetLaserPower      0W**
+13. **Wait               2s**
+14. **[+ Add Action ▼]**
+15. **• Set Laser Power**
+16. **• Ramp Laser Power**
+17. **• Move Actuator**
+18. **• Wait**
+19. **• Loop**
+20. **Total Duration** - ~120s     Max Power: 8.0W
+21. **[Execute]**
+22. **Status** - Ready            Safety: [DONE] OK         [Execute & Rec]
 ```
 
 ### Action Editor Dialog
@@ -301,24 +292,24 @@ The Protocol Builder provides a visual interface for creating action-based treat
 When user clicks [✎] or [+ Add Action], show dialog:
 
 ```
-┌─────────────────────────────────────────┐
-│ Edit Action: RampLaserPower             │
-├─────────────────────────────────────────┤
-│                                          │
-│  Start Power:  [2.0    ] W              │
-│  End Power:    [8.0    ] W              │
-│  Duration:     [30.0   ] seconds        │
-│  Ramp Type:    [Linear ▼]               │
-│                 • Linear                 │
-│                 • Logarithmic            │
-│                 • Exponential            │
-│                                          │
-│  Notes: [Warm-up phase____________]     │
-│                                          │
-│         [Preview Curve]                  │
-│                                          │
-│              [Cancel]  [OK]              │
-└─────────────────────────────────────────┘
+                                           
+  Edit Action: RampLaserPower              
+                                           
+                                            
+   Start Power:  [2.0    ] W               
+   End Power:    [8.0    ] W               
+   Duration:     [30.0   ] seconds         
+   Ramp Type:    [Linear ▼]                
+                  • Linear                  
+                  • Logarithmic             
+                  • Exponential             
+                                            
+   Notes: [Warm-up phase____________]      
+                                            
+          [Preview Curve]                   
+                                            
+               [Cancel]  [OK]               
+                                           
 ```
 
 ## Protocol Execution

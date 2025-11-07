@@ -1,0 +1,29 @@
+@startuml
+skinparam backgroundcolor white
+skinparam shadowing false
+
+[*] --> SYSTEM_OFF
+
+SYSTEM_OFF --> INITIALIZING : Power on
+INITIALIZING --> READY : Init complete
+
+READY --> ARMED : All interlocks pass
+ARMED --> TREATING : Footpedal depressed
+TREATING --> TREATMENT_COMPLETE : Protocol finished
+TREATMENT_COMPLETE --> READY : Reset
+
+READY --> FAULT : Interlock failure
+ARMED --> FAULT : Interlock failure
+TREATING --> FAULT : Interlock failure
+TREATMENT_COMPLETE --> FAULT : Interlock failure
+
+FAULT --> SAFE_SHUTDOWN : Emergency stop
+SAFE_SHUTDOWN --> [*]
+
+note right of FAULT
+  Any interlock failure
+  triggers immediate
+  transition to FAULT
+end note
+
+@enduml

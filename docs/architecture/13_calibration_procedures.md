@@ -68,32 +68,32 @@ TOSCA requires regular calibration of all measurement systems to ensure treatmen
 
 ### Calibration Hierarchy
 
-```
-┌────────────────────────────────────────────────────────┐
-│            NIST Traceable Standards                     │
-│   (National Institute of Standards and Technology)      │
-└────────────────────────────────────────────────────────┘
-                         │
+```text
+                                                          
+             NIST Traceable Standards                      
+    (National Institute of Standards and Technology)       
+                                                          
+                          
                 Calibration Certificate
-                         │
+                          
                          ▼
-┌────────────────────────────────────────────────────────┐
-│         Reference Equipment (Certified)                 │
-│  - Laser power meter (certified annually)               │
-│  - Micrometer (certified annually)                      │
-│  - Oscilloscope (certified every 2 years)               │
-└────────────────────────────────────────────────────────┘
-                         │
+                                                          
+          Reference Equipment (Certified)                  
+   - Laser power meter (certified annually)                
+   - Micrometer (certified annually)                       
+   - Oscilloscope (certified every 2 years)                
+                                                          
+                          
             Used to calibrate TOSCA
-                         │
+                          
                          ▼
-┌────────────────────────────────────────────────────────┐
-│              TOSCA Components                           │
-│  - Photodiode (power measurement)                       │
-│  - Actuator (position accuracy)                         │
-│  - Camera (focus measurement)                           │
-│  - GPIO timing (watchdog intervals)                     │
-└────────────────────────────────────────────────────────┘
+                                                          
+               TOSCA Components                            
+   - Photodiode (power measurement)                        
+   - Actuator (position accuracy)                          
+   - Camera (focus measurement)                            
+   - GPIO timing (watchdog intervals)                      
+                                                          
 ```
 
 ### Components Requiring Calibration
@@ -125,7 +125,7 @@ Verify photodiode accurately measures laser power (5W range).
 ### Procedure
 
 **Step 1: Setup**
-```
+```text
 1. Connect certified power meter to laser output
 2. Connect TOSCA photodiode to secondary measurement port
 3. Allow laser to warm up for 10 minutes
@@ -147,42 +147,33 @@ Test at 5 power levels across range:
 **Step 3: Calibration Curve**
 
 ```python
-# Calculate calibration curve (voltage → watts)
-def calibrate_photodiode(calibration_points: List[Tuple[float, float]]) -> Tuple[float, float]:
-    """
-    Calculate calibration curve from voltage/power pairs.
-
-    Args:
-        calibration_points: List of (voltage_v, power_w) tuples
-
-    Returns:
-        (slope, intercept) for power = slope * voltage + intercept
-    """
-    import numpy as np
-
-    voltages = np.array([v for v, p in calibration_points])
-    powers = np.array([p for v, p in calibration_points])
-
-    # Linear regression
-    slope, intercept = np.polyfit(voltages, powers, deg=1)
-
-    return (slope, intercept)
-
-# Example usage
-cal_points = [
-    (0.0, 0.0),    # 0V → 0W
-    (0.5, 2.5),    # 0.5V → 2.5W
-    (1.0, 5.0),    # 1.0V → 5.0W
-    (1.5, 7.5),    # 1.5V → 7.5W
-    (2.0, 10.0),   # 2.0V → 10.0W
-]
-
-slope, intercept = calibrate_photodiode(cal_points)
-# slope ≈ 5.0 (W/V), intercept ≈ 0.0
-
-# Save to config
-config.photodiode_slope = slope
-config.photodiode_intercept = intercept
+1. **# Calculate calibration curve (voltage  watts)**
+2. **def calibrate_photodiode(calibration_points** - List[Tuple[float, float]]) -> Tuple[float, float]:
+3. **"""**
+4. **Calculate calibration curve from voltage/power pairs.**
+5. **Args** - 
+6. **calibration_points** - List of (voltage_v, power_w) tuples
+7. **Returns** - 
+8. **(slope, intercept) for power = slope * voltage + intercept**
+9. **"""**
+10. **import numpy as np**
+11. **voltages = np.array([v for v, p in calibration_points])**
+12. **powers = np.array([p for v, p in calibration_points])**
+13. **# Linear regression**
+14. **slope, intercept = np.polyfit(voltages, powers, deg=1)**
+15. **return (slope, intercept)**
+16. **# Example usage**
+17. **cal_points = [**
+18. **(0.0, 0.0),    # 0V  0W**
+19. **(0.5, 2.5),    # 0.5V  2.5W**
+20. **(1.0, 5.0),    # 1.0V  5.0W**
+21. **(1.5, 7.5),    # 1.5V  7.5W**
+22. **(2.0, 10.0),   # 2.0V  10.0W**
+23. **slope, intercept = calibrate_photodiode(cal_points)**
+24. **# slope ≈ 5.0 (W/V), intercept ≈ 0.0**
+25. **# Save to config**
+26. **config.photodiode_slope = slope**
+27. **config.photodiode_intercept = intercept**
 ```
 
 **Step 4: Verification**

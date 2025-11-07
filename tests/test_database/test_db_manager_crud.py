@@ -16,7 +16,7 @@ project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root / "src"))
 
 from database.db_manager import DatabaseManager
-from database.models import SafetyLog, Session, Subject, TechUser
+from database.models import Session
 
 
 @pytest.fixture

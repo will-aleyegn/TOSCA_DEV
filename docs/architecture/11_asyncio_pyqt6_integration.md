@@ -29,40 +29,40 @@ TOSCA uses a safe asyncio integration pattern to execute treatment protocols asy
 
 ### Key Components
 
-```
-┌────────────────────────────────────────────────────────────┐
-│                   Main GUI Thread                          │
-│              (PyQt6 Event Loop)                            │
-│                                                            │
-│  ┌──────────────┐         ┌──────────────┐               │
-│  │ MainWindow   │────────▶│ProtocolWorker│               │
-│  │  (UI)        │         │  (QRunnable) │               │
-│  └──────────────┘         └──────┬───────┘               │
-│                                   │                        │
-│                                   │ Submit to ThreadPool   │
-└───────────────────────────────────┼────────────────────────┘
-                                    │
+```python
+                                                              
+                    Main GUI Thread                           
+               (PyQt6 Event Loop)                             
+                                                              
+                                                            
+     MainWindow            ▶ ProtocolWorker                 
+      (UI)                     (QRunnable)                  
+                                                            
+                                                              
+                                      Submit to ThreadPool    
+                                                              
+                                     
                                     ▼
-┌────────────────────────────────────────────────────────────┐
-│               QThreadPool Worker Thread                    │
-│                                                            │
-│  ┌─────────────────────────────────────────┐              │
-│  │   asyncio.run() creates event loop      │              │
-│  │                                         │              │
-│  │   ┌───────────────────────────┐        │              │
-│  │   │  ProtocolEngine           │        │              │
-│  │   │  execute_protocol()       │        │              │
-│  │   │                           │        │              │
-│  │   │  async def action_1()     │        │              │
-│  │   │  await asyncio.sleep()    │        │              │
-│  │   │  async def action_2()     │        │              │
-│  │   └───────────────────────────┘        │              │
-│  │                                         │              │
-│  │   Event loop destroyed on completion   │              │
-│  └─────────────────────────────────────────┘              │
-│                                                            │
-│  Signals (thread-safe) ───────────────────────▶ Main GUI  │
-└────────────────────────────────────────────────────────────┘
+                                                              
+                QThreadPool Worker Thread                     
+                                                              
+                                                             
+       asyncio.run() creates event loop                      
+                                                             
+                                                            
+          ProtocolEngine                                    
+          execute_protocol()                                
+                                                            
+          async def action_1()                              
+          await asyncio.sleep()                             
+          async def action_2()                              
+                                                            
+                                                             
+       Event loop destroyed on completion                   
+                                                             
+                                                              
+   Signals (thread-safe)                        ▶ Main GUI   
+                                                              
 ```
 
 ### Design Philosophy
@@ -119,35 +119,35 @@ def run(self) -> None:
 ### Lifecycle Phases
 
 ```
-┌──────────────────────────────────────────────────────────┐
-│ Phase 1: Thread Start                                   │
-│  - QThreadPool assigns worker to thread                 │
-│  - Worker.run() method called                           │
-└────────────────┬─────────────────────────────────────────┘
-                 │
+                                                            
+  Phase 1: Thread Start                                    
+   - QThreadPool assigns worker to thread                  
+   - Worker.run() method called                            
+                                                            
+                  
                  ▼
-┌──────────────────────────────────────────────────────────┐
-│ Phase 2: Event Loop Creation                            │
-│  - asyncio.run() creates new event loop                 │
-│  - Loop set as current event loop for this thread       │
-│  - No interaction with Qt's main event loop             │
-└────────────────┬─────────────────────────────────────────┘
-                 │
+                                                            
+  Phase 2: Event Loop Creation                             
+   - asyncio.run() creates new event loop                  
+   - Loop set as current event loop for this thread        
+   - No interaction with Qt's main event loop              
+                                                            
+                  
                  ▼
-┌──────────────────────────────────────────────────────────┐
-│ Phase 3: Async Execution                                │
-│  - Protocol engine executes async actions               │
-│  - await statements coordinate asynchronous operations  │
-│  - asyncio.sleep() for non-blocking delays              │
-└────────────────┬─────────────────────────────────────────┘
-                 │
+                                                            
+  Phase 3: Async Execution                                 
+   - Protocol engine executes async actions                
+   - await statements coordinate asynchronous operations   
+   - asyncio.sleep() for non-blocking delays               
+                                                            
+                  
                  ▼
-┌──────────────────────────────────────────────────────────┐
-│ Phase 4: Completion & Cleanup                           │
-│  - asyncio.run() waits for protocol completion          │
-│  - Event loop closed and destroyed                      │
-│  - Worker thread returns to thread pool                 │
-└──────────────────────────────────────────────────────────┘
+                                                            
+  Phase 4: Completion & Cleanup                            
+   - asyncio.run() waits for protocol completion           
+   - Event loop closed and destroyed                       
+   - Worker thread returns to thread pool                  
+                                                            
 ```
 
 ---
@@ -235,29 +235,23 @@ class ProtocolWorker(QRunnable):
 ### High-Level Flow
 
 ```
-1. User clicks "Start Protocol" button in UI
-   ↓
-2. MainWindow creates ProtocolWorker(protocol_engine, protocol)
-   ↓
-3. Worker submitted to QThreadPool
-   ↓
-4. Thread pool assigns worker to available thread
-   ↓
-5. Worker.run() executes in background thread:
-   a. asyncio.run() creates event loop
-   b. protocol_engine.execute_protocol() called
-   c. Async actions executed sequentially:
-      - await self._execute_set_laser_power()
-      - await asyncio.sleep(duration)
-      - await self._execute_move_actuator()
-   d. Event loop automatically closed
-   ↓
-6. Signals emitted to main thread:
-   - execution_started.emit()
-   - progress_update.emit(percentage, status)
-   - execution_complete.emit(success, message)
-   ↓
-7. Main thread updates UI in response to signals
+1. **User clicks "Start Protocol" button in UI**
+2. **MainWindow creates ProtocolWorker(protocol_engine, protocol)**
+3. **Worker submitted to QThreadPool**
+4. **Thread pool assigns worker to available thread**
+5. **Worker.run() executes in background thread** - 
+6. **a. asyncio.run() creates event loop**
+7. **b. protocol_engine.execute_protocol() called**
+8. **c. Async actions executed sequentially** - 
+9. **- await self._execute_set_laser_power()**
+10. **- await asyncio.sleep(duration)**
+11. **- await self._execute_move_actuator()**
+12. **d. Event loop automatically closed**
+13. **Signals emitted to main thread** - 
+14. **- execution_started.emit()**
+15. **- progress_update.emit(percentage, status)**
+16. **- execution_complete.emit(success, message)**
+17. **Main thread updates UI in response to signals**
 ```
 
 ### Async Execution Within Protocol

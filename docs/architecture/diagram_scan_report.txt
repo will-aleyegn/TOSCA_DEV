@@ -1,0 +1,19 @@
+DETAILED DIAGRAM SCAN REPORT
+================================================================================
+
+File: 03_safety_system.md
+Line: 57
+Type: state_machine
+Content: Code block with STATE keywords and arrows
+Details: Should be PlantUML state diagram
+
+--------------------------------------------------------------------------------
+
+File: 03_safety_system.md
+Line: 114
+Type: state_machine
+Content: Code block with STATE keywords and arrows
+Details: Should be PlantUML state diagram
+
+--------------------------------------------------------------------------------
+

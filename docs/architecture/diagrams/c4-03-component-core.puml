@@ -1,0 +1,56 @@
+@startuml TOSCA Component Diagram - Application Core
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_WITH_LEGEND()
+
+title Component Diagram - Application Core Layer
+
+Container(ui, "PyQt6 GUI", "User interface widgets and dialogs")
+Container(hal, "Hardware Abstraction Layer", "Thread-safe hardware controllers")
+ContainerDb(db, "SQLite Database", "Data persistence")
+
+Container_Boundary(core, "Application Core") {
+    Component(safety_mgr, "Safety Manager", "Python Class", "5-state safety FSM, interlock coordination, selective shutdown policy")
+    Component(session_mgr, "Session Manager", "Python Class", "Subject selection, session lifecycle, recording coordination")
+    Component(protocol_engine, "Protocol Engine", "Python Class", "Async protocol execution, power control, position sequencing")
+    Component(event_logger, "Event Logger", "Python Class", "Immutable event logging to JSONL + SQLite")
+    Component(watchdog, "Safety Watchdog", "Python Class", "Hardware watchdog heartbeat (500ms interval, 1000ms timeout)")
+    Component(recording_mgr, "Recording Manager", "Python Class", "Video recording, snapshot capture, metadata management")
+}
+
+Rel(ui, safety_mgr, "Monitors state", "PyQt6 signals")
+Rel(ui, session_mgr, "Manages sessions", "Method calls")
+Rel(ui, protocol_engine, "Executes protocols", "Async API")
+
+Rel(safety_mgr, hal, "Queries interlocks", "GPIO controller")
+Rel(safety_mgr, watchdog, "Controls heartbeat", "Start/stop")
+Rel(safety_mgr, event_logger, "Logs faults", "Log events")
+
+Rel(session_mgr, db, "CRUD operations", "SQLAlchemy")
+Rel(session_mgr, recording_mgr, "Starts/stops recording", "Method calls")
+Rel(session_mgr, event_logger, "Logs session events", "Log events")
+
+Rel(protocol_engine, hal, "Controls devices", "Laser, TEC, actuator")
+Rel(protocol_engine, safety_mgr, "Checks safety", "Query state")
+Rel(protocol_engine, event_logger, "Logs actions", "Log events")
+
+Rel(watchdog, hal, "Sends heartbeat", "GPIO controller")
+
+Rel(event_logger, db, "Writes events", "SQLAlchemy")
+
+Rel(recording_mgr, hal, "Captures frames", "Camera controller")
+
+note bottom of safety_mgr
+  **State Transitions:**
+  SAFE → ARMED → TREATING
+     ↓      ↓         ↓
+     ← UNSAFE/FAULT ←
+           ↓
+     EMERGENCY_STOP (locked)
+
+  **Selective Shutdown:**
+  Only treatment laser disabled on fault
+  Camera, actuator, monitoring preserved
+end note
+
+@enduml

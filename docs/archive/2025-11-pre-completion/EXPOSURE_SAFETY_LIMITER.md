@@ -1,5 +1,7 @@
 # Exposure Safety Limiter - Implementation Guide
 
+**Last Updated:** 2025-11-04
+
 **Date:** 2025-10-30
 **Version:** 0.9.9-alpha (pending)
 **Feature:** Prevent accidental frame drops from long exposure times
@@ -25,7 +27,7 @@ The exposure safety limiter prevents users from accidentally setting exposure ti
 - No warning or feedback about frame rate impact
 
 **Example:**
-```
+```text
 User sets exposure to 100ms
 Expected: Smooth 30 FPS live view
 Actual: 10 FPS with severe stuttering (frame drops)
@@ -69,7 +71,7 @@ def _on_exposure_changed(self, value: int) -> None:
 
     # Safe - send to camera
     self.camera_controller.set_exposure(float(value))
-```
+```text
 
 ### 2. Safety Check Logic
 
@@ -86,7 +88,7 @@ def _is_exposure_safe(self, exposure_us: int) -> bool:
     # 2. Long exposure mode explicitly enabled
     return (exposure_us <= max_safe_exposure_us or
             self.allow_long_exposure_check.isChecked())
-```
+```text
 
 ### 3. Warning Label Update
 
@@ -97,19 +99,19 @@ def _is_exposure_safe(self, exposure_us: int) -> bool:
 1. **Safe exposure (<33ms):** No warning
    ```
    [No message displayed]
-   ```
+   ```text
 
 2. **Unsafe attempt (user didn't check box):** Red warning
    ```
    WARNING: Exposure 50.0ms > 33ms frame period.
    Enable 'Allow Long Exposure' or reduce exposure.
-   ```
+   ```text
 
 3. **Long exposure enabled (intentional):** Orange info
    ```
    ℹ️ Long exposure active (100.0ms).
    Expect ~10.0 FPS (frame drops normal).
-   ```
+   ```text
 
 ### 4. UI Components
 
@@ -126,7 +128,7 @@ self.allow_long_exposure_check.setToolTip(
 self.allow_long_exposure_check.setStyleSheet(
     "color: #ff8800; font-weight: bold;"
 )
-```
+```text
 
 **Warning label:** `camera_widget.py:312-316`
 ```python
@@ -135,7 +137,7 @@ self.exposure_warning_label.setStyleSheet(
     "color: #ff5555; font-weight: bold; font-size: 10px;"
 )
 self.exposure_warning_label.setWordWrap(True)
-```
+```text
 
 ### 5. Updated Exposure Range
 
@@ -159,7 +161,7 @@ self.exposure_warning_label.setWordWrap(True)
    → Slider moves freely
    → No warning displayed
    → Live view remains smooth at 30 FPS ✅
-```
+```text
 
 ### Scenario 2: Attempted Long Exposure (Protected)
 
@@ -170,7 +172,7 @@ self.exposure_warning_label.setWordWrap(True)
    → Warning appears: "WARNING: Exposure limited to 33ms..."
    → Console log: "Exposure change blocked: 50000µs exceeds frame period"
    → User sees checkbox is unchecked ❌
-```
+```text
 
 ### Scenario 3: Intentional Long Exposure (Override)
 
@@ -182,7 +184,7 @@ self.exposure_warning_label.setWordWrap(True)
    → Info appears: "ℹ️ Long exposure active (100.0ms). Expect ~10.0 FPS"
    → Live view drops to ~10 FPS (expected behavior)
    → User understands this is intentional
-```
+```text
 
 ### Scenario 4: Auto Exposure (Bypasses Limiter)
 
@@ -193,7 +195,7 @@ self.exposure_warning_label.setWordWrap(True)
    → Warning label cleared
    → Camera manages exposure automatically
    → No user intervention possible ✅
-```
+```text
 
 ---
 
@@ -206,14 +208,14 @@ self.exposure_warning_label.setWordWrap(True)
 30 FPS → 1000ms / 30 = 33.33ms per frame
 25 FPS → 1000ms / 25 = 40.00ms per frame
 60 FPS → 1000ms / 60 = 16.67ms per frame
-```
+```text
 
 **Safe exposure threshold:**
 ```python
 # At 30 FPS, frame period = 33.33ms
 # Safety margin: Set limit slightly under to account for processing
 max_safe_exposure_us = 33000  # 33.0ms (0.33ms margin)
-```
+```text
 
 ### Expected FPS Calculation
 
@@ -226,7 +228,7 @@ Examples:
 - 100ms exposure → ~10 FPS
 - 200ms exposure → ~5 FPS
 - 1000ms (1 sec) → ~1 FPS
-```
+```bash
 
 ---
 
@@ -326,25 +328,25 @@ Examples:
 ```
 Set exposure to exactly 33000 µs
 Expected: Passes safety check (≤ threshold)
-```
+```text
 
 **Test 6b: Boundary value (33.001ms)**
 ```
 Set exposure to 33001 µs
 Expected: Blocked (> threshold)
-```
+```text
 
 **Test 6c: Very long exposure (1 second)**
 ```
 Enable checkbox → Set to 1,000,000 µs
 Expected: Info shows "~1.0 FPS"
-```
+```text
 
 **Test 6d: Minimum exposure (0.1ms)**
 ```
 Set to 100 µs
 Expected: Works, ~10,000 FPS theoretical (limited by camera hardware)
-```
+```text
 
 ---
 
@@ -365,7 +367,7 @@ Expected: Works, ~10,000 FPS theoretical (limited by camera hardware)
 │ ▬▬▬●▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬          │
 │ 0.0 dB                          [Enter dB_____]       │
 └────────────────────────────────────────────────────────┘
-```
+```text
 
 **Visual States:**
 
@@ -413,7 +415,7 @@ _on_exposure_changed(value)
            Update UI + run _check_exposure_safety()
                    ↓
            Update warning label based on state
-```
+```text
 
 ---
 
@@ -478,7 +480,7 @@ def _get_max_safe_exposure_us(self) -> int:
         safe_period_ms = frame_period_ms * 0.9
         return int(safe_period_ms * 1000)  # ms → µs
     return 33000  # fallback
-```
+```text
 
 ### 2. Exposure Presets
 

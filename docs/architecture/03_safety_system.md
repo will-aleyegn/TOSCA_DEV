@@ -21,25 +21,25 @@ This laser system implements multiple redundant safety layers based on these pri
 
 ### Interlock Architecture
 
-```
-                    ┌─────────────────────────┐
-                    │   Safety Manager        │
-                    │   (Master Controller)   │
-                    └────────────┬────────────┘
-                                 │
-              ┌──────────────────┼──────────────────┐
-              │                  │                  │
-    ┌─────────▼─────────┐ ┌─────▼──────┐ ┌────────▼────────┐
-    │ Hardware Interlocks│ │ Software   │ │  Session        │
-    │ - dead man's switch footpedal        │ │ Interlocks │ │  Interlocks     │
-    │ - Laser Spot Smoothing Module │ │ - E-stop   │ │  - Active sess. │
-    │ - photodiode laser pickoff measurement       │ │ - Power    │ │  - Subject ID   │
-    └─────────┬──────────┘ │   limits   │ │  - Tech auth.   │
-              │            └─────┬──────┘ └────────┬────────┘
-              └──────────────────┼──────────────────┘
-                                 │
-                       ALL MUST PASS ───► LASER ENABLE
-                       ANY FAILS     ───► LASER DISABLE
+```text
+                                               
+                        Safety Manager         
+                        (Master Controller)    
+                                               
+                                  
+                                                     
+                                                     
+              ▼                 ▼                 ▼         
+      Hardware Interlocks    Software        Session         
+      - dead man's switch footpedal            Interlocks      Interlocks      
+      - Laser Spot Smoothing Module     - E-stop        - Active sess.  
+      - photodiode laser pickoff measurement           - Power         - Subject ID    
+                               limits        - Tech auth.    
+                                                             
+                                                     
+                                  
+                       ALL MUST PASS    ► LASER ENABLE
+                       ANY FAILS        ► LASER DISABLE
 ```
 
 ### Hardware Interlocks (GPIO-based)
@@ -54,7 +54,7 @@ This laser system implements multiple redundant safety layers based on these pri
 - Hardware debouncing in firmware
 
 **Behavior:**
-```
+```text
 dead man's switch footpedal State:
   DEPRESSED (pin HIGH)  → Laser CAN fire (if other interlocks pass)
   RELEASED  (pin LOW)   → Laser CANNOT fire (immediate shutdown)
@@ -628,47 +628,47 @@ class SafetyManager:
 ## Safety State Machine
 
 ```
-┌──────────────┐
-│  SYSTEM_OFF  │  (Application not running)
-└──────┬───────┘
-       │ Application start
+                
+   SYSTEM_OFF     (Application not running)
+                
+         Application start
        ▼
-┌──────────────┐
-│ INITIALIZING │  (Hardware connection, self-test)
-└──────┬───────┘
-       │ All hardware connected & healthy
+                
+  INITIALIZING    (Hardware connection, self-test)
+                
+         All hardware connected & healthy
        ▼
-┌──────────────┐
-│    READY     │  (Standby - can create session)
-└──────┬───────┘
-       │ Session started, all interlocks pass
+                
+     READY        (Standby - can create session)
+                
+         Session started, all interlocks pass
        ▼
-┌──────────────┐
-│    ARMED     │  (Ready to fire, awaiting dead man's switch footpedal)
-└──────┬───────┘
-       │ dead man's switch footpedal depressed
+                
+     ARMED        (Ready to fire, awaiting dead man's switch footpedal)
+                
+         dead man's switch footpedal depressed
        ▼
-┌──────────────┐         Any interlock failure
-│   TREATING   │────────────────────┐
-└──────┬───────┘                    │
-       │                            │
-       │ Treatment complete         │
-       │ OR dead man's switch footpedal released      ▼
-       ▼                      ┌──────────┐
-┌──────────────┐             │  FAULT   │
-│   PAUSED     │             └────┬─────┘
-└──────┬───────┘                  │
-       │ Resume                   │ Fault cleared
-       └──────────────┬───────────┘
+                         Any interlock failure
+    TREATING                         
+                                     
+                                     
+         Treatment complete          
+         OR dead man's switch footpedal released      ▼
+       ▼                                  
+                                FAULT    
+    PAUSED                               
+                                   
+         Resume                     Fault cleared
+                                   
                       ▼
-               ┌──────────────┐
-               │ SAFE_SHUTDOWN│ (Laser OFF, hardware safe)
-               └──────┬───────┘
-                      │ Reset
+                               
+                 SAFE_SHUTDOWN  (Laser OFF, hardware safe)
+                               
+                        Reset
                       ▼
-               ┌──────────────┐
-               │    READY     │
-               └──────────────┘
+                               
+                    READY      
+                               
 ```
 
 ### State Transition Rules

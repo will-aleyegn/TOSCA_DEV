@@ -5,16 +5,14 @@ Tests camera frame rate, signal emission performance, thread safety,
 and QPixmap optimization effectiveness.
 """
 
-import time
 from unittest.mock import Mock, patch
 
 import numpy as np
 import pytest
-from PyQt6.QtCore import QTimer
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import QApplication
 
-from src.hardware.camera_controller import CameraController, CameraStreamThread
+from src.hardware.camera_controller import CameraController
 
 
 class TestCameraPerformance:

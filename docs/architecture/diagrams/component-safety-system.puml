@@ -1,0 +1,130 @@
+@startuml component-safety-system
+
+title TOSCA Safety System Architecture\nMulti-Layer Safety Interlock System for FDA Compliance
+
+skinparam componentStyle rectangle
+skinparam backgroundColor #FEFECE
+
+actor "Clinical\nOperator" as operator
+actor "Patient" as patient
+
+package "TOSCA Laser Control System" {
+
+    package "User Interface Layer" {
+        [PyQt6 GUI\n(Emergency Stop Button)] as UI
+    }
+
+    package "Core Application Layer" {
+        [Safety Manager\n(CRITICAL)] as SafetyMgr <<IEC 62304 Class C>>
+        [Protocol Engine] as ProtocolEngine
+        [Session Manager] as SessionMgr
+    }
+
+    package "Hardware Abstraction Layer" {
+        [Laser Controller\n(COM10)] as LaserHAL
+        [Camera Controller\n(USB 3.0)] as CameraHAL
+        [Actuator Controller\n(COM3)] as ActuatorHAL
+        [GPIO Controller\n(COM4)] as GPIOHAL
+    }
+
+    package "Data Persistence Layer" {
+        database "SQLite\nAudit Trail" as DB
+        file "JSONL\nEvent Log" as LogFile
+    }
+}
+
+package "Hardware Devices" <<IEC 60601-1>> {
+    component "Arroyo Laser\n(10W max)" as LaserHW
+    component "Allied Vision\nCamera" as CameraHW
+    component "Xeryon\nActuator" as ActuatorHW
+    component "Arduino\nWatchdog" as Arduino
+}
+
+package "Safety Interlocks" {
+    component "Footpedal\n(Deadman)" as Footpedal
+    component "Photodiode\n(0-5V)" as Photodiode
+    component "Smoothing\nMotor" as Smoothing
+}
+
+' Operator interactions
+operator --> UI : Controls treatment
+operator --> Footpedal : Depresses to enable
+patient <-- LaserHW : Receives treatment
+
+' UI to Core
+UI --> SafetyMgr : Checks interlocks
+UI --> ProtocolEngine : Starts/stops protocol
+UI --> SessionMgr : Creates session
+
+' Safety Manager (CRITICAL PATH)
+SafetyMgr --> LaserHAL : Enables/disables laser\n<color:red>(CRITICAL)</color>
+SafetyMgr --> GPIOHAL : Reads interlock status\n<color:red>(CRITICAL)</color>
+SafetyMgr --> SessionMgr : Validates session
+
+' Protocol Engine
+ProtocolEngine --> LaserHAL : Sets power
+ProtocolEngine --> ActuatorHAL : Moves position
+ProtocolEngine --> CameraHAL : Captures images
+
+' Session Manager to Database
+SessionMgr --> DB : Logs events\n(append-only)
+SessionMgr --> LogFile : Writes events\n(JSONL)
+
+' HAL to Hardware
+LaserHAL --> LaserHW : RS-232\n(38400 baud)
+CameraHAL --> CameraHW : USB 3.0\n(VmbPy SDK)
+ActuatorHAL --> ActuatorHW : RS-232\n(9600 baud)
+GPIOHAL --> Arduino : USB Serial\n(115200 baud)
+
+' Hardware Interlocks
+Arduino --> Footpedal : Monitors state\n(Digital D5)
+Arduino --> Photodiode : Reads voltage\n(Analog A0)
+Arduino --> Smoothing : Reads vibration\n(Digital D3)
+Arduino ..> LaserHW : Disables on\nwatchdog timeout
+
+' Critical safety path
+Footpedal -[#red,bold]-> Arduino
+Arduino -[#red,bold]-> GPIOHAL
+GPIOHAL -[#red,bold]-> SafetyMgr
+SafetyMgr -[#red,bold]-> LaserHAL
+
+note right of SafetyMgr
+  **CRITICAL COMPONENT**
+  IEC 62304 Class C
+
+  Safety State Machine:
+  SAFE → ARMED → TREATING
+    ↓      ↓         ↓
+    ← UNSAFE/FAULT ←
+          ↓
+    EMERGENCY_STOP
+end note
+
+note right of Arduino
+  **Independent Watchdog**
+  IEC 60601-1 requirement
+
+  Timeout: 1000ms
+  Heartbeat: 500ms
+
+  Hardware disables laser
+  if no software heartbeat
+end note
+
+note bottom of DB
+  **Audit Trail**
+  21 CFR Part 11 compliance
+
+  • Append-only (no deletes)
+  • Checksums (tamper-evident)
+  • UTC timestamps
+  • Operator identification
+end note
+
+legend bottom
+  <color:red>Red arrows</color> = Safety-critical path
+  IEC 62304 Class C = Highest safety risk
+  Response time: <100ms for all safety actions
+endlegend
+
+@enduml

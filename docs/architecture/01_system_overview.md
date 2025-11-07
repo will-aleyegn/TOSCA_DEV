@@ -61,48 +61,9 @@ jsonschema            # Protocol validation
 
 ## High-Level Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                     User Interface (PyQt6)                      │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐          │
-│  │ Subject  │ │  Live    │ │Treatment │ │ Safety   │          │
-│  │Selection │ │  Video   │ │ Control  │ │ Status   │          │
-│  └──────────┘ └──────────┘ └──────────┘ └──────────┘          │
-└─────────────────────────────────────────────────────────────────┘
-                              ↕
-┌─────────────────────────────────────────────────────────────────┐
-│              Application Core (Business Logic)                  │
-│  ┌──────────────────┐  ┌──────────────────┐                    │
-│  │ Session Manager  │  │  Safety Manager  │                    │
-│  │ - Subject select │  │  - Footpedal     │                    │
-│  │ - Tech ID        │  │  - Smoothing dev │                    │
-│  │ - Recording      │  │  - Photodiode    │                    │
-│  └──────────────────┘  │  - Interlocks    │                    │
-│  ┌──────────────────┐  └──────────────────┘                    │
-│  │Treatment Engine  │  ┌──────────────────┐                    │
-│  │ - Protocol exec  │  │ Image Processor  │                    │
-│  │ - Power control  │  │ - Ring detection │                    │
-│  │ - Ring sizing    │  │ - Focus measure  │                    │
-│  │ - Data logging   │  │ - Video record   │                    │
-│  └──────────────────┘  └──────────────────┘                    │
-└─────────────────────────────────────────────────────────────────┘
-                              ↕
-┌─────────────────────────────────────────────────────────────────┐
-│         Hardware Abstraction Layer (HAL)                        │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐          │
-│  │  Laser   │ │ Actuator │ │  Camera  │ │   GPIO   │          │
-│  │ (Arroyo) │ │ (Xeryon) │ │ (VmbPy)  │ │(Arduino) │          │
-│  │  Serial  │ │   API    │ │   SDK    │ │ Firmata  │          │
-│  │          │ │          │ │          │ │ Smoothing│          │
-│  │          │ │          │ │          │ │Photodiode│          │
-│  └──────────┘ └──────────┘ └──────────┘ └──────────┘          │
-└─────────────────────────────────────────────────────────────────┘
-                              ↕
-┌─────────────────────────────────────────────────────────────────┐
-│                    Physical Hardware Layer                       │
-│  [Laser] [Actuator] [Camera] [Footpedal] [Smoothing] [Photodiode]│
-└─────────────────────────────────────────────────────────────────┘
-```
+![TOSCA System Architecture - Container View](tosca_container_diagram.png)
+
+*Figure 1: High-level architecture showing the three-layer design - User Interface (PyQt6), Application Core (Business Logic), and Hardware Abstraction Layer (HAL). The diagram illustrates component relationships and data flow between layers.*
 
 ## Hardware Components
 
@@ -186,13 +147,14 @@ jsonschema            # Protocol validation
 ### Safety State Machine
 
 ```
-[SYSTEM_OFF] → [INITIALIZING] → [READY]
-                                   ↓
-[FAULT] ← ← ← ← ← ← ← ← [ARMED] ← ← (all interlocks pass)
-   ↓                               ↓
-[SAFE_SHUTDOWN]              [TREATING] ← (footpedal depressed)
-                                   ↓
-                            [TREATMENT_COMPLETE]
+*See diagram above for state machine visualization.*
+
+**States:** **SYSTEM_OFF**, **INITIALIZING**, **READY**, **FAULT**, **ARMED**, **SAFE_SHUTDOWN**, **TREATING**, **TREATMENT_COMPLETE**
+
+**Key Transitions:**
+- [SYSTEM_OFF] [INITIALIZING] [READY]
+- [FAULT] [ARMED] (all interlocks pass)
+- [SAFE_SHUTDOWN] [TREATING] (footpedal depressed)
 ```
 
 Any interlock failure → Immediate transition to FAULT state → Safe shutdown
@@ -202,67 +164,60 @@ Any interlock failure → Immediate transition to FAULT state → Safe shutdown
 ### Session Initialization
 
 ```
-1. Application Launch
-   ↓
-2. Hardware Connection & Self-Test
-   ↓
-3. Tech ID Entry (required for all operations)
-   ↓
-4. Subject Selection Screen
-   ├─ Option A: Select Existing Subject (search by subject code)
-   │   └─ Load subject history
-   └─ Option B: Create New Subject
-       └─ Generate subject code, enter demographics
-   ↓
-5. Session Creation
-   └─ Log: Subject ID, Tech ID, Start Time
+1. **Application Launch**
+2. **Hardware Connection & Self-Test**
+3. **Tech ID Entry (required for all operations)**
+4. **Subject Selection Screen**
+5. **Option A** - Select Existing Subject (search by subject code)
+6. **Load subject history**
+7. **Option B** - Create New Subject
+8. **Generate subject code, enter demographics**
+9. **Session Creation**
+10. **Log** - Subject ID, Tech ID, Start Time
 ```
 
 ### Pre-Treatment Setup
 
 ```
-1. Display Live Camera Feed
-   ↓
-2. Operator Manual Actions (outside software control):
-   ├─ Adjust focus (physical optics)
-   ├─ Align laser ring to treatment site
-   └─ Position subject
-   ↓
-3. Software Assistance:
-   ├─ Real-time focus quality indicator
-   ├─ Ring detection overlay
-   └─ Alignment guides
-   ↓
-4. Operator confirms ready
+1. **Display Live Camera Feed**
+2. **Operator Manual Actions (outside software control)** - 
+3. **Adjust focus (physical optics)**
+4. **Align laser ring to treatment site**
+5. **Position subject**
+6. **Software Assistance** - 
+7. **Real-time focus quality indicator**
+8. **Ring detection overlay**
+9. **Alignment guides**
+10. **Operator confirms ready**
 ```
 
 ### Treatment Execution
 
 ```
 1. Select Treatment Protocol
-   ├─ Load saved protocol, OR
-   └─ Create/modify custom protocol
-   ↓
+      Load saved protocol, OR
+      Create/modify custom protocol
+   
 2. Safety Pre-checks
-   ├─ All hardware connected
-   ├─ Interlocks in valid state
-   ├─ Camera image valid
-   └─ Session active
-   ↓
+      All hardware connected
+      Interlocks in valid state
+      Camera image valid
+      Session active
+   
 3. Operator initiates FIRE trigger
-   ↓
+   
 4. System transitions to ARMED state
-   ↓
+   
 5. Treatment Loop (while footpedal depressed):
-   ├─ Execute protocol step (power, ring size)
-   ├─ Monitor photodiode
-   ├─ Monitor smoothing device
-   ├─ Capture camera frames
-   ├─ Log all parameters (timestamp, power, position, voltage)
-   └─ Check safety interlocks (every cycle)
-   ↓
+      Execute protocol step (power, ring size)
+      Monitor photodiode
+      Monitor smoothing device
+      Capture camera frames
+      Log all parameters (timestamp, power, position, voltage)
+      Check safety interlocks (every cycle)
+   
 6. Treatment completion or pedal release
-   ↓
+   
 7. Return to READY state
 ```
 
@@ -277,30 +232,25 @@ Any interlock failure → Immediate transition to FAULT state → Safe shutdown
 **Data Storage Location:**
 ```
 data/
-├── sessions/
-│   ├── session_YYYYMMDD_HHMMSS_<session_id>/
-│   │   ├── video.avi
-│   │   ├── events.json
-│   │   ├── snapshots/
-│   │   │   ├── frame_001.png
-│   │   │   ├── frame_002.png
-│   │   └── metadata.json
+    sessions/
+        session_YYYYMMDD_HHMMSS_<session_id>/
+            video.avi
+            events.json
+            snapshots/
+                frame_001.png
+                frame_002.png
+            metadata.json
 ```
 
 ### Session Closure
 
 ```
-1. Operator ends treatment
-   ↓
-2. Save final recordings
-   ↓
-3. Add session notes
-   ↓
-4. Mark session as complete in database
-   ↓
-5. Update subject last_modified timestamp
-   ↓
-6. Return to Subject Selection (for next subject)
+1. **Operator ends treatment**
+2. **Save final recordings**
+3. **Add session notes**
+4. **Mark session as complete in database**
+5. **Update subject last_modified timestamp**
+6. **Return to Subject Selection (for next subject)**
 ```
 
 ## Treatment Protocol Engine
@@ -360,30 +310,25 @@ data/
 ### Pipeline Overview
 
 ```
-Camera Frame
-   ↓
-[Preprocessing]
-   ├─ Grayscale conversion
-   ├─ Noise reduction
-   └─ Contrast enhancement
-   ↓
-[Ring Detection]
-   ├─ Hough Circle Transform
-   ├─ Edge detection refinement
-   └─ Circle parameters (center, radius)
-   ↓
-[Focus Measurement]
-   ├─ Laplacian variance (sharpness)
-   ├─ Gradient magnitude
-   └─ Focus score (0-100)
-   ↓
-[Display Overlay]
-   ├─ Detected ring outline
-   ├─ Focus indicator
-   └─ Alignment guides
-   ↓
-[Recording]
-   └─ Save annotated frames
+1. **Camera Frame**
+2. **[Preprocessing]**
+3. **Grayscale conversion**
+4. **Noise reduction**
+5. **Contrast enhancement**
+6. **[Ring Detection]**
+7. **Hough Circle Transform**
+8. **Edge detection refinement**
+9. **Circle parameters (center, radius)**
+10. **[Focus Measurement]**
+11. **Laplacian variance (sharpness)**
+12. **Gradient magnitude**
+13. **Focus score (0-100)**
+14. **[Display Overlay]**
+15. **Detected ring outline**
+16. **Focus indicator**
+17. **Alignment guides**
+18. **[Recording]**
+19. **Save annotated frames**
 ```
 
 ### Ring Detection Algorithm
@@ -476,90 +421,28 @@ See: `02_database_schema.md` for full schema
 ## Project Directory Structure
 
 ```
-laser-control-system/
-├── src/
-│   ├── main.py                      # Application entry point
-│   │
-│   ├── config/
-│   │   ├── settings.py              # User-configurable settings
-│   │   ├── safety_limits.py         # Hard-coded safety parameters
-│   │   └── hardware_config.py       # Hardware connection parameters
-│   │
-│   ├── ui/
-│   │   ├── main_window.py           # Main application window
-│   │   ├── subject_selection.py     # Subject selection/creation dialog
-│   │   ├── treatment_control.py     # Treatment control panel
-│   │   ├── video_display.py         # Live camera feed widget
-│   │   ├── protocol_builder.py      # Protocol creation/editing UI
-│   │   ├── safety_panel.py          # Safety status indicators
-│   │   └── widgets/                 # Reusable UI components
-│   │
-│   ├── core/
-│   │   ├── session_manager.py       # Session lifecycle management
-│   │   ├── treatment_engine.py      # Protocol execution engine
-│   │   ├── safety_manager.py        # Safety interlock orchestration
-│   │   ├── recording_manager.py     # Video/data recording
-│   │   └── calibration_manager.py   # Calibration routines
-│   │
-│   ├── hardware/
-│   │   ├── base.py                  # Abstract hardware device class
-│   │   ├── laser_controller.py      # Arroyo laser interface
-│   │   ├── actuator_controller.py   # Xeryon actuator interface
-│   │   ├── camera_controller.py     # VmbPy camera interface
-│   │   ├── gpio_interlocks.py       # GPIO-1: Footpedal + Smoothing
-│   │   ├── gpio_photodiode.py       # GPIO-2: Photodiode ADC
-│   │   └── hardware_manager.py      # Unified hardware coordination
-│   │
-│   ├── image_processing/
-│   │   ├── ring_detector.py         # Laser ring circle detection
-│   │   ├── focus_analyzer.py        # Focus quality measurement
-│   │   ├── video_recorder.py        # Video file writing
-│   │   └── frame_processor.py       # Image preprocessing pipeline
-│   │
-│   ├── database/
-│   │   ├── models.py                # SQLAlchemy ORM models
-│   │   ├── db_manager.py            # Database operations
-│   │   ├── session_logger.py        # High-frequency session logging
-│   │   └── migrations/              # Alembic migration scripts
-│   │
-│   └── utils/
-│       ├── logger.py                # Application logging setup
-│       ├── validators.py            # Input validation functions
-│       ├── exceptions.py            # Custom exception classes
-│       └── constants.py             # System-wide constants
-│
-├── data/
-│   ├── laser_control.db             # SQLite database
-│   ├── sessions/                    # Per-session data folders
-│   │   └── session_<timestamp>_<id>/
-│   │       ├── video.avi
-│   │       ├── events.json
-│   │       ├── photodiode_log.csv
-│   │       ├── snapshots/
-│   │       └── metadata.json
-│   └── logs/                        # Application logs
-│       ├── app_YYYYMMDD.log
-│       └── errors_YYYYMMDD.log
-│
-├── docs/
-│   ├── architecture/
-│   │   ├── 01_system_overview.md        # This file
-│   │   ├── 02_database_schema.md
-│   │   ├── 03_safety_system.md
-│   │   ├── 04_treatment_protocols.md
-│   │   └── 05_image_processing.md
-│   ├── user_manual.md
-│   └── installation.md
-│
-├── tests/
-│   ├── test_hardware/
-│   ├── test_core/
-│   ├── test_safety/
-│   └── test_integration/
-│
-├── requirements.txt
-├── setup.py
-└── README.md
+**High-Level Structure:**
+
+- **src/**
+- **config/**
+- **ui/**
+- **core/**
+- **hardware/**
+- **image_processing/**
+- **database/**
+- **utils/**
+
+**Key Files:**
+- main.py                      # Application entry point
+- settings.py              # User-configurable settings
+- safety_limits.py         # Hard-coded safety parameters
+- hardware_config.py       # Hardware connection parameters
+- main_window.py           # Main application window
+- subject_selection.py     # Subject selection/creation dialog
+- treatment_control.py     # Treatment control panel
+- video_display.py         # Live camera feed widget
+
+*See full project structure in source repository*
 ```
 
 ## Development Phases

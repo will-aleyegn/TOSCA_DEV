@@ -1,5 +1,7 @@
 # Camera Performance Fixes - Implementation Summary
 
+**Last Updated:** 2025-11-04
+
 **Date:** 2025-10-30
 **Version:** 0.9.9-alpha (pending)
 **Issue:** Camera display running at 16.6 FPS instead of target 30 FPS
@@ -49,7 +51,7 @@
 4. Default scale: 0.25× (quarter resolution) for optimal 30 FPS performance
 
 **Performance Gain:**
-```
+```text
 Before: 4.7 MB × 30 FPS = 141 MB/sec → bottleneck (16.6 FPS)
 After:  0.3 MB × 30 FPS = 9 MB/sec   → full 30 FPS ✅
 
@@ -110,7 +112,7 @@ def _poll_auto_values(self):
     if self._auto_gain_enabled:
         actual_gain = self.camera.Gain.get()
         self.gain_changed.emit(actual_gain)  # → UI updates
-```
+```bash
 
 **Benefits:**
 - UI sliders track camera's automatic adjustments in real-time
@@ -294,7 +296,7 @@ def _poll_auto_values(self):
 [DEBUG] GUI frames: 30, Camera frames: 30, GUI FPS: 16.6
 [DEBUG] Signal/slot transfer: 4.7 MB per frame
 [WARNING] Frame rate below target: 16.6 FPS (target: 30.0 FPS)
-```
+```text
 
 ### After Fix (Expected)
 ```
@@ -304,7 +306,7 @@ def _poll_auto_values(self):
 [DEBUG] GUI frames: 30, Camera frames: 30, GUI FPS: 30.0
 [DEBUG] Signal/slot transfer: 0.3 MB per frame
 [INFO] Target frame rate achieved: 30.0 FPS ✅
-```
+```text
 
 ---
 
@@ -359,7 +361,7 @@ def _poll_auto_values(self):
 │                                                                  │
 │  Result: UI tracks hardware auto-adjustments in real-time       │
 └─────────────────────────────────────────────────────────────────┘
-```
+```text
 
 ---
 
@@ -371,7 +373,7 @@ If issues arise, revert to previous behavior:
    ```python
    # In camera_controller.py:300
    self.display_scale = 1.0  # Disable downsampling
-   ```
+   ```text
 
 2. **Restore GUI-side downsampling:**
    ```python
@@ -379,7 +381,7 @@ If issues arise, revert to previous behavior:
    # Uncomment lines 791-796 (removed in this fix)
    if hasattr(self, "display_scale") and self.display_scale < 1.0:
        frame = cv2.resize(frame, (new_width, new_height), ...)
-   ```
+   ```text
 
 3. **Disable auto polling:**
    ```python

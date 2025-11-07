@@ -21,7 +21,6 @@ def measure_startup():
     start_time = time.perf_counter()
 
     # Import Qt before importing application to suppress warnings
-    from PyQt6.QtCore import QTimer
     from PyQt6.QtWidgets import QApplication
 
     # Import main module (imports are relative to src/ now)

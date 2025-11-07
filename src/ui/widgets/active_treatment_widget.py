@@ -25,7 +25,6 @@ from PyQt6.QtWidgets import (
 from ui.widgets.interlocks_widget import InterlocksWidget
 from ui.widgets.smoothing_status_widget import SmoothingStatusWidget
 from ui.workers.protocol_worker import ProtocolWorker
-from ui.design_tokens import Colors
 
 logger = logging.getLogger(__name__)
 

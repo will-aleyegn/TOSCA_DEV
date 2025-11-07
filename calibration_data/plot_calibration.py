@@ -2,7 +2,6 @@ import io
 import sys
 
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 
 # Fix encoding for Windows console

@@ -1,0 +1,122 @@
+@startuml TOSCA Database Schema ERD
+!theme plain
+skinparam linetype ortho
+
+title TOSCA Database Schema - Entity Relationship Diagram
+
+entity "subjects" as subjects {
+  * **subject_id** : INTEGER <<PK>>
+  --
+  * subject_code : TEXT <<UNIQUE>>
+  * created_at : TIMESTAMP
+  * last_modified : TIMESTAMP
+  demographics_json : TEXT
+}
+
+entity "sessions" as sessions {
+  * **session_id** : INTEGER <<PK>>
+  --
+  * subject_id : INTEGER <<FK>>
+  * tech_id : INTEGER <<FK>>
+  * start_time : TIMESTAMP
+  * end_time : TIMESTAMP
+  session_status : TEXT
+  session_notes : TEXT
+  * session_folder_path : TEXT
+}
+
+entity "treatment_events" as events {
+  * **event_id** : INTEGER <<PK>>
+  --
+  * session_id : INTEGER <<FK>>
+  * event_timestamp : TIMESTAMP
+  * event_type : TEXT
+  event_data_json : TEXT
+  laser_power_watts : REAL
+  actuator_position_mm : REAL
+  photodiode_voltage : REAL
+  interlock_status_json : TEXT
+}
+
+entity "protocols" as protocols {
+  * **protocol_id** : INTEGER <<PK>>
+  --
+  * protocol_name : TEXT <<UNIQUE>>
+  * protocol_version : TEXT
+  * created_at : TIMESTAMP
+  * modified_at : TIMESTAMP
+  description : TEXT
+  * protocol_definition_json : TEXT
+  is_active : BOOLEAN
+}
+
+entity "safety_log" as safety {
+  * **safety_event_id** : INTEGER <<PK>>
+  --
+  * session_id : INTEGER <<FK>>
+  * event_timestamp : TIMESTAMP
+  * safety_event_type : TEXT
+  * severity : TEXT
+  fault_reason : TEXT
+  interlock_states_json : TEXT
+  recovery_action : TEXT
+  recovery_timestamp : TIMESTAMP
+}
+
+entity "calibrations" as calibrations {
+  * **calibration_id** : INTEGER <<PK>>
+  --
+  * device_type : TEXT
+  * calibration_timestamp : TIMESTAMP
+  * performed_by_tech_id : INTEGER <<FK>>
+  calibration_data_json : TEXT
+  is_current : BOOLEAN
+}
+
+entity "tech_users" as techs {
+  * **tech_id** : INTEGER <<PK>>
+  --
+  * tech_username : TEXT <<UNIQUE>>
+  * tech_full_name : TEXT
+  * created_at : TIMESTAMP
+  * last_login : TIMESTAMP
+  is_active : BOOLEAN
+  role : TEXT
+}
+
+subjects ||--o{ sessions : "has many"
+sessions ||--o{ events : "contains"
+sessions ||--o{ safety : "logs"
+techs ||--o{ sessions : "performs"
+techs ||--o{ calibrations : "performs"
+protocols ||--o{ events : "executed in"
+
+note bottom of subjects
+  **HIPAA Note:** Subject identifiers are
+  anonymized codes, not patient names.
+  Demographics stored as JSON.
+end note
+
+note right of events
+  **High-Frequency Events:**
+  - Protocol step executions
+  - Power changes
+  - Position updates
+  - Photodiode readings (sampled at 10Hz)
+
+  **Complement:** JSONL files for 100Hz+ data
+end note
+
+note bottom of safety
+  **Immutable Audit Trail:**
+  All safety events logged permanently.
+  Never deleted, only marked as resolved.
+end note
+
+note top of protocols
+  **Versioning:** Protocol definitions are
+  versioned. Old versions preserved for
+  session audit trail.
+end note
+
+@enduml

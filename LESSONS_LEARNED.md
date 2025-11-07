@@ -1,5 +1,7 @@
 # TOSCA Lessons Learned
 
+**Last Updated:** 2025-11-04
+
 **Project:** TOSCA Laser Control System
 
 ---
@@ -31,7 +33,7 @@ with self.db_manager.get_session() as db_session:
     db_session.add(session)
     db_session.commit()  # ← Any error crashes the app!
     db_session.refresh(session)
-```
+```text
 
 #### Solution
 Wrap all database transaction blocks in try/except to catch SQLAlchemy exceptions and handle gracefully:
@@ -53,7 +55,7 @@ except Exception as e:
     QMessageBox.critical(self, "Database Error",
         "Failed to create session. Please contact support.")
     return None
-```
+```text
 
 #### Prevention
 - **Code Review Checklist:** All database operations must have exception handling
@@ -86,7 +88,7 @@ session_folder = self._create_session_folder(subject.subject_code)  # ← File I
 with self.db_manager.get_session() as db_session:
     session = Session(...)
     db_session.commit()  # ← If fails, folder orphaned
-```
+```text
 
 #### Root Cause
 Filesystem operations treated as "side effects" rather than part of transaction. Violates ACID properties - atomicity requires all-or-nothing behavior.
@@ -120,7 +122,7 @@ try:
 except Exception as e:
     logger.error(f"Failed to update folder path for session {session.session_id}: {e}")
     # Folder exists but path not recorded - log for manual cleanup
-```
+```text
 
 #### Prevention
 - **Design Principle:** Database records first, filesystem resources second
@@ -150,7 +152,7 @@ subject = self.db_manager.create_subject(
     subject_code=subject_code,
     tech_id=1  # ← Hardcoded! Breaks audit trail
 )
-```
+```text
 
 #### Root Cause
 Missing technician authentication requirement before subject creation. UI allows subject creation without verified technician login.
@@ -177,7 +179,7 @@ subject = self.db_manager.create_subject(
     subject_code=subject_code,
     tech_id=tech.tech_id  # ← Correct audit trail
 )
-```
+```text
 
 #### Prevention
 - **Medical Device Standards:** All user actions must be attributed to verified users
@@ -217,7 +219,7 @@ if not SUBJECT_CODE_PATTERN.match(subject_code):
     QMessageBox.warning(self, "Invalid Format",
         "Subject ID must be in format 'P-YYYY-NNNN' (e.g., P-2025-0001)")
     return
-```
+```python
 
 #### Prevention
 - **Input Validation:** All user inputs should have format validation
@@ -250,7 +252,7 @@ QImage constructor creates a **shallow copy** that holds only a pointer to the n
 def _on_frame_received(self, frame: np.ndarray) -> None:
     q_image = QImage(frame.data, width, height, bytes_per_line, format)
     # frame goes out of scope here -> memory freed -> QImage invalid!
-```
+```text
 
 #### Solution
 Create a deep copy of the frame data before constructing the QImage. This ensures the data persists for the lifetime of the QImage object.
@@ -260,7 +262,7 @@ Create a deep copy of the frame data before constructing the QImage. This ensure
 def _on_frame_received(self, frame: np.ndarray) -> None:
     frame_copy = frame.copy()  # Deep copy ensures data persists
     q_image = QImage(frame_copy.data, width, height, bytes_per_line, format)
-```
+```text
 
 #### Prevention
 - **Always** copy numpy array data before passing to QImage constructor
@@ -287,7 +289,7 @@ Connecting QDoubleSpinBox.valueChanged to QSlider.setValue() caused runtime type
 # BROKEN CODE
 self.current_spinbox.valueChanged.connect(self.current_slider.setValue)
 # TypeError: QSlider.setValue() expects int, got float
-```
+```bash
 
 #### Root Cause
 PyQt6's signal/slot system performs type checking. QDoubleSpinBox emits float values, but QSlider.setValue() requires int. Direct connection fails type validation.
@@ -300,7 +302,7 @@ Use lambda wrapper to perform explicit float-to-int conversion:
 self.current_spinbox.valueChanged.connect(
     lambda val: self.current_slider.setValue(int(val))
 )
-```
+```bash
 
 #### Prevention
 - Document common PyQt6 type conversion patterns
@@ -328,7 +330,7 @@ Multiple widgets were accessing `protocol.name` which caused AttributeError cras
 # BROKEN CODE
 self.status_label.setText(f"[DONE] Loaded: {protocol.name}")
 # AttributeError: Protocol object has no attribute 'name'
-```
+```python
 
 #### Root Cause
 The `Protocol` class uses `protocol_name` as the attribute name, not `name`. This inconsistency created confusion across the codebase, leading to multiple incorrect references.
@@ -341,7 +343,7 @@ The `Protocol` class uses `protocol_name` as the attribute name, not `name`. Thi
 ```python
 # FIXED CODE
 self.status_label.setText(f"[DONE] Loaded: {protocol.protocol_name}")
-```
+```python
 
 #### Prevention
 - Use descriptive, unambiguous attribute names (avoid generic names like `name`)
@@ -410,7 +412,7 @@ class LaserWidget(QWidget):
         self.controller.connect("COM10")
         # [FAILED] Signal connections inside event handler
         self.controller.connection_changed.connect(...)
-```
+```text
 
 **Issues:**
 1. **Untestable:** Cannot mock controller for unit tests
@@ -443,7 +445,7 @@ class LaserWidget(QWidget):
             return
         self.controller.connection_changed.connect(...)
         logger.debug("LaserWidget signals connected")
-```
+```text
 
 **MainWindow Pattern (Centralized Management):**
 ```python
@@ -460,7 +462,7 @@ class MainWindow(QMainWindow):
         # [DONE] Inject controllers into widgets
         self.laser_widget = LaserWidget(controller=self.laser_controller)
         self.gpio_widget = GPIOWidget(controller=self.gpio_controller)
-```
+```python
 
 #### Benefits
 
@@ -528,7 +530,7 @@ Hardware configuration was hardcoded based on initial development setup. When re
 ```python
 # Updated defaults
 def connect(self, com_port: str = "COM10", baudrate: int = 38400) -> bool:
-```
+```python
 
 #### Prevention
 - Make COM ports configurable in UI or config file
@@ -562,7 +564,7 @@ Used `git commit --no-verify` flag to bypass pre-commit hooks after manual valid
 
 ```bash
 git commit --no-verify -m "commit message"
-```
+```python
 
 #### Prevention
 - Document known MyPy quirks in project README
@@ -608,7 +610,7 @@ logger.info(f"Emitting frame to GUI: #{self.gui_frame_count + 1}")
 
 # Checkpoint 3: Widget reception
 logger.info(f"CameraWidget received frame #{self._frame_receive_count}")
-```
+```text
 
 This allows binary search through pipeline to identify exact failure point.
 
@@ -648,7 +650,7 @@ class MoveActuatorParams(ActionParameters):
     target_position_um: float
     speed_um_per_sec: float
     laser_power_watts: Optional[float] = None  # Optional laser power
-```
+```bash
 
 This allows single action to specify both movement and laser power.
 
@@ -690,7 +692,7 @@ self.author_combo.addItems(["User1", "User2", "User3"])
 # After: QLineEdit with placeholder text
 self.author_input = QLineEdit()
 self.author_input.setPlaceholderText("Your name...")
-```
+```text
 
 #### Prevention
 - Use dropdowns only for **predefined, limited option sets**
@@ -725,7 +727,7 @@ self._frame_receive_count += 1
 
 if self._frame_receive_count <= 5:
     logger.info(f"Frame #{self._frame_receive_count}, shape: {frame.shape}")
-```
+```bash
 
 This provides diagnostic information without flooding logs during normal operation.
 
@@ -806,7 +808,7 @@ Camera display worked on first streaming session but showed a black screen on al
 # BROKEN CODE - Widget reparenting anti-pattern
 self.camera_display = camera_live_view.camera_display  # Steal QLabel!
 camera_section_layout.insertWidget(0, self.camera_display)  # Reparent it
-```
+```text
 
 This created an unstable Qt object hierarchy. The first streaming session worked because the UI was in its initial stable state. After the stop/start cycle, the fragile widget relationship caused signal delivery to fail, preventing frames from reaching the display.
 
@@ -823,7 +825,7 @@ self.pixmap_ready.emit(pixmap)
 camera_live_view.pixmap_ready.connect(self._on_camera_frame_ready)
 def _on_camera_frame_ready(self, pixmap):
     self.camera_display.setPixmap(pixmap)  # Update OWN label
-```
+```bash
 
 #### Prevention
 - **NEVER** reparent child widgets between components
@@ -857,7 +859,7 @@ Implemented hardware binning control using VmbPy `BinningHorizontal` and `Binnin
 # Hardware binning approach (caused issues)
 self.camera.get_feature_by_name("BinningHorizontal").set(binning_factor)
 self.camera.get_feature_by_name("BinningVertical").set(binning_factor)
-```
+```text
 
 **Result:** Corrupted frames with wrong resolution (1756x136 instead of expected values). Display showed colorful noise pattern. Likely a configuration issue - possibly one axis was set incorrectly or mismatch between horizontal/vertical binning.
 
@@ -870,7 +872,7 @@ if self.display_scale < 1.0:
     new_width = int(orig_width * self.display_scale)
     new_height = int(orig_height * self.display_scale)
     frame = cv2.resize(frame, (new_width, new_height), interpolation=cv2.INTER_AREA)
-```
+```text
 
 **Benefits:**
 - [DONE] Simple and reliable (no hardware configuration complexity)
@@ -907,7 +909,7 @@ print(f"Current: H={binning_h.get()}, V={binning_v.get()}")
 width = cam.get_feature_by_name("Width").get()
 height = cam.get_feature_by_name("Height").get()
 print(f"Resolution after binning: {width}x{height}")
-```
+```text
 
 **Expected Benefits if Fixed:**
 - [PERF] **Hardware-level speed:** 2x2 binning → ~4x faster (6-8 FPS)
@@ -965,7 +967,7 @@ def frame_callback(cam, stream, frame):
 
     # Also emit numpy array
     self.frame_ready.emit(frame_rgb)  # [FAILED] SLOW! 300KB per frame!
-```
+```text
 
 **Key Discovery:** The FPS drop was NOT caused by processing overhead, but by **data transfer overhead** from emitting 300KB numpy arrays at 30 FPS:
 
@@ -1001,7 +1003,7 @@ def frame_callback(cam, stream, frame):
     # Create QPixmap and emit ONLY this (Qt implicit sharing = fast)
     pixmap = QPixmap.fromImage(QImage(...))
     self.controller.pixmap_ready.emit(pixmap)  # [DONE] Only signal emission
-```
+```text
 
 **Key Changes:**
 1. [DONE] **Removed frame_ready signal emission** during live view
@@ -1055,7 +1057,7 @@ emission_time = time.perf_counter() - start
 
 if emission_time > processing_time:
     logger.warning("Signal emission is bottleneck, not processing!")
-```
+```text
 
 **2. Choose Signal Type Carefully:**
 - [DONE] Use QPixmap/QImage for GUI display (implicit sharing)
@@ -1076,7 +1078,7 @@ bandwidth_mb_per_sec = (frame_size_kb * fps) / 1024
 
 if bandwidth_mb_per_sec > 1.0:
     logger.warning(f"High signal bandwidth: {bandwidth_mb_per_sec:.1f} MB/s")
-```
+```text
 
 **5. Use Controller Reference Pattern:**
 When threads need access to controller state, pass controller reference:

@@ -5,12 +5,10 @@ Tests laser power actions, wait timing accuracy, actuator movements, progress ca
 and error handling strategies (continue vs abort).
 """
 
-import asyncio
 import sys
 import time
-from datetime import datetime
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
 

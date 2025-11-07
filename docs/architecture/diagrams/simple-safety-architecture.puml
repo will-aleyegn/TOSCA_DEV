@@ -1,0 +1,59 @@
+@startuml simple-safety-architecture
+
+title TOSCA Safety System Architecture\nMulti-Layer Safety Interlock System for FDA Compliance
+
+package "User Interface" {
+    [PyQt6 GUI] as UI
+}
+
+package "Safety Core" {
+    [Safety Manager] as Safety <<CRITICAL>>
+    [Session Manager] as Session
+}
+
+package "Hardware Layer" {
+    [Laser Controller] as Laser
+    [GPIO Controller] as GPIO
+    [Camera Controller] as Camera
+}
+
+package "External Hardware" {
+    [Arduino Watchdog] as Arduino
+    [Footpedal Switch] as Footpedal
+    [Photodiode Sensor] as Photodiode
+}
+
+database "Audit Trail\n(SQLite)" as DB
+
+UI --> Safety : Check interlocks
+UI --> Session : Manage sessions
+Safety --> Laser : Enable/disable
+Safety --> GPIO : Read sensors
+GPIO --> Arduino : Heartbeat (500ms)
+Arduino --> Footpedal : Monitor state
+Arduino --> Photodiode : Read power
+Session --> DB : Log events
+
+note right of Safety
+  IEC 62304 Class C
+  Response: <100ms
+  States: SAFE, ARMED,
+  TREATING, UNSAFE,
+  EMERGENCY_STOP
+end note
+
+note right of Arduino
+  Independent watchdog
+  Timeout: 1000ms
+  Disables laser on
+  software crash
+end note
+
+note right of DB
+  21 CFR Part 11
+  Append-only logging
+  Tamper-evident
+  Operator tracking
+end note
+
+@enduml

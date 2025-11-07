@@ -35,7 +35,7 @@ class ProtocolLine:
     laser: Optional[Union[LaserSetParams, LaserRampParams]] = None
     dwell: Optional[DwellParams] = None
     notes: str = ""
-```
+```text
 
 #### Movement Types
 
@@ -78,7 +78,7 @@ class ProtocolLine:
 #  - Movement completes at 5s, then waits at position
 #  - Laser ramp completes at 3s, then holds 5W
 #  - Line completes at 10s (dwell time)
-```
+```text
 
 ---
 
@@ -112,7 +112,7 @@ class ProtocolLine:
 ├─────────────────────┴───────────────────────────────────┤
 │  [📄 New] [💾 Save] [📂 Load]        [▶ Execute]       │
 └─────────────────────────────────────────────────────────┘
-```
+```text
 
 ### Workflow
 
@@ -180,7 +180,7 @@ class ProtocolLine:
     }
   ]
 }
-```
+```text
 
 ---
 
@@ -210,7 +210,7 @@ builder.protocol_ready.connect(handle_protocol_execution)
 
 # Add to UI
 layout.addWidget(builder)
-```
+```text
 
 ### Handling Protocol Execution
 
@@ -229,7 +229,7 @@ def handle_protocol_execution(protocol: LineBasedProtocol):
         actuator_controller=actuator
     )
     await engine.execute_protocol(protocol)
-```
+```text
 
 ---
 
@@ -241,7 +241,7 @@ def handle_protocol_execution(protocol: LineBasedProtocol):
 # Run standalone test application
 cd examples
 python test_line_protocol_builder.py
-```
+```text
 
 The test app provides:
 - Full protocol builder UI
@@ -262,7 +262,7 @@ line = ProtocolLine(
 )
 
 assert line.calculate_duration() == 5.0  # MAX(5/1, 0, 3) = 5
-```
+```bash
 
 ---
 
@@ -283,7 +283,7 @@ class SafetyLimits:
     min_actuator_position_mm: float = -20.0 # Min position (bidirectional)
     max_actuator_position_mm: float = 20.0  # Max position
     max_actuator_speed_mm_per_s: float = 5.0 # Max speed
-```
+```bash
 
 **Note:** Negative positions are supported for bidirectional actuator movement. The default range is -20mm to +20mm, allowing full travel in both directions from a center home position.
 
@@ -332,7 +332,7 @@ actions = [
     RampLaserPower(2.0, 5.0, 10), # Line 4
     # ...difficult to visualize concurrent operations
 ]
-```
+```text
 
 ### New Line-Based System
 

@@ -17,30 +17,30 @@ The database stores all subject information, treatment sessions, event logs, pro
 
 ## Entity Relationship Diagram
 
-```
-┌──────────────┐         ┌──────────────┐         ┌──────────────┐
-│  tech_users  │         │   subjects   │         │  protocols   │
-└──────┬───────┘         └──────┬───────┘         └──────┬───────┘
-       │                        │                        │
-       │                        │                        │
-       │                  ┌─────▼─────┐                 │
-       └─────────────────►│  sessions │◄────────────────┘
-                          └─────┬─────┘
-                                │
-                   ┌────────────┼────────────┐
-                   │            │            │
-            ┌──────▼───────┐    │     ┌──────▼───────┐
-            │treatment_    │    │     │ session_     │
-            │  events      │    │     │ recordings   │
-            └──────────────┘    │     └──────────────┘
-                                │
-                         ┌──────▼───────┐
-                         │  safety_log  │
-                         └──────────────┘
+```bash
+                                                                  
+   tech_users                subjects                protocols    
+                                                                  
+                                                          
+                                                          
+                                ▼                        
+                         ►   sessions  ◄                 
+                                       
+                                 
+                                              
+                                              
+                   ▼                         ▼        
+             treatment_                 session_      
+               events                   recordings    
+                                                      
+                                 
+                                ▼        
+                            safety_log   
+                                         
 
-┌──────────────┐
-│ calibrations │  (independent)
-└──────────────┘
+                
+  calibrations    (independent)
+                
 ```
 
 ## Table Definitions

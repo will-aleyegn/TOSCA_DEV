@@ -37,7 +37,7 @@ class SafetyState(Enum):
     TREATING = "TREATING"
     UNSAFE = "UNSAFE"
     EMERGENCY_STOP = "EMERGENCY_STOP"
-```
+```bash
 
 **Usage Analysis:**
 - ✅ `SAFE`: Used in `_update_safety_state()` (line 324)
@@ -118,7 +118,7 @@ async def execute_protocol(self):
     finally:
         self.safety_manager.stop_treatment()
         self.safety_manager.disarm_system()
-```
+```text
 
 ---
 
@@ -182,13 +182,13 @@ async def execute_protocol(self):
 ```bash
 # Move to test directory
 mv src/core/safety.py::TestSafetyManager -> tests/test_safety_manager.py
-```
+```text
 
 **Alternative:** Add explicit production guard:
 ```python
 if not os.environ.get('TOSCA_ENABLE_TEST_SAFETY'):
     raise ImportError("TestSafetyManager disabled in production")
-```
+```text
 
 ---
 
@@ -222,7 +222,7 @@ Current Implementation:
 ┌────────────────┐                │
 │ EMERGENCY_STOP │◄───────────────┘
 └────────────────┘
-```
+```text
 
 ### 2.2 Active Transitions ✅
 
@@ -265,7 +265,7 @@ safety_manager._update_safety_state()
 safety_manager.laser_enable_changed [SIGNAL]
         ↓
 laser_widget (UI feedback)
-```
+```text
 
 **Status:** ✅ **FULLY OPERATIONAL**
 
@@ -288,7 +288,7 @@ main_window._on_session_started()
 safety_manager.set_session_valid(True)
         ↓
 safety_manager._update_safety_state()
-```
+```text
 
 **Status:** ✅ **FULLY OPERATIONAL**
 
@@ -315,7 +315,7 @@ safety_manager.trigger_emergency_stop()
 safety_manager.laser_enable_changed [SIGNAL]
         ↓
 Laser disabled
-```
+```text
 
 **Status:** ✅ **FULLY OPERATIONAL - HIGHEST PRIORITY**
 
@@ -336,7 +336,7 @@ Protocol Engine (future)
 safety_manager.set_power_limit_ok(bool)
         ↓
 safety_manager._update_safety_state()
-```
+```text
 
 **Status:** ⚠️ **DEFINED BUT NOT YET USED**
 

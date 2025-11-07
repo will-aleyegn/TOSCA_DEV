@@ -2,7 +2,6 @@
 """Pre-commit hook: Verify file headers on TOSCA Python files."""
 import re
 import sys
-from pathlib import Path
 from typing import List
 
 PRODUCTION_PATHS = ["src/", "firmware/"]  # Require headers in TOSCA code only

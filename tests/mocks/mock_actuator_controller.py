@@ -6,7 +6,6 @@ Simulates Xeryon linear stage behavior including position control and homing.
 
 from __future__ import annotations
 
-import time
 from typing import Any, Optional
 
 from PyQt6.QtCore import QObject, QTimer, pyqtSignal

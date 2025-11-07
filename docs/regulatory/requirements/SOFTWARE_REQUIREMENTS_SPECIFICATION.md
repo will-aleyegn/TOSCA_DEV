@@ -1,4 +1,6 @@
 # Software Requirements Specification (SRS)
+
+**Last Updated:** 2025-11-04
 ## TOSCA Laser Control System
 
 **Document Number:** TOSCA-SRS-001
@@ -101,7 +103,7 @@ The TOSCA software is the primary control system for a medical laser device cons
 - **Data Storage**: SQLite database for session logging and audit trails
 
 **System Context Diagram:**
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │                    TOSCA Software System                     │
 │  ┌────────────┐  ┌──────────────┐  ┌──────────────────┐   │

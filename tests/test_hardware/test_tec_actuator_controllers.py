@@ -5,12 +5,10 @@ Tests temperature management and positioning accuracy without physical hardware.
 """
 
 import sys
-import threading
 from pathlib import Path
 
 import pytest
 from PyQt6.QtCore import QCoreApplication
-from PyQt6.QtTest import QSignalSpy
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 

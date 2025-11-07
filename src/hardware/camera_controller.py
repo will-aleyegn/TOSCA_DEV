@@ -120,8 +120,8 @@ class CameraStreamThread(QThread):
 
         if self.gui_frame_count == 0:
             logger.info(
-                f"Display downsampling enabled: {orig_width}×{orig_height} → "
-                f"{new_width}×{new_height} (scale={self.display_scale}×)"
+                f"Display downsampling enabled: {orig_width}x{orig_height} -> "
+                f"{new_width}x{new_height} (scale={self.display_scale}x)"
             )
 
         return cv2.resize(frame_rgb, (new_width, new_height), interpolation=cv2.INTER_AREA)

@@ -6,7 +6,7 @@ Simulates Arroyo laser driver behavior including power control and TEC monitorin
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Optional
 
 from PyQt6.QtCore import QObject, pyqtSignal
 

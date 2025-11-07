@@ -1,12 +1,14 @@
 # HardwareControllerBase Usage Guide
 
+**Last Updated:** 2025-11-04
+
 ## Overview
 
 `HardwareControllerBase` is an abstract base class that enforces a consistent interface across all hardware controllers in the TOSCA project. It combines PyQt6's `QObject` (for signals/slots) with Python's `ABC` (for interface enforcement).
 
 ## File Location
 
-```
+```text
 src/hardware/hardware_controller_base.py
 ```
 

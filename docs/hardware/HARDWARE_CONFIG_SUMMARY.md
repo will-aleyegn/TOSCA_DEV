@@ -1,4 +1,6 @@
 # TOSCA Hardware Configuration Summary
+
+**Last Updated:** 2025-11-04
 **Date**: 2025-10-27
 **Status**: [DONE] Configured for actual hardware (PWM motor + I2C accelerometer)
 
@@ -62,7 +64,7 @@
 
 Your motor operates at 1.5V - 3.0V. Arduino provides PWM on D9:
 
-```
+```text
 PWM Value    Voltage    Speed Level    Use Case
 ──────────────────────────────────────────────────
 0            0.0V       Stopped        Motor off
@@ -79,7 +81,7 @@ PWM Value    Voltage    Speed Level    Use Case
 ## 📡 **Serial Protocol Commands (NEW)**
 
 ### Motor Control (PWM):
-```
+```text
 MOTOR_SPEED:<0-153>     Set motor speed (0-153 PWM value)
                         Example: MOTOR_SPEED:76  (1.5V, slow)
                         Example: MOTOR_SPEED:153 (3.0V, max)
@@ -88,7 +90,7 @@ GET_MOTOR_SPEED         Read current motor PWM value
 ```
 
 ### Accelerometer (I2C):
-```
+```text
 ACCEL_INIT              Re-scan and initialize accelerometer
 GET_ACCEL               Read X,Y,Z acceleration (in g's)
                         Response: ACCEL:0.05,-0.02,1.02
@@ -100,7 +102,7 @@ ACCEL_SET_THRESHOLD:val Set vibration detection threshold
 ```
 
 ### Existing Commands (unchanged):
-```
+```text
 WDT_RESET               Reset watchdog (heartbeat)
 LASER_ON                Enable aiming laser
 LASER_OFF               Disable aiming laser
@@ -147,7 +149,7 @@ The accelerometer can provide:
    - Aiming laser to D4 (optional)
 
 3. **Test in Serial Monitor**:
-   ```
+   ```text
    GET_STATUS              # Should show all sensors
    MOTOR_SPEED:100         # Motor should run at 2V
    GET_ACCEL               # Should return X,Y,Z values
@@ -212,7 +214,7 @@ All existing safety features remain functional:
 
 ## 📝 **Configuration Files Modified**
 
-```
+```text
 [DONE] firmware/arduino_watchdog/arduino_watchdog_v2.ino (NEW)
 [DONE] firmware/arduino_watchdog/NEW_PIN_CONFIG.md (NEW)
 [DONE] firmware/arduino_watchdog/UPLOAD_INSTRUCTIONS.md (NEW)

@@ -1,0 +1,140 @@
+@startuml seq-02-emergency-stop-flow
+
+title TOSCA Emergency Stop Flow\nIEC 62304 Fault Handling + ISO 14971 Risk Mitigation
+
+actor Operator
+participant "UI\n(PyQt6)" as UI
+participant "Safety\nManager\n(CRITICAL)" as Safety
+participant "Laser\nController" as Laser
+participant "Camera\nController" as Camera
+participant "Actuator\nController" as Actuator
+participant "Event\nLogger" as Log
+database "Audit\nTrail" as DB
+
+note over Operator, DB: <b><color:green>Treatment in progress - Laser ON at 5.0W</color></b>
+
+== Emergency Stop Triggered ==
+Operator -> UI: PRESS E-STOP BUTTON
+note right
+  <b><color:red>EMERGENCY STOP</color></b>
+  FDA Requirement: <100ms response
+  IEC 62304: Immediate hazard mitigation
+end note
+
+UI -> Safety: emergency_stop("USER_INITIATED")
+activate Safety #red
+
+note over Safety
+  <b><color:red>CRITICAL RESPONSE PATH</color></b>
+  Target: <100ms total response time
+end note
+
+Safety -> Laser: set_output(False)\nset_current(0.0)
+activate Laser #red
+note right of Laser: <b>IMMEDIATE: Disable treatment laser</b>
+Laser --> Safety: Laser OFF (0.0W) ✓
+deactivate Laser
+
+note over Safety: <b><color:red>State: EMERGENCY_STOP</color></b>\n(System locked)
+
+Safety -> Log: Log emergency event
+activate Log
+Log -> DB: INSERT event\n(emergency_stop,\noperator_id,\ntimestamp,\nreason: "USER_INITIATED")
+deactivate Log
+
+== Selective Shutdown Policy (ISO 14971) ==
+note over Safety, Actuator
+  <b>SELECTIVE SHUTDOWN</b>
+  Only treatment laser disabled
+  Other systems remain operational
+end note
+
+Safety -> Camera: [NO ACTION] Continue streaming ✓
+note right of Camera
+  <color:green>Camera: OPERATIONAL</color>
+  FDA: Visual monitoring maintained
+  Operator can see treatment area
+end note
+
+Safety -> Actuator: [NO ACTION] Remain controllable ✓
+note right of Actuator
+  <color:green>Actuator: OPERATIONAL</color>
+  FDA: Safe retraction capability
+  Operator can reposition if needed
+end note
+
+note over Log, DB
+  <color:green>Logging: OPERATIONAL</color>
+  FDA: Audit trail continues
+  Complete event history preserved
+end note
+
+deactivate Safety
+
+Safety --> UI: Emergency stop active
+UI --> Operator: <color:red>EMERGENCY STOP ALERT</color>\n\nTreatment laser: DISABLED\nCamera: Operational\nActuator: Controllable\n\nAssess situation\nthen clear E-Stop
+
+== Operator Assessment ==
+note over Operator
+  Operator uses camera feed
+  to assess treatment area
+  (visual monitoring preserved)
+end note
+
+Operator -> Camera: View live feed
+Camera --> Operator: Camera still streaming ✓
+
+Operator -> Operator: Assess situation\n(no harm detected)
+
+== Recovery Procedure ==
+Operator -> UI: Clear E-Stop
+UI -> Safety: reset_emergency_stop()
+
+Safety -> Safety: Verify all interlocks
+note right
+  **Full Interlock Verification:**
+  • Footpedal: RELEASED ✓
+  • Smoothing: OK ✓
+  • Session: ACTIVE ✓
+  • Photodiode: 0.0V ✓
+  • Watchdog: ALIVE ✓
+end note
+
+Safety -> Laser: Verify laser OFF
+Laser --> Safety: Confirmed OFF ✓
+
+Safety -> Log: Log E-Stop reset
+Log -> DB: INSERT event\n(emergency_stop_reset,\noperator_id,\ntimestamp)
+
+note over Safety: <b><color:green>State: SAFE</color></b>\n(Ready for new session)
+
+Safety --> UI: E-Stop cleared\nSystem ready
+UI --> Operator: "E-Stop cleared\nSystem safe\nReady for operation"
+
+== FDA Compliance Verification ==
+note over DB
+  <b>21 CFR Part 11 Audit Trail</b>
+  Emergency stop sequence logged:
+  1. E-Stop activation
+     • Timestamp: 2025-11-06T14:32:15.123Z
+     • Operator: TECH_001
+     • Reason: USER_INITIATED
+     • Response time: 87ms ✓ (<100ms)
+  2. Laser disable confirmation
+  3. Selective shutdown execution
+  4. E-Stop reset
+     • Operator: TECH_001
+     • All interlocks verified: PASS
+end note
+
+note over Operator, DB
+  <b>FDA Compliance Points:</b>
+  ✓ Response time <100ms (IEC 62304)
+  ✓ Complete audit trail (21 CFR Part 11)
+  ✓ Selective shutdown (ISO 14971)
+  ✓ Operator notification (Human factors)
+  ✓ Visual monitoring preserved (IEC 60601-1)
+  ✓ Recovery verification (Design controls)
+end note
+
+@enduml

@@ -1,0 +1,108 @@
+@startuml c4-02-safety-system-container
+
+title TOSCA Safety System Architecture (Container View)\nMulti-Layer Safety Interlock System for FDA Compliance
+
+skinparam componentStyle rectangle
+skinparam backgroundColor #FEFECE
+
+actor "Clinical\nOperator" as operator
+actor "Patient" as patient
+
+package "TOSCA Laser Control System" {
+    component "PyQt6 GUI\n(Python, PyQt6)" as ui
+    component "Safety Manager\n(Python)\n<<CRITICAL>>" as safety_mgr
+    component "Protocol Engine\n(Python)" as protocol_engine
+    component "Session Manager\n(Python)" as session_mgr
+
+    database "SQLite Database\n(SQLite WAL)" as database
+    file "Event Log\n(JSONL)" as event_log
+
+    component "Laser Controller\n(Python, pyserial)\nCOM10" as laser_hal
+    component "Camera Controller\n(Python, VmbPy)\nUSB 3.0" as camera_hal
+    component "Actuator Controller\n(Python, pyserial)\nCOM3" as actuator_hal
+    component "GPIO Controller\n(Python, pyserial)\nCOM4" as gpio_hal
+}
+
+cloud "External Hardware" {
+    component "Arduino Watchdog\n(ATmega328P)" as arduino
+    component "Arroyo Laser\n(10W diode)" as laser_hw
+    component "Allied Vision\nCamera (1.8MP)" as camera_hw
+    component "Footpedal\n(Deadman)" as footpedal
+    component "Photodiode\n(0-5V)" as photodiode
+}
+
+' Operator interactions
+operator --> ui : Controls treatment\n(Mouse, keyboard)
+operator --> footpedal : Depresses to enable\n(Physical)
+patient <-- laser_hw : Receives treatment\n(Laser energy)
+
+' UI to core
+ui --> safety_mgr : Checks interlocks\n(PyQt6 signals)
+ui --> protocol_engine : Starts/stops protocol\n(PyQt6 signals)
+ui --> session_mgr : Creates session\n(Method calls)
+
+' Safety manager to HAL
+safety_mgr --> laser_hal : Enables/disables laser\n(RLock)
+safety_mgr --> gpio_hal : Reads interlocks\n(PyQt6 signals)
+safety_mgr --> session_mgr : Validates session
+
+' Protocol engine to HAL
+protocol_engine --> laser_hal : Sets power
+protocol_engine --> actuator_hal : Moves position
+protocol_engine --> camera_hal : Captures images
+
+' Session manager to database
+session_mgr --> database : Logs events\n(SQL INSERT)
+session_mgr --> event_log : Writes events\n(JSONL)
+
+' HAL to hardware
+laser_hal --> laser_hw : Controls power\n(RS-232 38400)
+camera_hal --> camera_hw : Captures frames\n(USB 3.0)
+actuator_hal --> actuator_hal : Controls position\n(RS-232 9600)
+gpio_hal --> arduino : Heartbeat + reads\n(USB 115200)
+
+' Hardware interlocks
+arduino --> footpedal : Monitors state\n(Digital D5)
+arduino --> photodiode : Reads voltage\n(Analog A0)
+arduino ..> laser_hw : Disables on timeout\n(Watchdog)
+
+' Safety critical path (red arrows)
+footpedal -[#red,bold]-> arduino : Deadman switch\n(CRITICAL)
+arduino -[#red,bold]-> gpio_hal : Interlock status\n(CRITICAL)
+gpio_hal -[#red,bold]-> safety_mgr : Safety events\n(CRITICAL)
+safety_mgr -[#red,bold]-> laser_hal : Enable/disable\n(CRITICAL)
+
+note right of safety_mgr
+  **CRITICAL COMPONENT**
+  IEC 62304 Class C
+
+  Safety State Machine:
+  SAFE → ARMED → TREATING
+    ↓      ↓         ↓
+    ← UNSAFE/FAULT ←
+          ↓
+    EMERGENCY_STOP
+end note
+
+note right of arduino
+  **Independent Watchdog**
+  IEC 60601-1 requirement
+
+  Timeout: 1000ms
+  Heartbeat: 500ms
+
+  Hardware disables laser
+  if no software heartbeat
+end note
+
+note bottom of database
+  **Audit Trail**
+  21 CFR Part 11 compliance
+
+  • Append-only (no deletes)
+  • Checksums (tamper-evident)
+  • UTC timestamps
+  • Operator identification
+end note
+
+@enduml

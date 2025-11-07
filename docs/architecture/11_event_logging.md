@@ -43,29 +43,29 @@ TOSCA implements a comprehensive event logging system that provides an **immutab
 
 ### Architecture Overview
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                    EventLogger                           │
-│                (src/core/event_logger.py)                │
-└─────────────────────────────────────────────────────────┘
-                           │
+```text
+                                                           
+                     EventLogger                            
+                 (src/core/event_logger.py)                 
+                                                           
+                            
                     log_event(type, severity, desc)
-                           │
-            ┌──────────────┴──────────────┐
-            │                             │
+                            
+                                           
+                                           
             ▼                             ▼
-┌──────────────────────┐      ┌──────────────────────┐
-│   JSONL File Log     │      │  SQLite Database     │
-│  (High Frequency)    │      │ (Event-Based Only)   │
-├──────────────────────┤      ├──────────────────────┤
-│ - All events         │      │ - Safety events      │
-│ - Timestamped        │      │ - Treatment events   │
-│ - Append-only        │      │ - Hardware events    │
-│ - 10-100 events/sec  │      │ - User actions       │
-│ - Backup/recovery    │      │ - System events      │
-│                      │      │                      │
-│ File: events.jsonl   │      │ Table: safety_log    │
-└──────────────────────┘      └──────────────────────┘
+                                                      
+    JSONL File Log               SQLite Database      
+   (High Frequency)             (Event-Based Only)    
+                                                      
+  - All events                  - Safety events       
+  - Timestamped                 - Treatment events    
+  - Append-only                 - Hardware events     
+  - 10-100 events/sec           - User actions        
+  - Backup/recovery             - System events       
+                                                      
+  File: events.jsonl            Table: safety_log     
+                                                      
 ```
 
 ### Why Two Tiers?

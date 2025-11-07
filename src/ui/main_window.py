@@ -16,15 +16,10 @@ from PyQt6.QtCore import QObject, QRunnable, Qt, QThreadPool, pyqtSignal
 from PyQt6.QtGui import QCloseEvent
 from PyQt6.QtWidgets import (
     QHBoxLayout,
-    QLabel,
     QMainWindow,
     QMessageBox,
-    QPushButton,
     QScrollArea,
-    QStackedWidget,
-    QStatusBar,
     QTabWidget,
-    QToolBar,
     QVBoxLayout,
     QWidget,
 )
@@ -42,8 +37,6 @@ from ui.widgets.protocol_steps_display_widget import ProtocolStepsDisplayWidget
 from ui.widgets.safety_widget import SafetyWidget
 from ui.widgets.unified_header_widget import UnifiedHeaderWidget
 from ui.widgets.unified_session_setup_widget import UnifiedSessionSetupWidget
-from ui.widgets.workflow_step_indicator import WorkflowStepIndicator
-# OLD imports removed: SubjectWidget, TreatmentSetupWidget (replaced by unified widgets)
 
 logger = logging.getLogger(__name__)
 
@@ -166,6 +159,18 @@ class MainWindow(QMainWindow):
         logger.info("Safety watchdog pre-initialized (awaiting GPIO connection)")
         logger.info("Database, session, and event logger initialized")
 
+        # Initialize session duration timer for live session indicator updates
+        from PyQt6.QtCore import QTimer
+        from PyQt6.QtWidgets import QLabel, QWidget
+        self.session_duration_timer = QTimer()
+        self.session_duration_timer.timeout.connect(self._update_session_duration)
+
+        # Legacy session indicator widgets (now handled by unified header, kept for compatibility)
+        self.session_info_label = QLabel()  # Not displayed (unified header handles this)
+        self.session_panel_widget = QWidget()  # Not displayed
+
+        logger.info("Session duration timer initialized")
+
         # Log system startup
         self.event_logger.log_system_event(
             EventType.SYSTEM_STARTUP, "TOSCA system started", EventSeverity.INFO
@@ -232,20 +237,9 @@ class MainWindow(QMainWindow):
         # NEW: Unified header at top (replaces toolbar + right panel + status bar)
         self.unified_header = UnifiedHeaderWidget()
         main_layout.addWidget(self.unified_header)
-
-        # OLD: Horizontal split with right panel (COMMENTED OUT)
-        # from PyQt6.QtWidgets import QHBoxLayout
-        # content_layout = QHBoxLayout()
-        # main_layout.addLayout(content_layout)
-
         # Tabs (main content) - now full width without right panel
         self.tabs = QTabWidget()
         main_layout.addWidget(self.tabs)  # Changed from content_layout to main_layout
-
-        # OLD: Right side safety panel (COMMENTED OUT - moved to unified header)
-        # from ui.widgets.safety_status_panel import SafetyStatusPanel
-        # self.safety_status_panel = SafetyStatusPanel()
-        # content_layout.addWidget(self.safety_status_panel)
 
         # TAB 1: HARDWARE & DIAGNOSTICS
         # Layout: 4-column grid for compact hardware module arrangement
@@ -450,8 +444,6 @@ class MainWindow(QMainWindow):
 
         # Connect dev mode signal to widgets (after widgets are created)
         self.dev_mode_changed.connect(self.camera_live_view.set_dev_mode)
-        # OLD: treatment_setup_widget removed in redesign
-        # Motor widget removed from treatment setup - now only in GPIO diagnostics
 
         # TAB 3: LINE-BASED PROTOCOL BUILDER
         # LineProtocolBuilderWidget for creating treatment protocols with concurrent actions
@@ -503,11 +495,6 @@ class MainWindow(QMainWindow):
         self.safety_manager = SafetyManager()
         self._connect_safety_system()
         logger.info("Safety manager initialized and connected")
-
-        # OLD: Safety status panel connections (COMMENTED OUT - now in unified header)
-        # self.safety_status_panel.set_safety_manager(self.safety_manager)
-        # self.safety_status_panel.set_session_manager(self.session_manager)
-        # logger.info("Safety status panel connected to managers")
 
         # Initialize protocol engine with hardware controllers
         self._init_protocol_engine()

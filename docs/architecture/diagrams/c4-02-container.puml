@@ -1,0 +1,45 @@
+@startuml TOSCA Container Diagram
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_WITH_LEGEND()
+
+title Container Diagram - TOSCA Laser Control System
+
+Person(technician, "Clinical Technician")
+
+System_Boundary(tosca, "TOSCA Laser Control System") {
+    Container(ui, "PyQt6 GUI Application", "Python 3.12, PyQt6 6.9.0", "User interface with 3-tab layout (Setup, Treatment, Safety)")
+    Container(core, "Application Core", "Python 3.12", "Session management, safety state machine, protocol execution, event logging")
+    Container(hal, "Hardware Abstraction Layer", "Python 3.12", "Thread-safe hardware controllers with signal/slot architecture")
+    ContainerDb(db, "SQLite Database", "SQLite 3.x", "Subjects, sessions, events, protocols, calibrations (UNENCRYPTED)")
+    Container(logs, "JSONL Event Logs", "File System", "Append-only immutable event logging for high-frequency data")
+    Container(sessions, "Session Data Folders", "File System", "Per-session recordings, videos, snapshots, metadata")
+}
+
+System_Ext(camera, "Allied Vision Camera")
+System_Ext(laser, "Arroyo Laser Driver")
+System_Ext(tec, "Arroyo TEC Controller")
+System_Ext(actuator, "Xeryon Actuator")
+System_Ext(gpio, "Arduino GPIO Controller")
+
+Rel(technician, ui, "Interacts with", "Mouse, keyboard, footpedal")
+
+Rel_Down(ui, core, "Calls", "PyQt6 signals/slots")
+Rel_Down(core, hal, "Controls hardware", "Thread-safe API calls")
+Rel_Down(core, db, "Reads/Writes", "SQLAlchemy ORM")
+Rel_Down(core, logs, "Appends events", "JSONL format @ 100Hz+")
+Rel_Down(core, sessions, "Saves recordings", "Video/images/metadata")
+
+Rel(hal, camera, "Controls", "VmbPy SDK")
+Rel(hal, laser, "Controls", "pyserial")
+Rel(hal, tec, "Controls", "pyserial")
+Rel(hal, actuator, "Controls", "Xeryon API")
+Rel(hal, gpio, "Monitors", "pyserial")
+
+note right of db
+  **WARNING:** Database is NOT encrypted
+  **Phase 6 Required:** SQLCipher + AES-256-GCM
+  before clinical deployment
+end note
+
+@enduml

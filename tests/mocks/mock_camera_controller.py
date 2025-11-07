@@ -8,7 +8,7 @@ and advanced features like pixel formats, binning, and trigger modes.
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any, Optional
+from typing import Optional
 
 import numpy as np
 from PyQt6.QtCore import QObject, QTimer, pyqtSignal

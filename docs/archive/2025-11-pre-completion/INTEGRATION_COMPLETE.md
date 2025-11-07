@@ -1,5 +1,7 @@
 # Line-Based Protocol Builder - TOSCA Integration Complete ✅
 
+**Last Updated:** 2025-11-04
+
 **Date:** 2025-10-30
 **Status:** [DONE] Integrated and Ready for Testing
 **Integration Points:** Main Window Tab 3
@@ -47,7 +49,7 @@ self.line_protocol_builder.set_safety_limits(safety_limits)
 
 # Connect protocol execution signal
 self.line_protocol_builder.protocol_ready.connect(self._on_line_protocol_ready)
-```
+```bash
 
 ### 2. **Signal Handler Added**
 
@@ -81,7 +83,7 @@ def _on_line_protocol_ready(self, protocol: Any) -> None:
 
     # Switch to execution tab
     self.tabs.setCurrentIndex(1)  # Treatment Workflow tab
-```
+```text
 
 ### 3. **Safety Limits Configuration**
 
@@ -94,7 +96,7 @@ max_duration_seconds = 300.0     # Max 5 minutes per action
 min_actuator_position_mm = -20.0 # Bidirectional: -20mm to +20mm
 max_actuator_position_mm = 20.0
 max_actuator_speed_mm_per_s = 5.0
-```
+```text
 
 ---
 
@@ -106,7 +108,7 @@ max_actuator_speed_mm_per_s = 5.0
 ```bash
 cd src
 python main.py
-```
+```text
 
 2. **Navigate to Protocol Builder**
 - Click **Tab 3: Protocol Builder**
@@ -157,7 +159,7 @@ python main.py
 │    └───────────────────────────────────┘   │
 │                                             │
 └─────────────────────────────────────────────┘
-```
+```text
 
 ---
 
@@ -194,7 +196,7 @@ python main.py
 #  - Shows protocol details
 #  - Switches to Treatment Workflow tab
 #  - Console logs protocol information
-```
+```text
 
 ### Load Example Protocol Test
 
@@ -226,7 +228,7 @@ python main.py
 # Expected:
 #  - File saved successfully
 #  - Confirmation message appears
-```
+```text
 
 ---
 
@@ -252,7 +254,7 @@ engine = LineProtocolEngine(
 )
 
 await engine.execute_protocol(protocol)
-```
+```text
 
 ### 2. Load Safety Limits from Config
 
@@ -271,7 +273,7 @@ safety_limits = SafetyLimits(
     max_actuator_position_mm=config.actuator.max_position,
     max_actuator_speed_mm_per_s=config.actuator.max_speed
 )
-```
+```text
 
 ### 3. Treatment Workflow Integration
 
@@ -281,7 +283,7 @@ safety_limits = SafetyLimits(
 ```python
 # TODO: Pass protocol to treatment setup widget
 self.treatment_setup_widget.load_protocol(protocol)
-```
+```bash
 
 ### 4. Session Integration
 
@@ -294,7 +296,7 @@ self.session_manager.save_protocol_to_session(
     session_id=self.current_session_id,
     protocol=protocol
 )
-```
+```text
 
 ---
 

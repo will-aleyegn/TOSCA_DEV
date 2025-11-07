@@ -40,6 +40,7 @@ class SafetyManager(QObject):
     laser_enable_changed = pyqtSignal(bool)  # Laser enable permission
     safety_event = pyqtSignal(str, str)  # (event_type, message)
     developer_mode_changed = pyqtSignal(bool)  # Developer mode bypass status
+    interlock_status_changed = pyqtSignal()  # Emitted when any interlock status changes
 
     def __init__(self) -> None:
         super().__init__()
@@ -97,6 +98,7 @@ class SafetyManager(QObject):
             status = "SATISFIED" if ok else "NOT SATISFIED"
             logger.info(f"GPIO interlock status: {status}")
             self.safety_event.emit("interlock_gpio", status)
+            self.interlock_status_changed.emit()  # Notify UI of interlock change
             self._update_safety_state()
 
     def set_session_valid(self, valid: bool) -> None:
@@ -111,6 +113,7 @@ class SafetyManager(QObject):
             status = "VALID" if valid else "INVALID"
             logger.info(f"Session status: {status}")
             self.safety_event.emit("session", status)
+            self.interlock_status_changed.emit()  # Notify UI of interlock change
             self._update_safety_state()
 
     def set_power_limit_ok(self, ok: bool) -> None:
@@ -125,6 +128,7 @@ class SafetyManager(QObject):
             status = "OK" if ok else "EXCEEDED"
             logger.warning(f"Power limit status: {status}")
             self.safety_event.emit("power_limit", status)
+            self.interlock_status_changed.emit()  # Notify UI of interlock change
             self._update_safety_state()
 
     def arm_system(self) -> bool:
@@ -291,6 +295,27 @@ class SafetyManager(QObject):
             "session_valid": self.session_valid,
             "power_limit_ok": self.power_limit_ok,
             "laser_enable_permitted": self.laser_enable_permitted,
+        }
+
+    def get_interlock_status(self) -> dict:
+        """
+        Get granular interlock status for UI display.
+
+        Note: SafetyManager receives combined GPIO interlock status.
+        For granular status (individual GPIO signals), connect UI directly
+        to GPIOController. This method provides the combined status for all
+        GPIO-related interlocks.
+
+        Returns:
+            Dictionary with individual interlock states
+        """
+        # Use combined GPIO interlock status for all GPIO-based interlocks
+        # (footpedal, smoothing, photodiode, watchdog)
+        return {
+            "footpedal": self.gpio_interlock_ok,
+            "smoothing": self.gpio_interlock_ok,
+            "photodiode": self.gpio_interlock_ok,
+            "watchdog": self.gpio_interlock_ok,
         }
 
     def _update_safety_state(self) -> None:

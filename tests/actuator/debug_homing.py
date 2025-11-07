@@ -15,7 +15,7 @@ xeryon_path = Path(__file__).parent / "components" / "actuator_module"
 if str(xeryon_path) not in sys.path:
     sys.path.insert(0, str(xeryon_path))
 
-from Xeryon import Stage, Units, Xeryon
+from Xeryon import Stage, Xeryon
 
 
 def print_status(axis, label="Status"):

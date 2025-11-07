@@ -32,7 +32,7 @@
 ```bash
 cd /path/to/TOSCA-dev
 python scripts/audit_ai_references.py --output audit_reports/YYYY-QX-audit-report.md
-```
+```bash
 
 Replace `YYYY-QX` with current year and quarter (e.g., `2025-Q4-audit-report.md`)
 
@@ -61,7 +61,7 @@ Replace `YYYY-QX` with current year and quarter (e.g., `2025-Q4-audit-report.md`
 
 ```bash
 pre-commit run --all-files
-```
+```text
 
 Expected: All hooks pass
 
@@ -86,7 +86,7 @@ Create test file with AI reference:
 echo "This was reviewed by Claude AI assistant." > test_violation.md
 git add test_violation.md
 git commit -m "test: verify hook"
-```
+```text
 
 Expected: Commit blocked with clear error message
 
@@ -100,7 +100,7 @@ Clean up:
 ```bash
 git restore --staged test_violation.md
 rm test_violation.md
-```
+```text
 
 ---
 
@@ -144,7 +144,7 @@ Verify no AI references in regulatory docs:
 
 ```bash
 grep -ri "claude\|chatgpt\|AI assistant\|task master\|gemini" docs/regulatory/
-```
+```text
 
 Expected: No matches (exit code 1)
 
@@ -158,7 +158,7 @@ Spot check recent code reviews:
 
 ```bash
 find docs -name "*CODE_REVIEW*.md" -type f | head -5
-```
+```text
 
 Verify attribution format:
 
@@ -176,7 +176,7 @@ Check last 20 commits for AI references in messages:
 
 ```bash
 git log -20 --oneline --all
-```
+```text
 
 - [ ] No commit messages with AI tool names
 - [ ] Professional commit message format
@@ -188,7 +188,7 @@ Search for bypass instances:
 
 ```bash
 git log --all --grep="--no-verify" --oneline
-```
+```text
 
 For each bypass commit:
 - [ ] Justification provided in commit message
@@ -202,7 +202,7 @@ For each bypass commit:
 
 ```bash
 cat .gitignore | grep -E "claude|taskmaster|gemini|cursor|mcp"
-```
+```text
 
 Expected entries:
 - [ ] `.claude/`
@@ -217,7 +217,7 @@ Expected entries:
 
 ```bash
 cat .pre-commit-config.yaml | grep -A 5 "detect-ai-references"
-```
+```text
 
 Verify:
 - [ ] Hook is enabled
@@ -235,7 +235,7 @@ Spot check 5 random documentation files:
 
 ```bash
 find docs -name "*.md" -type f | shuf | head -5
-```
+```text
 
 For each file, verify metadata presence:
 - [ ] **Last Updated:** Date present and recent
@@ -246,7 +246,7 @@ For each file, verify metadata presence:
 
 ```bash
 grep -r "v0\\.9\\." docs/ README.md CLAUDE.md | wc -l
-```
+```text
 
 - [ ] Version references are consistent across documentation
 - [ ] No references to outdated versions (v0.8.x or earlier)
@@ -270,7 +270,7 @@ Edit generated report file: `audit_reports/YYYY-QX-audit-report.md`
 git add audit_reports/YYYY-QX-audit-report.md
 git add docs/DEVELOPMENT_STANDARDS.md  # If updated
 git commit -m "docs: quarterly audit report Q[X] YYYY"
-```
+```text
 
 ### Archive Old Audit Reports
 
@@ -280,7 +280,7 @@ If >4 quarters of reports exist, move old reports to archive:
 mkdir -p audit_reports/archive/
 git mv audit_reports/YYYY-QX-*.md audit_reports/archive/
 git commit -m "chore: archive old audit reports"
-```
+```text
 
 ---
 
@@ -362,7 +362,7 @@ git log -20 --oneline --all
 
 # Bypass hook usage
 git log --all --grep="--no-verify" --oneline
-```
+```text
 
 ---
 
@@ -378,14 +378,14 @@ ls -la scripts/audit_ai_references.py
 
 # Make executable if needed
 chmod +x scripts/audit_ai_references.py
-```
+```text
 
 **Problem:** Unicode errors on Windows
 
 ```bash
 # Use UTF-8 encoding
 python -X utf8 scripts/audit_ai_references.py --output report.md
-```
+```text
 
 ### Pre-commit Hook Failures
 

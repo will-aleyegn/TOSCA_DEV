@@ -196,6 +196,19 @@ class DatabaseManager:
             count: int = session.query(SessionModel).filter_by(subject_id=subject_id).count()
             return count
 
+    def get_all_subjects(self) -> list[Subject]:
+        """
+        Get all subjects from database.
+
+        Returns:
+            List of all Subject instances (active and inactive)
+        """
+        with self.get_session() as session:
+            result = session.execute(select(Subject).order_by(Subject.created_date.desc()))
+            subjects = [row[0] for row in result.all()]
+            logger.debug(f"Retrieved {len(subjects)} subjects from database")
+            return subjects
+
     def get_all_sessions(
         self, subject_id: Optional[int] = None, limit: int = 100
     ) -> list[SessionModel]:

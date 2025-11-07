@@ -2,7 +2,6 @@
 """Pre-commit hook: Detect hardcoded secrets and credentials."""
 import re
 import sys
-from pathlib import Path
 from typing import List, Tuple
 
 PRODUCTION_PATHS = ["src/", "tests/", "components/", "firmware/", "config/"]

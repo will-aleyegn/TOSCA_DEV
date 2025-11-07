@@ -1,4 +1,6 @@
 # Product Requirements Document (PRD)
+
+**Last Updated:** 2025-11-04
 ## TOSCA Laser Control System
 
 **Document Number:** TOSCA-PRD-001
@@ -554,7 +556,7 @@ Source: `src/database/models.py`, `src/database/db_manager.py`
 ### 10.2 File Locations
 
 **All data stored in `data/` directory:**
-```
+```text
 data/
 ├── tosca.db                          # SQLite database
 ├── logs/

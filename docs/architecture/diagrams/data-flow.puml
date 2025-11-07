@@ -1,0 +1,92 @@
+@startuml TOSCA Data Flow Diagram
+!theme plain
+
+title Data Flow - TOSCA Laser Control System
+
+package "User Interface Layer" {
+    [Subject Widget] as SubjectUI
+    [Camera Widget] as CameraUI
+    [Laser Widget] as LaserUI
+    [Safety Widget] as SafetyUI
+    [Protocol Builder] as ProtocolUI
+}
+
+package "Application Core" {
+    [Session Manager] as SessionMgr
+    [Safety Manager] as SafetyMgr
+    [Protocol Engine] as ProtocolEng
+    [Event Logger] as EventLog
+    [Recording Manager] as RecordMgr
+}
+
+package "Hardware Abstraction Layer" {
+    [Camera Controller] as CameraCtrl
+    [Laser Controller] as LaserCtrl
+    [GPIO Controller] as GPIOCtrl
+}
+
+package "Data Persistence" {
+    database "SQLite DB" as DB {
+        [subjects]
+        [sessions]
+        [treatment_events]
+        [protocols]
+        [safety_log]
+    }
+    folder "JSONL Logs" as JSONL
+    folder "Session Folders" as SessionData {
+        file "video.avi"
+        file "events.json"
+        file "snapshots/"
+    }
+}
+
+package "Physical Hardware" {
+    [Allied Vision Camera] as Camera
+    [Arroyo Laser] as Laser
+    [Arduino GPIO] as Arduino
+}
+
+' UI to Core
+SubjectUI --> SessionMgr : subject_selected
+LaserUI --> ProtocolEng : power_changed
+ProtocolUI --> ProtocolEng : protocol_loaded
+SafetyUI <-- SafetyMgr : safety_state_changed
+
+' Core to HAL
+SessionMgr --> RecordMgr : start_recording
+ProtocolEng --> LaserCtrl : set_power
+ProtocolEng --> CameraCtrl : capture_frame
+SafetyMgr --> GPIOCtrl : check_interlocks
+
+' HAL to Hardware
+CameraCtrl --> Camera : VmbPy API
+LaserCtrl --> Laser : Serial @ 38400
+GPIOCtrl --> Arduino : Serial @ 115200
+
+' Hardware to HAL (signals)
+Camera --> CameraCtrl : frame_ready
+Laser --> LaserCtrl : power_confirmed
+Arduino --> GPIOCtrl : interlock_status
+
+' Core to Data
+SessionMgr --> DB : save_session
+EventLog --> DB : write_event
+EventLog --> JSONL : append_event
+RecordMgr --> SessionData : save_video
+SafetyMgr --> DB : log_safety_event
+
+note bottom of EventLog
+    **Two-Tier Logging Strategy:**
+    - High-frequency (100Hz+): JSONL files
+    - Event-based: SQLite database
+    - All events immutable (append-only)
+end note
+
+note right of DB
+    **WARNING:** Database NOT encrypted
+    **Status:** Research mode only
+    **Required:** SQLCipher before clinical use
+end note
+
+@enduml

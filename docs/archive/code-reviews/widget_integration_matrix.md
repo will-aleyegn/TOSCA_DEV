@@ -116,7 +116,7 @@
 
 ## Widget Hierarchy
 
-```
+```text
 MainWindow
 ├── Global Toolbar
 │   ├── Emergency Stop Button
@@ -187,7 +187,7 @@ self.laser_widget = LaserWidget(controller=self.laser_controller)
 self.tec_widget = TECWidget(controller=self.tec_controller)
 self.actuator_connection_widget = ActuatorConnectionWidget(controller=self.actuator_controller)
 self.safety_widget = SafetyWidget(db_manager=self.db_manager, gpio_controller=self.gpio_controller)
-```
+```bash
 
 **Benefits:**
 - Single source of truth for controller lifecycle
@@ -214,7 +214,7 @@ self.safety_widget = SafetyWidget(db_manager=self.db_manager, gpio_controller=se
 **Rollback Procedure (if needed):**
 ```bash
 git checkout 5c6eb62~1 -- src/ui/widgets/protocol_builder_widget.py
-```
+```bash
 
 ### 2. `performance_dashboard_widget.py` (PerformanceDashboardWidget)
 

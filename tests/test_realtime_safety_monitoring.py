@@ -15,7 +15,6 @@ import asyncio
 import logging
 import sys
 from pathlib import Path
-from unittest.mock import MagicMock
 
 import pytest
 from PyQt6.QtCore import QCoreApplication

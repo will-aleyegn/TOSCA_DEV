@@ -1,5 +1,7 @@
 # Technician Setup for Subject Widget
 
+**Last Updated:** 2025-11-04
+
 The subject widget now includes a dropdown with the following technicians:
 - Admin
 - Will
@@ -23,7 +25,7 @@ db.create_technician(username="admin", full_name="Administrator", role="admin")
 db.create_technician(username="will", full_name="Will Aleyegn", role="operator")
 db.create_technician(username="operator1", full_name="Operator 1", role="operator")
 db.create_technician(username="operator2", full_name="Operator 2", role="operator")
-```
+```text
 
 ### Option 2: SQL Direct
 
@@ -33,7 +35,7 @@ INSERT INTO technicians (username, full_name, role, created_date) VALUES
   ('will', 'Will Aleyegn', 'operator', datetime('now')),
   ('operator1', 'Operator 1', 'operator', datetime('now')),
   ('operator2', 'Operator 2', 'operator', datetime('now'));
-```
+```text
 
 ### Option 3: Check Existing
 

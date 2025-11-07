@@ -14,9 +14,7 @@ from PyQt6.QtCore import QCoreApplication
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
 from tests.mocks import (
-    MockActuatorController,
     MockCameraController,
-    MockGPIOController,
     MockLaserController,
     MockTECController,
 )

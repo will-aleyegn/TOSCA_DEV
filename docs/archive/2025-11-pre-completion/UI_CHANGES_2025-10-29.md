@@ -1,5 +1,7 @@
 # UI Changes: Treatment Workflow Camera Integration
 
+**Last Updated:** 2025-11-04
+
 **Date:** 2025-10-29
 **Issue:** Camera integration on Treatment Workflow tab
 **Status:** [DONE] Complete
@@ -21,7 +23,7 @@ The Treatment Workflow tab had several usability issues with camera integration:
 ### Layout Transformation
 
 **Before:**
-```
+```text
 ┌─────────────────────────────────────────┐
 │ [Subject 33%] [Camera 66%]             │ ← Horizontal, sharing top
 │─────────────────────────────────────────│
@@ -30,7 +32,7 @@ The Treatment Workflow tab had several usability issues with camera integration:
 ```
 
 **After:**
-```
+```bash
 ┌──────────────────┬─────────────────────────────┐
 │ Left Column 40%  │ Right Column 60%            │
 │ [Scrollable]     │ [Scrollable]                │
@@ -65,7 +67,7 @@ The Treatment Workflow tab had several usability issues with camera integration:
    right_scroll = QScrollArea()
    right_scroll.setMinimumWidth(640)  # Camera minimum
    treatment_main_layout.addWidget(right_scroll, 3)
-   ```
+   ```bash
 
 2. **Streaming Controls Visible**
    ```python
@@ -74,14 +76,14 @@ The Treatment Workflow tab had several usability issues with camera integration:
 
    # After:
    # NOT hiding controls - users need streaming during treatment
-   ```
+   ```text
 
 3. **Hardware Tab Scrolling Pattern**
    ```python
    scroll.setWidgetResizable(True)
    scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
    scroll.setStyleSheet("QScrollArea { border: none; }")
-   ```
+   ```bash
 
 ### Benefits
 

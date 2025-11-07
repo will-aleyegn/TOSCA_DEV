@@ -1,0 +1,37 @@
+@startuml TOSCA System Context
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+LAYOUT_WITH_LEGEND()
+
+title System Context Diagram - TOSCA Laser Control System
+
+Person(technician, "Clinical Technician", "Operates laser system, manages subjects/sessions")
+Person(researcher, "Research Scientist", "Reviews treatment data, analyzes outcomes")
+
+System(tosca, "TOSCA Laser Control System", "Medical device laser control with precision positioning, machine vision, and multi-layer safety")
+
+System_Ext(camera, "Allied Vision Camera", "1800 U-158c USB 3.0 camera for live imaging and alignment verification")
+System_Ext(laser, "Arroyo 6300 Laser Driver", "5W diode laser with serial control @ 38400 baud")
+System_Ext(tec, "Arroyo 5305 TEC Controller", "Laser temperature control @ 38400 baud")
+System_Ext(actuator, "Xeryon Linear Stage", "45mm precision actuator for ring sizing @ 9600 baud")
+System_Ext(gpio, "Arduino Uno GPIO", "Safety interlock monitoring and hardware watchdog @ 115200 baud")
+
+Rel(technician, tosca, "Operates", "PyQt6 GUI")
+Rel(researcher, tosca, "Reviews data", "SQLite database export")
+
+Rel(tosca, camera, "Controls and streams", "VmbPy SDK over USB 3.0")
+Rel(tosca, laser, "Controls power", "Serial RS-232")
+Rel(tosca, tec, "Controls temperature", "Serial RS-232")
+Rel(tosca, actuator, "Controls position", "Xeryon API over Serial")
+Rel(tosca, gpio, "Monitors interlocks", "Custom serial protocol")
+
+Rel(gpio, tosca, "Sends safety signals", "Footpedal, smoothing, photodiode, watchdog")
+
+note right of tosca
+  **Current Status:** v0.9.13-alpha
+  **Mode:** RESEARCH ONLY (NOT for clinical use)
+  **Missing:** Database encryption, user authentication
+  **Phase:** 5 - Lab/Experimentation (27 features implemented)
+end note
+
+@enduml
