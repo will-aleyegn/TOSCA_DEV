@@ -755,14 +755,6 @@ class MainWindow(QMainWindow):
             )
 
     # NOTE: Header status methods removed - hardware tab now uses individual widget controls
-    # def _update_actuator_header_status(self, connected: bool) -> None:
-    #     """Update actuator section header with connection status."""
-    #     pass
-    #
-    # def _update_laser_header_status(self, connected: bool) -> None:
-    #     """Update laser section header with connection status."""
-    #     pass
-
     def _connect_safety_system(self) -> None:
         """Connect safety system components."""
         # Connect safety manager to safety widget for display
