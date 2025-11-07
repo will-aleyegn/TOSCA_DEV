@@ -1,5 +1,7 @@
 # Line-Based Protocol Builder - Implementation Complete ✅
 
+**Last Updated:** 2025-11-04
+
 **Date:** 2025-10-30
 **Status:** Production Ready
 **Total Lines of Code:** ~1400 (data model + UI + tests)
@@ -63,7 +65,7 @@ Line 1: [Move 5mm @ 1mm/s] + [Laser 2W] + [Dwell 3s]
 └─ Dwell: Hold for 3 seconds
 │
 └─> Total Duration: MAX(5, 0, 3) = 5 seconds
-```
+```text
 
 **Why MAX duration?**
 - Movement might take 5s, but dwell only requires 3s
@@ -85,7 +87,7 @@ Line 1: [Move 5mm @ 1mm/s] + [Laser 2W] + [Dwell 3s]
 - min_actuator_position_mm: -20.0  # Supports bidirectional movement
 - max_actuator_position_mm: 20.0
 - max_actuator_speed_mm_per_s: 5.0
-```
+```text
 
 ---
 
@@ -110,7 +112,7 @@ Total Duration: 18.3s
 └─────────────────────────────────────────┘
 
 Total: 5.0 + 5.0 + 8.3 = 18.3 seconds
-```
+```text
 
 ### Scanning Pattern (Looped)
 
@@ -128,7 +130,7 @@ Loop 1:
 
 Loop 2: (repeat)
 Loop 3: (repeat)
-```
+```text
 
 ---
 
@@ -160,7 +162,7 @@ Click "💾 Save Protocol"
 Click "▶ Execute Protocol"
 → protocol_ready signal emitted
 → (Connect to protocol engine for execution)
-```
+```text
 
 ### Integration into TOSCA
 
@@ -181,7 +183,7 @@ self.protocol_builder.protocol_ready.connect(
 
 # Add to tab
 self.protocol_tab.addWidget(self.protocol_builder)
-```
+```text
 
 ---
 

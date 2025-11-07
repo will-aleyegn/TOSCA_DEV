@@ -159,57 +159,57 @@ DIY constant current and TEC controller using Arduino/microcontroller
 **Key Implementation Details:**
 
 1. **Dual-Channel Architecture:**
-   ```python
+```python
    # Independent serial connections
    laser = LaserController(port="COM10", baudrate=38400)  # Arroyo 6300
    tec = TECController(port="COM9", baudrate=38400)        # Arroyo 5305
-   ```
+```
 
 2. **Thread Safety:** RLock pattern for all serial operations
-   ```python
+```python
    self._lock = threading.RLock()
    with self._lock:
        self._send_command(command)
        response = self._read_response()
-   ```
+```
 
 3. **Command/Response Protocol:**
-   ```python
+```python
    # Arroyo serial protocol
    command = f"LAS:LDI {current_ma}\n"  # Set laser current (mA)
    self._serial.write(command.encode('ascii'))
    response = self._serial.readline().decode('ascii').strip()
-   ```
+```
 
 4. **Temperature-Power Coupling (Safety):**
-   ```python
+```python
    # TEC must be at setpoint before laser enable
    if not tec.is_temperature_stable():
        raise SafetyError("Cannot enable laser: TEC not at temperature")
    laser.set_current(treatment_current_ma)
-   ```
+```
 
 5. **Real-Time Monitoring:**
-   ```python
+```python
    # Polling every 500ms for safety validation
    current_actual = laser.get_current_ma()      # Read actual current
    voltage_actual = laser.get_voltage_v()       # Read actual voltage
    temp_actual = tec.get_temperature_c()        # Read actual temperature
-   ```
+```
 
 6. **Hardware Safety Limits:**
-   ```python
+```python
    # Programmed on connect
    laser.set_current_limit(2000)  # 2000 mA maximum (hardware enforced)
    tec.set_temp_limits(15.0, 35.0)  # 15-35°C operating range
-   ```
+```
 
 7. **Signal Emission (PyQt6):**
-   ```python
+```python
    current_changed = pyqtSignal(float)    # Laser current feedback
    temperature_changed = pyqtSignal(float)  # TEC temperature feedback
    error_occurred = pyqtSignal(str)         # Fault reporting
-   ```
+```
 
 ### Performance Characteristics
 

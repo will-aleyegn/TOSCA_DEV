@@ -21,7 +21,7 @@ self.actuator_widget = ActuatorWidget()  # [FAILED] Created but never added to l
 
 # Only exists to create controller:
 self.actuator_connection_widget = ActuatorConnectionWidget(self.actuator_widget)
-```
+```bash
 
 **Impact:**
 - **836 lines** of dead UI code in `actuator_widget.py`
@@ -95,7 +95,7 @@ self.actuator_controller = ActuatorController()  # Direct instantiation
 self.actuator_connection_widget = ActuatorConnectionWidget(
     controller=self.actuator_controller  # Pass controller directly
 )
-```
+```bash
 
 **Files Modified:**
 - `src/ui/widgets/actuator_connection_widget.py`: Refactored to accept controller parameter
@@ -278,7 +278,7 @@ def _on_connect_clicked(self) -> None:
         logger.error("No controller available")  # [DONE] Fail fast
         return
     self.controller.connect("COM10")
-```
+```text
 
 #### Phase 4B: MainWindow Centralization [DONE] COMPLETE
 **Status:** [DONE] Complete (2025-10-30)
@@ -304,7 +304,7 @@ self.laser_widget = LaserWidget(controller=self.laser_controller)
 self.tec_widget = TECWidget(controller=self.tec_controller)
 self.gpio_widget = GPIOWidget(controller=self.gpio_controller)
 self.camera_live_view = CameraWidget(camera_controller=self.camera_controller)
-```
+```bash
 
 #### Phase 4C: Camera Resource Management Fixes [DONE] COMPLETE
 **Status:** [DONE] Complete (2025-10-30)
@@ -334,7 +334,7 @@ def connect(self):
 
     self.camera = camera
     self.camera.__enter__()  # Camera-specific context
-```
+```text
 
 #### Phase 4D: Pixel Format Conversion [DONE] COMPLETE
 **Status:** [DONE] Complete (2025-10-30)

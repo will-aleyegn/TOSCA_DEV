@@ -23,7 +23,6 @@ from PyQt6.QtWidgets import (
 
 from hardware.laser_controller import LaserController
 from hardware.tec_controller import TECController
-from ui.constants import WIDGET_WIDTH_GRID
 from ui.design_tokens import ButtonSizes, Colors
 
 if TYPE_CHECKING:

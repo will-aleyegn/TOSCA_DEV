@@ -1,0 +1,78 @@
+@startuml TOSCA Treatment Workflow Sequence
+!theme plain
+skinparam sequenceMessageAlign center
+
+title Treatment Workflow - Normal Operation
+
+actor Technician
+participant "PyQt6 UI" as UI
+participant "Session Manager" as Session
+participant "Safety Manager" as Safety
+participant "Protocol Engine" as Protocol
+participant "GPIO Controller" as GPIO
+participant "Laser Controller" as Laser
+participant "Event Logger" as Logger
+
+== Session Initialization ==
+Technician -> UI: Select subject
+UI -> Session: create_session(subject_id, tech_id)
+Session -> Logger: log_event("SESSION_CREATED")
+Session -> UI: session_created(session_id)
+
+== Pre-Treatment Setup ==
+Technician -> UI: Start camera feed
+UI -> "Camera Controller": start_streaming()
+Technician -> UI: Align and focus
+UI -> Technician: Display live feed with overlays
+
+== Treatment Execution ==
+Technician -> UI: Select protocol
+UI -> Protocol: load_protocol(protocol_id)
+Protocol -> UI: protocol_loaded
+
+Technician -> UI: Click "ARM" button
+UI -> Safety: check_safety_interlocks()
+Safety -> GPIO: get_interlock_status()
+GPIO -> Safety: {footpedal, smoothing, photodiode, watchdog}
+Safety -> UI: safety_status(SAFE)
+
+UI -> Safety: transition_to_armed()
+Safety -> Logger: log_event("ARMED")
+Safety -> UI: state_changed(ARMED)
+
+Technician -> UI: Depress footpedal
+GPIO -> Safety: footpedal_pressed()
+Safety -> Protocol: start_treatment()
+Protocol -> Laser: set_power(5.0)
+Laser -> Logger: log_event("POWER_SET", 5.0)
+Safety -> Logger: log_event("TREATING")
+Safety -> UI: state_changed(TREATING)
+
+loop Every 10ms during treatment
+    Protocol -> Laser: set_power(step_power)
+    Protocol -> "Actuator": set_position(step_position)
+    GPIO -> Protocol: read_photodiode()
+    Protocol -> Logger: log_event("TREATMENT_STEP", data)
+    Safety -> GPIO: check_interlocks()
+    alt Interlock failure
+        GPIO -> Safety: interlock_failed(reason)
+        Safety -> Laser: disable_laser()
+        Safety -> Logger: log_event("FAULT", reason)
+        Safety -> UI: state_changed(UNSAFE)
+    end
+end
+
+Technician -> UI: Release footpedal
+GPIO -> Safety: footpedal_released()
+Safety -> Protocol: pause_treatment()
+Protocol -> Laser: set_power(0.0)
+Safety -> Logger: log_event("TREATMENT_PAUSED")
+Safety -> UI: state_changed(ARMED)
+
+== Session Closure ==
+Technician -> UI: End session
+UI -> Session: end_session(notes)
+Session -> Logger: log_event("SESSION_ENDED")
+Session -> UI: session_ended
+
+@enduml

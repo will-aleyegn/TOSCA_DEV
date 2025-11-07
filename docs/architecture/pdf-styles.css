@@ -1,0 +1,196 @@
+/* PDF Generation Styles for TOSCA Architecture Documentation */
+
+@page {
+    margin: 0.25in;  /* Smaller margins for more space */
+}
+
+body {
+    font-family: Arial, sans-serif;
+    font-size: 16pt;  /* Larger font for readability */
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+    color: #000;
+}
+
+/* Table of Contents styling */
+#TOC {
+    background-color: #f8f9fa;
+    border: 1px solid #333;
+    padding: 0.25in;
+    margin-top: 0.3in;
+    margin-bottom: 0.3in;
+}
+
+#TOC::before {
+    content: "Table of Contents";
+    display: block;
+    font-size: 18pt;
+    font-weight: bold;
+    color: #000;
+    margin-bottom: 0.15in;
+    border-bottom: 2px solid #333;
+    padding-bottom: 0.08in;
+}
+
+#TOC ul {
+    list-style-type: none;
+    padding-left: 0.3in;
+    margin: 0.08in 0;
+}
+
+#TOC li {
+    margin: 0.05in 0;
+    line-height: 1.5;
+}
+
+#TOC a {
+    color: #000;  /* Black text */
+    text-decoration: none;  /* No underline */
+}
+
+/* Headers */
+h1 {
+    font-size: 28pt;
+    margin: 0.15in 0 0.2in 0;
+    page-break-after: avoid;
+    color: #000;
+    border-bottom: 3px solid #333;
+    padding-bottom: 0.1in;
+    font-weight: bold;
+}
+
+h2 { 
+    font-size: 20pt; 
+    margin: 0.18in 0 0.12in 0; 
+    page-break-after: avoid;
+    color: #000;
+}
+
+h3 { 
+    font-size: 17pt; 
+    margin: 0.15in 0 0.1in 0; 
+    page-break-after: avoid;
+    color: #000;
+}
+
+h4, h5, h6 {
+    font-size: 15pt;
+    margin: 0.12in 0 0.08in 0;
+    page-break-after: avoid;
+    color: #000;
+}
+
+/* Hyperlinks - Normal text appearance */
+a {
+    color: #000;
+    text-decoration: none;  /* No underline */
+}
+
+/* Code blocks */
+pre {
+    background-color: #f8f9fa;  /* Lighter gray background */
+    border: 2px solid #dee2e6;  /* Thicker, more visible border */
+    border-left: 4px solid #0066cc;  /* Blue accent bar on left */
+    border-radius: 4px;
+    padding: 0.15in;  /* More padding */
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;  /* Better monospace fonts */
+    font-size: 13pt;  /* Slightly smaller for better fit */
+    margin: 0.15in 0;
+    overflow-x: auto;
+    line-height: 1.5;  /* Better line spacing */
+    max-width: 100%;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);  /* Subtle shadow */
+}
+
+code {
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 13pt;  /* Match pre blocks */
+    background-color: #e9ecef;  /* Slightly darker for inline code */
+    padding: 2px 6px;  /* More horizontal padding */
+    border-radius: 3px;
+    border: 1px solid #dee2e6;  /* Add border to inline code */
+}
+
+/* Images - Constrained to page width */
+img {
+    max-width: 100% !important;
+    width: auto !important;
+    height: auto !important;
+    display: block;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    margin-top: 0.2in;
+    margin-bottom: 0.2in;
+    page-break-inside: avoid;
+    object-fit: contain;
+}
+
+/* Figure captions */
+em {
+    font-style: italic;
+    color: #666;
+    font-size: 13pt;
+    display: block;
+    text-align: center;
+    margin-top: 0.08in;
+    margin-bottom: 0.15in;
+}
+
+/* Tables */
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 0.1in 0;
+    font-size: 15pt;  /* Larger table text */
+}
+
+th, td {
+    border: 1px solid #333;
+    padding: 6px 10px;
+    text-align: left;
+}
+
+th {
+    background-color: #ddd;
+    color: #000;
+    font-weight: bold;
+}
+
+tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+/* Lists */
+ul, ol {
+    margin: 0.08in 0;
+    padding-left: 0.4in;
+    font-size: 16pt;
+}
+
+li {
+    margin: 0.05in 0;
+}
+
+/* Blockquotes */
+blockquote {
+    border-left: 4px solid #333;
+    background-color: #f9f9f9;
+    padding: 0.1in 0.15in;
+    margin: 0.12in 0;
+    font-style: italic;
+    font-size: 16pt;
+}
+
+/* Horizontal rules */
+hr {
+    border: none;
+    border-top: 2px solid #333;
+    margin: 0.15in 0;
+}
+
+/* Paragraphs */
+p {
+    margin: 0.08in 0;
+    font-size: 16pt;
+}

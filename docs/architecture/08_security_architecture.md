@@ -262,13 +262,10 @@ config_dict = json.loads(decrypted_config.decode('utf-8'))
 2. **Derived Keys:** Cryptographically derived from master password
 
 ```
-Master Password (user input)
-    │
-    ├─── PBKDF2-HMAC-SHA256 ──→ Database Encryption Key (32 bytes)
-    │
-    ├─── PBKDF2-HMAC-SHA256 ──→ Video Encryption Key (32 bytes)
-    │
-    └─── PBKDF2-HMAC-SHA256 ──→ Config Encryption Key (32 bytes)
+1. **Master Password (user input)**
+2. **PBKDF2-HMAC-SHA256    Database Encryption Key (32 bytes)**
+3. **PBKDF2-HMAC-SHA256    Video Encryption Key (32 bytes)**
+4. **PBKDF2-HMAC-SHA256    Config Encryption Key (32 bytes)**
 ```
 
 ### Key Storage

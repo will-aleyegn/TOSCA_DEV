@@ -1,5 +1,7 @@
 # Motor Control & Accelerometer GUI Integration
 
+**Last Updated:** 2025-11-04
+
 **Status:** [DONE] COMPLETE
 **Date:** 2025-10-27
 
@@ -20,7 +22,7 @@ Added motor speed control and accelerometer monitoring to the TOSCA GUI Treatmen
 motor_speed_changed = pyqtSignal(int)  # Motor PWM speed (0-153)
 accelerometer_data_changed = pyqtSignal(float, float, float)  # X, Y, Z (g)
 vibration_level_changed = pyqtSignal(float)  # Vibration magnitude (g)
-```
+```text
 
 **Added State Variables:**
 ```python
@@ -28,7 +30,7 @@ self.motor_speed_pwm = 0  # PWM value (0-153)
 self.accelerometer_initialized = False
 self.accel_x, self.accel_y, self.accel_z = 0.0, 0.0, 0.0
 self.vibration_level = 0.0
-```
+```text
 
 **New Methods:**
 
@@ -94,7 +96,7 @@ def _set_speed(self, pwm: int) -> None:
     2. Wait 1.5 seconds for stabilization
     3. Auto-initialize accelerometer if needed
     """
-```
+```text
 
 ---
 
@@ -110,7 +112,7 @@ self.motor_widget: MotorWidget = MotorWidget()
 
 # Add to right side layout (below actuator widget)
 right_layout.addWidget(self.motor_widget)
-```
+```text
 
 **Layout:**
 ```
@@ -122,7 +124,7 @@ right_layout.addWidget(self.motor_widget)
 │            │            │  Motor Control  │
 │            │            │  & Accelerometer│
 └────────────┴────────────┴─────────────────┘
-```
+```text
 
 ---
 
@@ -135,14 +137,14 @@ if hasattr(self.treatment_widget, "motor_widget"):
     motor_widget = self.treatment_widget.motor_widget
     motor_widget.set_gpio_controller(gpio_widget.controller)
     logger.info("GPIO controller connected to motor widget")
-```
+```text
 
 **Dev Mode Connection:**
 ```python
 # Connect dev mode to motor widget
 if hasattr(self.treatment_widget, "motor_widget"):
     self.dev_mode_changed.connect(self.treatment_widget.motor_widget.set_dev_mode)
-```
+```text
 
 ---
 
@@ -151,7 +153,7 @@ if hasattr(self.treatment_widget, "motor_widget"):
 ### 1. Start TOSCA GUI
 ```bash
 python src/main.py
-```
+```text
 
 ### 2. Connect Arduino Watchdog
 - Navigate to **Safety Status** tab
@@ -223,7 +225,7 @@ MOTOR_SPEED:100  # Set motor to PWM 100 (2.0V)
 MOTOR_SPEED:153  # Set motor to PWM 153 (3.0V max)
 MOTOR_OFF        # Stop motor (PWM 0)
 GET_MOTOR_SPEED  # Read current PWM value
-```
+```text
 
 ### Accelerometer
 ```
@@ -232,12 +234,12 @@ GET_ACCEL              # Read X, Y, Z acceleration
 GET_VIBRATION_LEVEL    # Read vibration magnitude
 ACCEL_CALIBRATE        # Calibrate zero-point
 ACCEL_SET_THRESHOLD:X  # Set vibration threshold
-```
+```text
 
 ### Watchdog
 ```
 WDT_RESET   # Heartbeat (sent every 500ms automatically)
-```
+```text
 
 ---
 
@@ -259,7 +261,7 @@ gpio_controller.set_motor_speed(100)  # Start motor
 time.sleep(1.5)                       # Wait for stabilization
 gpio_controller.init_accelerometer()  # Now safe to init
 gpio_controller.get_vibration_level() # Read vibration
-```
+```bash
 
 ### Power Considerations
 
@@ -288,7 +290,7 @@ gpio_controller.get_vibration_level() # Read vibration
    - Check PWM shows "76" and voltage "1.49V"
    - Click "STOP"
    - Verify motor stops
-   ```
+   ```text
 
 2. **Accelerometer Test:**
    ```
@@ -298,7 +300,7 @@ gpio_controller.get_vibration_level() # Read vibration
    - Verify status shows "Ready"
    - Check X, Y, Z values appear
    - Check vibration level > 0.15g
-   ```
+   ```text
 
 3. **Auto-Refresh Test:**
    ```

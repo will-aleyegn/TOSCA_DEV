@@ -49,86 +49,86 @@ The Safety Watchdog Timer is a **hardware-level safety mechanism** designed to d
 
 ### Multi-Layer Safety Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│ Layer 1: Application Layer (MainWindow)                        │
-│ - Manages watchdog lifecycle                                    │
-│ - Starts watchdog after GPIO connection                         │
-│ - Stops watchdog before application close                       │
-└────────────────────────┬────────────────────────────────────────┘
-                         │
+```bash
+                                                                   
+  Layer 1: Application Layer (MainWindow)                         
+  - Manages watchdog lifecycle                                     
+  - Starts watchdog after GPIO connection                          
+  - Stops watchdog before application close                        
+                                                                   
+                          
                          ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ Layer 2: Software Watchdog (SafetyWatchdog)                    │
-│ - QTimer: 500ms interval                                        │
-│ - Sends heartbeat via GPIO controller                           │
-│ - Monitors success/failure statistics                           │
-│ - Emits PyQt6 signals for UI integration                        │
-└────────────────────────┬────────────────────────────────────────┘
-                         │ WDT_RESET command
+                                                                   
+  Layer 2: Software Watchdog (SafetyWatchdog)                     
+  - QTimer: 500ms interval                                         
+  - Sends heartbeat via GPIO controller                            
+  - Monitors success/failure statistics                            
+  - Emits PyQt6 signals for UI integration                         
+                                                                   
+                           WDT_RESET command
                          ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ Layer 3: Hardware Controller (GPIOController)                  │
-│ - Serial communication (9600 baud)                              │
-│ - ASCII text protocol                                           │
-│ - Sends "WDT_RESET\n" to Arduino                                │
-└────────────────────────┬────────────────────────────────────────┘
-                         │ Serial TX
+                                                                   
+  Layer 3: Hardware Controller (GPIOController)                   
+  - Serial communication (9600 baud)                               
+  - ASCII text protocol                                            
+  - Sends "WDT_RESET\n" to Arduino                                 
+                                                                   
+                           Serial TX
                          ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ Layer 4: Arduino Firmware (Custom Watchdog)                    │
-│ - Receives WDT_RESET command                                    │
-│ - Calls wdt_reset() to reset AVR timer                          │
-│ - If no command for 1000ms → ISR triggers                       │
-└────────────────────────┬────────────────────────────────────────┘
-                         │ Timeout (no heartbeat)
+                                                                   
+  Layer 4: Arduino Firmware (Custom Watchdog)                     
+  - Receives WDT_RESET command                                     
+  - Calls wdt_reset() to reset AVR timer                           
+  - If no command for 1000ms → ISR triggers                        
+                                                                   
+                           Timeout (no heartbeat)
                          ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ Layer 5: Emergency Shutdown (ISR)                              │
-│ - AVR WDT interrupt (ISR_WDT_vect)                              │
-│ - Set all GPIO outputs LOW (motor OFF, lasers OFF)             │
-│ - Disable interrupts (cli)                                      │
-│ - Infinite loop (system halt)                                   │
-│ - Requires power cycle to recover                               │
-└─────────────────────────────────────────────────────────────────┘
+                                                                   
+  Layer 5: Emergency Shutdown (ISR)                               
+  - AVR WDT interrupt (ISR_WDT_vect)                               
+  - Set all GPIO outputs LOW (motor OFF, lasers OFF)              
+  - Disable interrupts (cli)                                       
+  - Infinite loop (system halt)                                    
+  - Requires power cycle to recover                                
+                                                                   
 ```
 
 ### Component Interaction Diagram
 
-```
-┌──────────────┐  Start/Stop   ┌────────────────┐
-│  MainWindow  │──────────────>│ SafetyWatchdog │
-│              │   Lifecycle    │                │
-└──────┬───────┘                └────────┬───────┘
-       │                                 │
-       │ Initialize                      │ 500ms QTimer
-       │ with GPIO                       │ timeout
-       │                                 ▼
-       │                        ┌────────────────────┐
-       └───────────────────────>│ send_watchdog_     │
-                                │ heartbeat()        │
-                                └────────┬───────────┘
-                                         │
-                                         │ WDT_RESET\n
+```text
+                  Start/Stop                     
+   MainWindow                 >  SafetyWatchdog  
+                   Lifecycle                      
+                                                  
+                                          
+         Initialize                        500ms QTimer
+         with GPIO                         timeout
                                          ▼
-                                ┌────────────────────┐
-                                │ GPIOController     │
-                                │ (Serial TX)        │
-                                └────────┬───────────┘
-                                         │
-                                         │ Serial 9600
+                                                      
+                               >  send_watchdog_      
+                                  heartbeat()         
+                                                      
+                                          
+                                           WDT_RESET\n
                                          ▼
-                                ┌────────────────────┐
-                                │ Arduino Nano       │
-                                │ Custom Firmware    │
-                                └────────┬───────────┘
-                                         │
-                                         │ wdt_reset()
+                                                      
+                                  GPIOController      
+                                  (Serial TX)         
+                                                      
+                                          
+                                           Serial 9600
                                          ▼
-                                ┌────────────────────┐
-                                │ AVR Hardware WDT   │
-                                │ (1000ms timeout)   │
-                                └────────────────────┘
+                                                      
+                                  Arduino Nano        
+                                  Custom Firmware     
+                                                      
+                                          
+                                           wdt_reset()
+                                         ▼
+                                                      
+                                  AVR Hardware WDT    
+                                  (1000ms timeout)    
+                                                      
 ```
 
 ---
@@ -299,10 +299,10 @@ def closeEvent(self, event):
 
 ```
 Time:        0ms    500ms   1000ms  1500ms  2000ms  2500ms
-             │       │       │       │       │       │
-Heartbeat:   ●───────●───────●───────●───────●───────●
-             │       │       │       │       │       │
-WDT Timer:   └───────┴───────┴───────┴───────┴───────┘
+                                                      
+Heartbeat:   ●       ●       ●       ●       ●       ●
+                                                      
+WDT Timer:                                            
              Reset every 500ms, timeout = 1000ms
 ```
 
@@ -317,12 +317,12 @@ WDT Timer:   └───────┴───────┴─────�
 
 ```
 Time:        0ms    500ms   1000ms  1500ms  2000ms  2500ms
-             │       │       │       │       FREEZE  │
-Heartbeat:   ●───────●───────●───────        (GUI frozen)
-             │       │       │       │       │       │
-WDT Timer:   └───────┴───────┴───────X               │
-             Last reset at 1000ms    │               │
-                                     └───TIMEOUT─────┘
+                                             FREEZE   
+Heartbeat:   ●       ●       ●               (GUI frozen)
+                                                      
+WDT Timer:                           X                
+             Last reset at 1000ms                     
+                                         TIMEOUT      
                                      Emergency shutdown
                                      at 2000ms (1000ms
                                      after last heartbeat)
@@ -709,13 +709,13 @@ print(f"Success rate: {stats['success_rate']:.2f}%")
    - Document firmware version in device log
 
 2. **Test Basic Communication:**
-   ```bash
+```bash
    python -m serial.tools.miniterm COM4 9600
    > WDT_RESET
    < OK:WDT_RESET
    > GET_STATUS
    < STATUS: ... Watchdog: ENABLED
-   ```
+```
 
 3. **Test Application Integration:**
    - Start TOSCA application

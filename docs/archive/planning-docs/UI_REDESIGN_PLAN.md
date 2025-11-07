@@ -40,7 +40,7 @@ The current TOSCA GUI uses a tab-based navigation pattern that causes informatio
 
 ### New Window Structure
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │ TOSCA Laser Control System                            [_][□][X]│
 ├─────────────────────────────────────────────────────────────┤
@@ -61,7 +61,7 @@ The current TOSCA GUI uses a tab-based navigation pattern that causes informatio
 ### Tab Structure (After)
 
 #### Tab 1: "Setup" (Combined Subject + Camera)
-```
+```bash
 ┌──────────────────┬────────────────────────────────┐
 │ Subject Info     │   Camera Feed & Alignment      │
 │                  │                                │
@@ -74,7 +74,7 @@ The current TOSCA GUI uses a tab-based navigation pattern that causes informatio
 ```
 
 #### Tab 2: "Treatment Dashboard" (Mission Control)
-```
+```bash
 ┌─────────────┬──────────────────────┬────────────────┐
 │ Laser       │                      │ Interlocks     │
 │ Controls    │   [Camera Feed]      │ [DONE] Session OK  │
@@ -93,7 +93,7 @@ The current TOSCA GUI uses a tab-based navigation pattern that causes informatio
 ```
 
 #### Tab 3: "System Diagnostics"
-```
+```bash
 ┌─────────────────────────────────────────────────────┐
 │ GPIO Hardware Details                                │
 │ - Full motor control interface                       │
@@ -177,7 +177,7 @@ self.treatment_stack.addWidget(self.active_treatment_widget)
 self.treatment_setup_widget.ready_button.clicked.connect(
     lambda: self.treatment_stack.setCurrentIndex(1)
 )
-```
+```text
 
 **Benefits:**
 - [DONE] Zero tab switching during treatment workflow (mission control achieved)
@@ -203,7 +203,7 @@ class InterlocksWidget(QWidget):
         # GPIO Interlock: ✓/✗
         # Power Limit: ✓/✗
         # Final: LASER PERMITTED / LASER DENIED
-```
+```text
 
 Connected to signals:
 - `SafetyManager.safety_state_changed` ✓
@@ -227,14 +227,14 @@ Split Treatment tab into two distinct widgets with horizontal layouts:
 # Horizontal layout (2:1 ratio)
 # LEFT (66%): Laser + Actuator + Motor controls
 # RIGHT (33%): Protocol selector + Validation
-```
+```text
 
 **ActiveTreatmentWidget** (Monitoring Dashboard):
 ```python
 # Horizontal layout (3:2 ratio)
 # LEFT (60%): Camera feed + Treatment controls
 # RIGHT (40%): Interlocks + Smoothing motor + Event log
-```
+```text
 
 **Implementation Notes:**
 - Eliminated vertical squishing by prioritizing horizontal space
@@ -258,7 +258,7 @@ def set_camera_widget(self, camera_widget: Any) -> None:
     self.camera_display = camera_widget.camera_display
     camera_section_layout.insertWidget(0, self.camera_display)
     self.camera_display.setMinimumHeight(250)  # Compact for dashboard
-```
+```bash
 
 **Implementation Notes:**
 - Camera feed now visible in both Camera/Alignment tab and Active Treatment dashboard
@@ -284,13 +284,13 @@ class CollapsibleGroupBox(QGroupBox):
         self.content_widget = QWidget()
         # Add toggle button to title bar
         # Connect click to show/hide content_widget
-```
+```text
 
 Option 2 - QSplitter with collapsible widgets:
 ```python
 # Use QSplitter.setCollapsible(index, True)
 # Allows dynamic resizing and collapse
-```
+```bash
 
 **Widgets to make collapsible:**
 - LaserWidget (in TreatmentSetupWidget)
@@ -328,7 +328,7 @@ class SmoothingStatusWidget(QWidget):
         controller.smoothing_motor_changed.connect(...)
         controller.vibration_level_changed.connect(...)
         controller.photodiode_power_changed.connect(...)
-```
+```bash
 
 **Implementation Notes:**
 - Embedded in Active Treatment Dashboard right panel (between Interlocks and Event log)
@@ -363,7 +363,7 @@ self.camera_widget = CameraWidget()
 setup_layout.addWidget(self.camera_widget, 2)
 
 self.tabs.addTab(setup_tab, "Setup")
-```
+```text
 
 **Implementation Notes:**
 - [DONE] **Horizontal-First Design:** Utilizes 1:2 stretch factor ratio (33%/66%)
@@ -391,7 +391,7 @@ splitter = QSplitter(Qt.Orientation.Vertical)
 splitter.addWidget(self.subject_widget)  # Top
 splitter.addWidget(self.camera_widget)   # Bottom (larger)
 splitter.setStretchFactor(1, 2)  # Camera gets 2x space
-```
+```text
 
 **Design Requirements:**
 - Subject widget should be compact (form layout, no wasted space)
@@ -424,7 +424,7 @@ class DiagnosticsWidget(QWidget):
         # 2. Full Event Log (all system events with filtering)
         # 3. Performance Metrics (frame rates, polling rates, latencies)
         # 4. Hardware Test Controls (advanced calibration, manual tests)
-```
+```bash
 
 **Components to Include:**
 
@@ -500,7 +500,7 @@ class ProtocolSelectorWidget(QGroupBox):
         # "Load Protocol" button
         # Protocol preview (actions, duration, parameters)
         # Validation before loading
-```
+```text
 
 **Features:**
 
@@ -558,7 +558,7 @@ self.snapshot_btn.clicked.connect(self._on_capture_snapshot)
 
 # Add to camera section layout (below camera display)
 camera_section_layout.addWidget(self.snapshot_btn)
-```
+```text
 
 2. **Backend Implementation** (CameraController):
 ```python
@@ -593,7 +593,7 @@ def capture_snapshot(self, session_id: str, annotation: str = "") -> str:
 
     logger.info(f"Snapshot saved: {filepath}")
     return str(filepath)
-```
+```javascript
 
 3. **Confirmation Feedback:**
    - Show toast notification: "Snapshot saved: snapshot_20251027_143052.png"
@@ -648,7 +648,7 @@ self.override_power_action = QAction("☐ Bypass Power Limit", self)
 self.override_power_action.setCheckable(True)
 self.override_power_action.triggered.connect(self._on_override_power)
 override_menu.addAction(self.override_power_action)
-```
+```text
 
 2. **Warning Dialog** (First activation only):
 ```python
@@ -668,7 +668,7 @@ def _show_override_warning(self) -> bool:
     msg.setDefaultButton(QMessageBox.StandardButton.No)
 
     return msg.exec() == QMessageBox.StandardButton.Yes
-```
+```text
 
 3. **SafetyManager Integration:**
 ```python
@@ -706,7 +706,7 @@ class SafetyManager:
         if self.overrides["session"]:
             return True  # Override active
         return self.active_session is not None
-```
+```text
 
 4. **Visual Indicator:**
    - When ANY override is active, show orange warning banner in status bar
@@ -727,7 +727,7 @@ def _on_dev_mode_changed(self, enabled: bool):
         self.override_power_action.setChecked(False)
 
         logger.info("All safety overrides cleared (dev mode disabled)")
-```
+```text
 
 **Safety Guardrails:**
 - Overrides ONLY available when dev mode is enabled
@@ -815,19 +815,19 @@ Use Material Design icons or Unicode symbols:
 self.estop_btn.clicked.connect(self.safety_manager.trigger_emergency_stop)
 self.pause_btn.clicked.connect(self.protocol_engine.pause)
 self.resume_btn.clicked.connect(self.protocol_engine.resume)
-```
+```text
 
 ### Safety Manager → Status Bar Master Indicator
 ```python
 self.safety_manager.safety_state_changed.connect(self._update_master_safety_indicator)
-```
+```text
 
 ### Safety Manager → Interlocks Widget
 ```python
 self.safety_manager.safety_state_changed.connect(self.interlocks_widget.update_state)
 self.safety_manager.laser_enable_changed.connect(self.interlocks_widget.update_laser_enable)
 self.safety_manager.safety_event.connect(self.interlocks_widget.update_interlock)
-```
+```text
 
 ### GPIO Controller → Smoothing Status Widget (Existing)
 ```python

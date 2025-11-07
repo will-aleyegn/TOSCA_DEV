@@ -1,0 +1,21 @@
+{
+  "diagram_mapping": {
+    "01_system_overview.md": ["TOSCA System Context.png", "TOSCA Container Diagram.png", "safety-state-machine.png", "session-workflow.png"],
+    "02_database_schema.md": ["TOSCA Database Schema ERD.png", "TOSCA Data Architecture.png"],
+    "03_safety_system.md": ["TOSCA Component Diagram - Application Core.png", "safety-state-machine.png"],
+    "04_treatment_protocols.md": ["TOSCA Treatment Workflow Sequence.png", "TOSCA Data Flow Diagram.png", "session-workflow.png"],
+    "06_protocol_builder.md": ["TOSCA Treatment Workflow Sequence.png"],
+    "09_test_architecture.md": ["TOSCA Component Diagram - Application Core.png", "TOSCA Component Diagram - Hardware Abstraction Layer.png"],
+    "10_concurrency_model.md": ["TOSCA Data Flow Diagram.png"]
+  },
+  "pdf_engine": "wkhtmltopdf",
+  "pandoc_options": [
+    "--css", "pdf-styles.css",
+    "--toc",
+    "--toc-depth=3",
+    "-V", "margin-left=0.75in",
+    "-V", "margin-right=0.75in",
+    "-V", "margin-top=0.75in",
+    "-V", "margin-bottom=0.75in"
+  ]
+}

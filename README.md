@@ -1,5 +1,7 @@
 # TOSCA Laser Control System
 
+**Last Updated:** 2025-11-04
+
 **Version:** 0.9.12-alpha
 **Status:** Research Mode - Not for Clinical Use
 **Platform:** Windows 10/11, Python 3.12+
@@ -54,7 +56,7 @@ Intended for research and development, hardware testing and calibration, algorit
 
 ### System Layers
 
-```
+```bash
 ┌─────────────────────────────────────────────────────────┐
 │  User Interface (PyQt6)                                 │
 │  - 3-tab interface (Setup, Treatment, Safety)           │
@@ -132,7 +134,7 @@ The Arduino Uno acts as a dedicated safety controller, continuously monitoring c
 
 **Safety State Machine:**
 
-```
+```text
 SAFE → ARMED → TREATING → ARMED → SAFE
   ↓      ↓         ↓
   ← UNSAFE/FAULT ←
@@ -154,7 +156,7 @@ Only the treatment laser is shut down on safety fault. All other systems remain 
 
 ### Project Structure
 
-```
+```text
 src/
 ├── ui/                  # PyQt6 user interface
 │   ├── main_window.py          # 3-tab interface (Setup, Treatment, Safety)
@@ -332,7 +334,7 @@ pytest tests/test_realtime_safety_monitoring.py
 
 # With coverage
 pytest --cov=src --cov-report=html
-```
+```text
 
 ## Code Quality Standards
 
@@ -362,7 +364,7 @@ class HardwareController(QObject):
         with self._lock:
             self.hardware.set(value)
             self.value_changed.emit(value)
-```
+```text
 
 ## Documentation
 
@@ -405,7 +407,7 @@ python -m src.main
 
 # Run tests
 pytest
-```
+```text
 
 ## Configuration
 

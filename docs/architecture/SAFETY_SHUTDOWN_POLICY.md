@@ -19,29 +19,21 @@ This policy supersedes any previous documentation indicating full system shutdow
 
 ## Shutdown Hierarchy
 
-```
-Safety Interlock Failure Detected
-        │
-        ▼
-┌─────────────────────────────────────────┐
-│  IMMEDIATE: Treatment Laser Shutdown   │
-│  • Laser output → OFF                   │
-│  • Laser power → 0 mW                   │
-│  • Laser driver → DISABLED              │
-│  • Response time: <100ms                │
-└─────────────────────────────────────────┘
-        │
-        ▼
-┌─────────────────────────────────────────┐
-│  MAINTAINED: Support Systems            │
-│  [DONE] Camera (visual monitoring)           │
-│  [DONE] Actuator (position control)          │
-│  [DONE] Aiming Laser (low-power alignment)   │
-│  [DONE] Laser Spot Smoothing Module (if not fault src)  │
-│  [DONE] GPIO monitoring                       │
-│  [DONE] Event logging                         │
-│  [DONE] UI responsiveness                     │
-└─────────────────────────────────────────┘
+```text
+1. **Safety Interlock Failure Detected**
+2. **IMMEDIATE** - Treatment Laser Shutdown
+3. **• Laser output  OFF**
+4. **• Laser power  0 mW**
+5. **• Laser driver  DISABLED**
+6. **• Response time** - <100ms
+7. **MAINTAINED** - Support Systems
+8. **[DONE] Camera (visual monitoring)**
+9. **[DONE] Actuator (position control)**
+10. **[DONE] Aiming Laser (low-power alignment)**
+11. **[DONE] Laser Spot Smoothing Module (if not fault src)**
+12. **[DONE] GPIO monitoring**
+13. **[DONE] Event logging**
+14. **[DONE] UI responsiveness**
 ```
 
 ---
@@ -343,22 +335,22 @@ class ProtocolEngine:
 
 ```
 FAULT (Laser Disabled)
-        │
-        ├─ Camera: Operational (monitoring)
-        ├─ Actuator: Operational (controllable)
-        ├─ Aiming Laser: Operational (available)
-        ├─ GPIO: Operational (monitoring)
-        └─ Event Log: Operational (recording)
-        │
+         
+           Camera: Operational (monitoring)
+           Actuator: Operational (controllable)
+           Aiming Laser: Operational (available)
+           GPIO: Operational (monitoring)
+           Event Log: Operational (recording)
+         
         ▼
     [Fault Investigation & Clearance]
-        │
+         
         ▼
     [Supervisor Authorization]
-        │
+         
         ▼
     [Safety Checks Pass]
-        │
+         
         ▼
 READY (All Systems Operational, Laser Can Be Enabled)
 ```

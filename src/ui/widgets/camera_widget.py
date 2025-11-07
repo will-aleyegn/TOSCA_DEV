@@ -12,7 +12,6 @@ import logging
 from pathlib import Path
 from typing import Any, Optional
 
-import numpy as np
 from PyQt6.QtCore import Qt, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import (

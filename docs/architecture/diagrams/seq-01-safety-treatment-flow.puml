@@ -1,0 +1,111 @@
+@startuml seq-01-safety-treatment-flow
+
+title TOSCA Safety Flow - Normal Treatment Session\nFDA IEC 62304 Safety Requirements
+
+actor Operator
+participant "UI\n(PyQt6)" as UI
+participant "Safety\nManager\n(CRITICAL)" as Safety
+participant "GPIO\nController" as GPIO
+participant "Laser\nController" as Laser
+participant "Event\nLogger" as Log
+database "Audit\nTrail\n(SQLite)" as DB
+
+== Session Initialization ==
+Operator -> UI: Create session
+UI -> Safety: Validate session
+Safety -> Log: Log session start
+Log -> DB: INSERT event (session_created)
+Safety --> UI: Session valid ✓
+UI --> Operator: Ready for treatment
+
+== Pre-Treatment Safety Checks ==
+Operator -> UI: Load protocol
+Operator -> UI: Start treatment
+UI -> Safety: Request laser enable
+
+Safety -> Safety: Check all interlocks
+note right
+  **Multi-Layer Interlock Check:**
+  1. GPIO interlocks (footpedal, smoothing)
+  2. Session valid
+  3. Power limits OK
+  4. Watchdog alive
+  5. Camera streaming
+end note
+
+Safety -> GPIO: Read interlock status
+GPIO --> Safety: Footpedal UP ✗\nSmoothing OK ✓\nPhotodiode 0.0V ✓
+Safety --> UI: Cannot enable laser\n(footpedal released)
+UI --> Operator: "Depress footpedal to begin"
+
+== Treatment Execution ==
+Operator -> Operator: Depress footpedal
+GPIO -> Safety: Footpedal DEPRESSED ✓
+note right of Safety: <b>Transition to ARMED state</b>
+
+Safety -> Safety: Re-check all interlocks
+note right
+  **All Interlocks PASS:**
+  • Footpedal: DEPRESSED ✓
+  • Smoothing: VIBRATING ✓
+  • Session: ACTIVE ✓
+  • Power: WITHIN LIMITS ✓
+  • Watchdog: ALIVE ✓
+end note
+
+Safety -> Laser: Enable laser (5.0W)
+Laser --> Safety: Laser ON ✓
+Safety -> Log: Log laser enable
+Log -> DB: INSERT event (laser_enabled, 5.0W)
+
+note over Safety: <b><color:green>State: TREATING</color></b>
+note over Operator: <color:green>Treatment in progress</color>
+
+== Real-Time Monitoring (2 Hz) ==
+loop Every 500ms
+    GPIO -> Safety: Interlock status\n• Footpedal: DEPRESSED ✓\n• Photodiode: 5.0W ± 5% ✓\n• Smoothing: VIBRATING ✓
+    Safety -> Safety: Validate interlocks
+    Safety -> Log: Log monitoring data
+    Log -> DB: INSERT event (monitoring_sample)
+end
+
+== Normal Treatment Completion ==
+Operator -> Operator: Release footpedal
+GPIO -> Safety: Footpedal RELEASED ✗
+
+note right of Safety
+  <b>Interlock Failure Detected</b>
+  <color:orange>Immediate Response Required</color>
+  Response time: <100ms
+end note
+
+Safety -> Laser: Disable laser (IMMEDIATE)
+Laser --> Safety: Laser OFF ✓
+Safety -> Log: Log laser disable (footpedal)
+Log -> DB: INSERT event (laser_disabled)
+
+note over Safety: <b><color:orange>State: ARMED</color></b>
+Safety --> UI: Laser disabled (normal)
+UI --> Operator: "Treatment paused\n(footpedal released)"
+
+== Session Closure ==
+Operator -> UI: End session
+UI -> Safety: Close session
+Safety -> Laser: Verify laser OFF
+Laser --> Safety: Confirmed OFF ✓
+Safety -> Log: Log session end
+Log -> DB: INSERT event (session_completed)
+Safety --> UI: Session closed
+UI --> Operator: "Session complete\nAudit trail saved"
+
+note over DB
+  <b>21 CFR Part 11 Compliance</b>
+  All events logged immutably:
+  • Timestamps (UTC)
+  • Operator ID
+  • Session ID
+  • Event details
+  • Checksums
+end note
+
+@enduml

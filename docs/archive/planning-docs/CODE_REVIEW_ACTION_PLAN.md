@@ -21,7 +21,7 @@ Week 4-5 implementations are excellent overall, but one CRITICAL issue prevents 
 
 ### Priority Matrix
 
-```
+```text
 CRITICAL (Must Fix):
 └── H.264 CRF Implementation
 
@@ -149,7 +149,7 @@ def _initialize_writer(self) -> None:
     # Both codecs failed
     logger.error(f"Both {self.codec} and {self.fallback_codec} codecs failed")
     self.actual_codec_used = "none"
-```
+```text
 
 **Testing Criteria:**
 
@@ -205,7 +205,7 @@ print(f'CRF=18: {size_18/1024/1024:.1f}MB')
 print(f'Reduction: {(1 - size_28/size_18)*100:.1f}%')
 assert size_28 < size_18, 'CRF=28 should be smaller than CRF=18'
 "
-```
+```text
 
 **Estimated Effort:** 30-45 minutes
 
@@ -363,7 +363,7 @@ def _on_vacuum_error(self, error_message: str) -> None:
     )
     self.vacuum_button.setEnabled(True)
     self.vacuum_button.setText("Vacuum Database")
-```
+```bash
 
 **Testing Criteria:**
 
@@ -477,7 +477,7 @@ class TOSCAConfig(BaseModel):
             )
 
         return self
-```
+```text
 
 **Testing Criteria:**
 
@@ -488,7 +488,7 @@ class TOSCAConfig(BaseModel):
        watchdog_timeout_ms: 1000
    safety:
      watchdog_heartbeat_ms: 500  # Valid (< 1000)
-   ```
+   ```text
    - Should load without errors
 
 2. **Invalid Configuration:**
@@ -498,7 +498,7 @@ class TOSCAConfig(BaseModel):
        watchdog_timeout_ms: 1000
    safety:
      watchdog_heartbeat_ms: 1000  # Invalid (>= timeout)
-   ```
+   ```text
    - Should raise ValueError with clear message
 
 3. **Warning Case:**
@@ -508,7 +508,7 @@ class TOSCAConfig(BaseModel):
        watchdog_timeout_ms: 1000
    safety:
      watchdog_heartbeat_ms: 950  # Close to limit
-   ```
+   ```bash
    - Should load but log warning
 
 **Estimated Effort:** 15-30 minutes
@@ -563,7 +563,7 @@ def stop_auto_refresh(self) -> None:
     if hasattr(self, "refresh_timer") and self.refresh_timer.isActive():
         self.refresh_timer.stop()
         logger.info("Performance dashboard auto-refresh stopped")
-```
+```bash
 
 **Testing Criteria:**
 
@@ -626,7 +626,7 @@ processes for UI and hardware control), the following changes would be required:
    lock = FileLock(str(self.log_file) + ".lock")
    with lock:
        # Perform rotation atomically
-   ```
+   ```python
 
 2. Use inter-process signaling for log cleanup coordination
 
@@ -723,7 +723,7 @@ def test_vacuum_handles_missing_file():
 def test_vacuum_statistics_accurate():
     """Test vacuum statistics calculation is accurate."""
     # ... (implementation)
-```
+```text
 
 **File:** `tests/test_core/test_log_rotation.py` (NEW)
 
@@ -745,7 +745,7 @@ def test_cleanup_deletes_old_logs():
 def test_rotation_filename_format():
     """Test rotated files have correct timestamp format."""
     # ... (implementation)
-```
+```text
 
 **File:** `tests/test_hardware/test_video_compression.py` (NEW)
 

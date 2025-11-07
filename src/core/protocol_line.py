@@ -130,6 +130,30 @@ class LaserSetParams:
 
 
 @dataclass
+class LaserSetCurrentParams:
+    """Parameters for setting fixed laser current (alternative to power control)."""
+
+    current_milliamps: float
+
+    def validate(self, max_current: float) -> tuple[bool, str]:
+        """Validate laser current parameters."""
+        if self.current_milliamps < 0:
+            return False, "Laser current cannot be negative"
+        if self.current_milliamps > max_current:
+            return False, f"Laser current {self.current_milliamps}mA exceeds limit {max_current}mA"
+        return True, ""
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for JSON serialization."""
+        return {"current_milliamps": self.current_milliamps}
+
+    @staticmethod
+    def from_dict(data: Dict[str, Any]) -> "LaserSetCurrentParams":
+        """Create from dictionary (JSON deserialization)."""
+        return LaserSetCurrentParams(current_milliamps=data["current_milliamps"])
+
+
+@dataclass
 class LaserRampParams:
     """Parameters for ramping laser power over time."""
 
@@ -206,7 +230,7 @@ class ProtocolLine:
 
     line_number: int
     movement: Optional[Union[MoveParams, HomeParams]] = None
-    laser: Optional[Union[LaserSetParams, LaserRampParams]] = None
+    laser: Optional[Union[LaserSetParams, LaserSetCurrentParams, LaserRampParams]] = None
     dwell: Optional[DwellParams] = None
     notes: str = ""
 
@@ -275,6 +299,8 @@ class ProtocolLine:
         # Laser part
         if isinstance(self.laser, LaserSetParams):
             laser_str = f"{self.laser.power_watts:.2f}W"
+        elif isinstance(self.laser, LaserSetCurrentParams):
+            laser_str = f"{self.laser.current_milliamps:.1f}mA"
         elif isinstance(self.laser, LaserRampParams):
             laser_str = f"{self.laser.start_power_watts:.2f}W→{self.laser.end_power_watts:.2f}W"
         else:
@@ -317,6 +343,11 @@ class ProtocolLine:
             if not valid:
                 return False, f"Laser: {error}"
 
+        elif isinstance(self.laser, LaserSetCurrentParams):
+            valid, error = self.laser.validate(safety_limits.max_current_milliamps)
+            if not valid:
+                return False, f"Laser current: {error}"
+
         elif isinstance(self.laser, LaserRampParams):
             valid, error = self.laser.validate(
                 safety_limits.max_power_watts,
@@ -349,6 +380,8 @@ class ProtocolLine:
         # Laser
         if isinstance(self.laser, LaserSetParams):
             result["laser"] = {"type": "set", "params": self.laser.to_dict()}
+        elif isinstance(self.laser, LaserSetCurrentParams):
+            result["laser"] = {"type": "set_current", "params": self.laser.to_dict()}
         elif isinstance(self.laser, LaserRampParams):
             result["laser"] = {"type": "ramp", "params": self.laser.to_dict()}
 
@@ -371,11 +404,13 @@ class ProtocolLine:
                 movement = HomeParams.from_dict(move_data["params"])
 
         # Parse laser
-        laser: Optional[Union[LaserSetParams, LaserRampParams]] = None
+        laser: Optional[Union[LaserSetParams, LaserSetCurrentParams, LaserRampParams]] = None
         if "laser" in data and data["laser"] is not None:
             laser_data = data["laser"]
             if laser_data["type"] == "set":
                 laser = LaserSetParams.from_dict(laser_data["params"])
+            elif laser_data["type"] == "set_current":
+                laser = LaserSetCurrentParams.from_dict(laser_data["params"])
             elif laser_data["type"] == "ramp":
                 laser = LaserRampParams.from_dict(laser_data["params"])
 
@@ -398,6 +433,7 @@ class SafetyLimits:
     """Safety limits for protocol validation."""
 
     max_power_watts: float = 10.0
+    max_current_milliamps: float = 2000.0  # 2A max current
     max_duration_seconds: float = 300.0
     min_actuator_position_mm: float = -20.0  # Support negative positions (bidirectional)
     max_actuator_position_mm: float = 20.0
@@ -407,6 +443,7 @@ class SafetyLimits:
         """Convert to dictionary."""
         return {
             "max_power_watts": self.max_power_watts,
+            "max_current_milliamps": self.max_current_milliamps,
             "max_duration_seconds": self.max_duration_seconds,
             "min_actuator_position_mm": self.min_actuator_position_mm,
             "max_actuator_position_mm": self.max_actuator_position_mm,
@@ -418,6 +455,7 @@ class SafetyLimits:
         """Create from dictionary."""
         return SafetyLimits(
             max_power_watts=data.get("max_power_watts", 10.0),
+            max_current_milliamps=data.get("max_current_milliamps", 2000.0),
             max_duration_seconds=data.get("max_duration_seconds", 300.0),
             min_actuator_position_mm=data.get("min_actuator_position_mm", 0.0),
             max_actuator_position_mm=data.get("max_actuator_position_mm", 20.0),

@@ -42,7 +42,7 @@ grep -r "protocol_builder_widget\|ProtocolBuilderWidget" src/
 # Check signal connections report
 grep "protocol_builder_widget" docs/architecture/signal_connections_report.md
 # Result: ZERO references
-```
+```text
 
 **Risk Assessment:** ✅ **LOW RISK**
 - Not integrated into production UI
@@ -54,7 +54,7 @@ grep "protocol_builder_widget" docs/architecture/signal_connections_report.md
 git revert <commit-hash>
 # OR
 git checkout main -- src/ui/widgets/protocol_builder_widget.py
-```
+```python
 
 **Testing After Removal:**
 - [ ] Run full pytest suite
@@ -171,13 +171,13 @@ git checkout main -- src/ui/widgets/protocol_builder_widget.py
 ```bash
 pytest tests/ -v
 # Expected: All tests pass
-```
+```text
 
 **Post-Removal Tests:** (To be executed)
 ```bash
 pytest tests/ -v
 # Expected: All tests pass (no degradation)
-```
+```text
 
 **Application Smoke Test:** (To be executed)
 ```bash
@@ -187,7 +187,7 @@ python src/main.py
 # 3. Verify LineProtocolBuilderWidget loads
 # 4. Create test protocol
 # 5. Verify no crashes or errors
-```
+```text
 
 **Results:** [To be filled after testing]
 
@@ -217,7 +217,7 @@ References:
 - Task 8.1: Phase 1 Dead Code Removal
 
 Signed-off-by: AI Assistant <ai@tosca-dev>
-```
+```text
 
 ---
 
@@ -226,13 +226,13 @@ Signed-off-by: AI Assistant <ai@tosca-dev>
 ### Immediate Rollback (Single Commit)
 ```bash
 git revert <commit-hash>
-```
+```text
 
 ### Selective Rollback (Specific File)
 ```bash
 git checkout main -- src/ui/widgets/protocol_builder_widget.py
 git commit -m "revert: restore protocol_builder_widget.py"
-```
+```text
 
 ### Full Phase Rollback
 ```bash

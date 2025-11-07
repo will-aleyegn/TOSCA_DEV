@@ -68,18 +68,12 @@ This document describes the test architecture for the TOSCA Medical Laser Contro
 
 ### Testing Pyramid
 
-```
-           ┌─────────────┐
-           │   Manual    │  ← 5% (exploratory testing, usability)
-           │  Validation │
-           └─────────────┘
-         ┌─────────────────┐
-         │   Integration   │  ← 25% (system-level, hardware integration)
-         │      Tests      │
-         └─────────────────┘
-       ┌───────────────────────┐
-       │      Unit Tests       │  ← 70% (fast, isolated, comprehensive)
-       └───────────────────────┘
+```text
+1. **Manual        5% (exploratory testing, usability)**
+2. **Validation**
+3. **Integration       25% (system-level, hardware integration)**
+4. **Tests**
+5. **Unit Tests           70% (fast, isolated, comprehensive)**
 ```
 
 **Unit Tests:**
@@ -236,38 +230,21 @@ assert 50.0 in received_signals
 ### Directory Structure
 
 ```
-tests/
-├── mocks/                          # Mock hardware controllers
-│   ├── __init__.py                # Exports all mocks
-│   ├── mock_hardware_base.py      # Base mock (foundation)
-│   ├── mock_laser_controller.py   # Laser mock
-│   ├── mock_actuator_controller.py # Actuator mock
-│   ├── mock_camera_controller.py  # Camera mock
-│   ├── mock_gpio_controller.py    # GPIO mock
-│   ├── mock_qobject_base.py       # PyQt6 signal support
-│   └── examples/                  # Usage examples
-│       ├── example_basic_usage.py
-│       ├── example_realistic_scenarios.py
-│       └── example_signal_testing.py
-│
-├── actuator/                      # Actuator-specific tests
-│   ├── test_actuator_hal.py       # Hardware abstraction layer
-│   ├── test_position_control.py   # Position control logic
-│   ├── test_homing.py             # Homing sequence
-│   └── ...
-│
-├── test_hardware/                 # Hardware integration tests
-│   ├── test_arduino_gpio.py       # Arduino GPIO integration
-│   └── ...
-│
-├── test_mock_*.py                 # Mock validation tests
-│   ├── test_mock_hardware_base.py # Base mock tests
-│   ├── test_mock_actuator.py      # Actuator mock tests
-│   └── ...
-│
-├── test_event_logging_integration.py  # Event logging integration
-│
-└── conftest.py                    # pytest configuration (fixtures, etc.)
+**High-Level Structure:**
+
+- **tests/**
+
+**Key Files:**
+- __init__.py                # Exports all mocks
+- mock_hardware_base.py      # Base mock (foundation)
+- mock_laser_controller.py   # Laser mock
+- mock_actuator_controller.py # Actuator mock
+- mock_camera_controller.py  # Camera mock
+- mock_gpio_controller.py    # GPIO mock
+- mock_qobject_base.py       # PyQt6 signal support
+- example_basic_usage.py
+
+*See full project structure in source repository*
 ```
 
 ### Naming Conventions

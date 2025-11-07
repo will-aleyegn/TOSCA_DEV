@@ -1,4 +1,6 @@
 # TOSCA Hardware Integration Test Results
+
+**Last Updated:** 2025-11-04
 **Date:** 2025-10-27
 **Firmware:** arduino_watchdog_v2.1 (with watchdog timing fixes)
 
@@ -36,7 +38,7 @@
 - **Status:** [DONE] **FULLY FUNCTIONAL**
 
 **Test Results:**
-```
+```text
 Sample Acceleration Readings (motor off, device flat):
   X: -0.480g to 0.033g
   Y: -0.019g to 0.294g
@@ -96,7 +98,7 @@ When motor and accelerometer are both active, Arduino experiences intermittent r
 2. Then start motor → **causes reset**
 
 **Test Results:**
-```
+```text
 PWM  Voltage  Motor Speed        Vibration
 ───────────────────────────────────────────
 0    0.00V    OFF (baseline)     0.176g

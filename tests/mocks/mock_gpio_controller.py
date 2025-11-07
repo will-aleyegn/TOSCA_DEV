@@ -7,7 +7,7 @@ Simulates Arduino Nano GPIO behavior including safety interlocks and monitoring.
 from __future__ import annotations
 
 import time
-from typing import Any, Optional
+from typing import Optional
 
 from PyQt6.QtCore import QObject, QTimer, pyqtSignal
 

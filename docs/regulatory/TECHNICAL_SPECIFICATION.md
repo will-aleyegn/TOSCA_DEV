@@ -1,4 +1,6 @@
 # Technical Specification Document
+
+**Last Updated:** 2025-11-04
 ## TOSCA Laser Control System
 
 **Document Number:** TOSCA-TECH-001
@@ -132,7 +134,7 @@ Source: `README.md:100-117`, `requirements.txt`
 
 ### 3.2 Project Structure
 
-```
+```text
 src/
 ├── ui/                  # PyQt6 user interface
 │   ├── main_window.py  # 4-tab interface (Subject, Camera, Treatment, Hardware)
@@ -354,7 +356,7 @@ Source: `src/database/models.py`
 ### 6.2 File Storage
 
 **Directory Structure:**
-```
+```text
 data/
 ├── tosca.db                    # SQLite database
 ├── logs/                       # Event logs

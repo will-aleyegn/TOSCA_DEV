@@ -11,8 +11,7 @@ import logging
 from typing import Optional
 
 import pyqtgraph as pg
-from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QGroupBox, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import QVBoxLayout, QWidget
 
 from core.protocol_line import (
     HomeParams,

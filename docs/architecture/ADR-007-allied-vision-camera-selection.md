@@ -140,46 +140,46 @@ Consumer webcam with OpenCV VideoCapture
 **Key Implementation Details:**
 
 1. **Thread Safety:** RLock pattern for all hardware operations
-   ```python
+```python
    self._lock = threading.RLock()
    with self._lock:
        # Thread-safe camera operations
-   ```
+```
 
 2. **Signal/Slot Architecture:** PyQt6 signals for frame emission
-   ```python
+```python
    frame_ready = pyqtSignal(np.ndarray)  # NumPy array → GUI thread
    fps_update = pyqtSignal(float)         # Real-time FPS feedback
-   ```
+```
 
 3. **Pixel Format Configuration:** Explicit priority (Bgr8 > Rgb8 > Mono8)
-   ```python
+```python
    # VmbPy enum names: Bgr8/Rgb8/Mono8 (NOT RGB8!)
    format_priorities = [PixelFormat.Bgr8, PixelFormat.Rgb8, PixelFormat.Mono8]
-   ```
+```
 
 4. **QImage Memory Management:** Deep copy to prevent QImage lifetime bugs
-   ```python
+```python
    frame_copy = frame.copy()  # CRITICAL: prevents QImage invalidation
    q_image = QImage(frame_copy.data, width, height, bytes_per_line, format)
-   ```
+```
 
 5. **Software Downsampling:** cv2.resize instead of hardware binning
-   ```python
+```python
    # Hardware binning disabled due to corrupted frames
    downsampled = cv2.resize(frame, (target_width, target_height), interpolation=cv2.INTER_LINEAR)
-   ```
+```
 
 6. **30 FPS Hardware Control:** Explicit frame rate setting
-   ```python
+```python
    camera.AcquisitionFrameRate.set(30.0)  # VmbPy feature access
-   ```
+```
 
 7. **Recording Manager:** OpenCV VideoWriter integration
-   ```python
+```python
    fourcc = cv2.VideoWriter_fourcc(*'MJPG')  # Motion JPEG for recording
    writer = cv2.VideoWriter(filename, fourcc, fps, (width, height))
-   ```
+```
 
 ### Performance Characteristics
 

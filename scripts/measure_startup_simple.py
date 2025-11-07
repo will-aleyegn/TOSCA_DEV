@@ -3,7 +3,6 @@
 
 import statistics
 import subprocess
-import time
 
 
 def measure_import_time():

@@ -1,5 +1,7 @@
 # Line Protocol Builder - Quick Start Guide 🚀
 
+**Last Updated:** 2025-11-04
+
 **Status:** [DONE] Integrated into TOSCA
 **Location:** Tab 3 - Protocol Builder
 **Time to Test:** < 5 minutes
@@ -13,13 +15,13 @@
 ```bash
 cd C:\Users\wille\Desktop\TOSCA-dev\src
 python main.py
-```
+```text
 
 ### Step 2: Open Protocol Builder
 
 ```
 Main Window → Tab 3: "Protocol Builder"
-```
+```text
 
 ### Step 3: Load Example Protocol
 
@@ -28,7 +30,7 @@ Click "📂 Load Protocol"
 → Navigate to: C:\Users\wille\Desktop\TOSCA-dev\examples\protocols\
 → Select: example_simple_treatment.json
 → Click Open
-```
+```text
 
 **You should see:**
 ```
@@ -41,7 +43,7 @@ Protocol Sequence:
   Line 1: [Move Abs] 5.0mm @ 1.0mm/s | [Laser] Set 2.0W | [Dwell] 3.0s | Duration: 5.0s
   Line 2: [Move Abs] 10.0mm @ 1.5mm/s | [Laser] Ramp 2.0W → 5.0W | [Dwell] 5.0s | Duration: 5.0s
   Line 3: [Home] @ 2.0mm/s | [Laser] Set 0.0W | Duration: 8.3s
-```
+```text
 
 ### Step 4: Edit a Line
 
@@ -50,13 +52,13 @@ Protocol Sequence:
 2. Line Editor panel activates
 3. Change laser ramp end power: 5.0W → 7.0W
 4. Click "[DONE] Apply Changes to Line"
-```
+```text
 
 **You should see:**
 ```
 Line 2 summary updates to show:
   [Laser] Ramp 2.0W → 7.0W
-```
+```text
 
 ### Step 5: Add New Line
 
@@ -74,7 +76,7 @@ Line 2 summary updates to show:
    - Duration: 4.0 s
 5. Notes: "Final position treatment"
 6. Click "[DONE] Apply Changes to Line"
-```
+```text
 
 **You should see:**
 ```
@@ -82,7 +84,7 @@ Line 4 added to sequence:
   [Move Abs] 15.0mm @ 2.0mm/s | [Laser] Set 3.5W | [Dwell] 4.0s | Duration: 7.5s
 
 Total Duration updates to: ~25.8s
-```
+```text
 
 ### Step 6: Save Modified Protocol
 
@@ -90,18 +92,18 @@ Total Duration updates to: ~25.8s
 1. Click "💾 Save Protocol"
 2. Filename: my_first_protocol.json
 3. Click Save
-```
+```text
 
 **You should see:**
 ```
 Dialog: "Protocol saved successfully: C:\Users\wille\...\my_first_protocol.json"
-```
+```text
 
 ### Step 7: Execute Protocol
 
 ```
 1. Click "▶ Execute Protocol"
-```
+```text
 
 **You should see:**
 ```
@@ -115,7 +117,7 @@ Dialog: "Protocol Ready"
 
 Application automatically switches to:
   Tab 2: "Treatment Workflow"
-```
+```text
 
 ---
 
@@ -182,7 +184,7 @@ Application automatically switches to:
 ├────────────────────────┴───────────────────────────────────────┤
 │  [📄 New] [💾 Save] [📂 Load]              [▶ Execute Protocol]│
 └────────────────────────────────────────────────────────────────┘
-```
+```text
 
 ---
 
@@ -193,14 +195,14 @@ Each line combines multiple actions simultaneously:
 ```
 Line 1: Move to 5mm AND Set laser to 2W AND Hold for 3s
         → Duration = MAX(5s move, 0s laser, 3s dwell) = 5s
-```
+```text
 
 ### Feature 2: Laser Power Ramping
 Gradual power increase over time:
 ```
 Line 2: Ramp laser from 2W to 5W over 10 seconds
         → Power increases linearly: 2W → 3W → 4W → 5W
-```
+```text
 
 ### Feature 3: Bidirectional Movement
 Negative positions supported:
@@ -208,7 +210,7 @@ Negative positions supported:
 Line 1: Move to -10mm (left of home)
 Line 2: Move to 0mm (home center)
 Line 3: Move to +10mm (right of home)
-```
+```text
 
 ### Feature 4: Protocol Looping
 Repeat entire protocol multiple times:
@@ -216,7 +218,7 @@ Repeat entire protocol multiple times:
 Loop Count: 3
 → Executes all lines 3 times
 → Total duration = Single loop duration × 3
-```
+```text
 
 ### Feature 5: Safety Validation
 Pre-execution checks:

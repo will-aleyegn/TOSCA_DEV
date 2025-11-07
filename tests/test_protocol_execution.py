@@ -13,7 +13,6 @@ Run this script to validate protocol engine implementation.
 import asyncio
 import sys
 from pathlib import Path
-from typing import Any
 
 # Add src to path BEFORE imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))

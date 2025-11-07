@@ -49,37 +49,37 @@ TOSCA records complete video of every treatment session for documentation, quali
 
 ### System Overview
 
-```
-┌──────────────────────────────────────────────────────────┐
-│              CameraController                             │
-│        (src/hardware/camera_controller.py)                │
-└──────────────────────────────────────────────────────────┘
-                           │
+```text
+                                                            
+               CameraController                              
+         (src/hardware/camera_controller.py)                 
+                                                            
+                            
                   start_recording(output_path, fps)
-                           │
+                            
                            ▼
-┌──────────────────────────────────────────────────────────┐
-│                 cv2.VideoWriter                           │
-│         (OpenCV Video Encoding)                           │
-├──────────────────────────────────────────────────────────┤
-│ - Codec: MP4V (H.264 baseline)                           │
-│ - Container: MP4                                          │
-│ - Frame rate: 30 FPS (default)                           │
-│ - Resolution: Camera native (typically 1920x1200)        │
-│ - Color: BGR 8-bit                                       │
-└──────────────────────────────────────────────────────────┘
-                           │
+                                                            
+                  cv2.VideoWriter                            
+          (OpenCV Video Encoding)                            
+                                                            
+  - Codec: MP4V (H.264 baseline)                            
+  - Container: MP4                                           
+  - Frame rate: 30 FPS (default)                            
+  - Resolution: Camera native (typically 1920x1200)         
+  - Color: BGR 8-bit                                        
+                                                            
+                            
                   Frames written continuously
-                           │
+                            
                            ▼
-┌──────────────────────────────────────────────────────────┐
-│              Video File (MP4)                             │
-│   data/sessions/<session_id>/recording.mp4               │
-├──────────────────────────────────────────────────────────┤
-│ - Typical size: 500 MB - 2 GB per session                │
-│ - Duration: 10-60 minutes                                │
-│ - Linked to session in database                          │
-└──────────────────────────────────────────────────────────┘
+                                                            
+               Video File (MP4)                              
+    data/sessions/<session_id>/recording.mp4                
+                                                            
+  - Typical size: 500 MB - 2 GB per session                 
+  - Duration: 10-60 minutes                                 
+  - Linked to session in database                           
+                                                            
 ```
 
 ### Key Components

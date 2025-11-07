@@ -9,12 +9,10 @@ import sys
 import threading
 import time
 from pathlib import Path
-from unittest.mock import MagicMock, Mock, patch
 
 import numpy as np
 import pytest
 from PyQt6.QtCore import QCoreApplication
-from PyQt6.QtGui import QPixmap
 from PyQt6.QtTest import QSignalSpy
 
 # Add src to path

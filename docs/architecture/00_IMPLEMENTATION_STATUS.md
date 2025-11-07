@@ -1,7 +1,8 @@
 # TOSCA Implementation Status & Readiness Tiers
 
-**Document Version:** 1.1
-**Last Updated:** 2025-10-30
+**Document Version:** 1.2
+**Last Updated:** 2025-11-05
+**Current Version:** v0.9.13-alpha
 **Purpose:** Clear categorization of what's implemented vs what's required for different use cases
 
 ---
@@ -14,29 +15,18 @@ This document categorizes TOSCA features into **readiness tiers** based on what'
 
 ## Tier Classification
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│  TIER 1: Lab/Experimentation (CURRENT - Phase 5)            │
-│  [DONE] Implemented - Safe for R&D with test data               │
-└─────────────────────────────────────────────────────────────┘
-                           │
-                      Need to add ↓
-┌─────────────────────────────────────────────────────────────┐
-│  TIER 2: Pre-Clinical Validation (Phase 6)                  │
-│  WARNING: Partially Planned - Required for cadaver/bench testing  │
-└─────────────────────────────────────────────────────────────┘
-                           │
-                      Need to add ↓
-┌─────────────────────────────────────────────────────────────┐
-│  TIER 3: Clinical Trials (Phase 7)                          │
-│  [FAILED] Not Started - Required for human testing (IRB approval) │
-└─────────────────────────────────────────────────────────────┘
-                           │
-                      Need to add ↓
-┌─────────────────────────────────────────────────────────────┐
-│  TIER 4: FDA Submission/Production (Phase 8+)               │
-│  [FAILED] Not Started - Required for commercial deployment        │
-└─────────────────────────────────────────────────────────────┘
+```bash
+1. **TIER 1** - Lab/Experimentation (CURRENT - Phase 5)
+2. **[DONE] Implemented - Safe for R&D with test data**
+3. **Need to add**
+4. **TIER 2** - Pre-Clinical Validation (Phase 6)
+5. **WARNING** - Partially Planned - Required for cadaver/bench testing
+6. **Need to add**
+7. **TIER 3** - Clinical Trials (Phase 7)
+8. **[FAILED] Not Started - Required for human testing (IRB approval)**
+9. **Need to add**
+10. **TIER 4** - FDA Submission/Production (Phase 8+)
+11. **[FAILED] Not Started - Required for commercial deployment**
 ```
 
 ---
@@ -283,10 +273,10 @@ This document categorizes TOSCA features into **readiness tiers** based on what'
 
 ## Development Roadmap
 
-```
+```text
 CURRENT        Phase 6        Phase 7         Phase 8+
 (Tier 1)       (Tier 2)       (Tier 3)        (Tier 4)
-───────────────────────────────────────────────────────────
+                                                           
 Lab Testing    Pre-Clinical   Clinical        FDA/Production
 23 [DONE]          13 WARNING:          12 [FAILED]           21 ❌
                +3-4 months    +4-6 months     +12-18 months

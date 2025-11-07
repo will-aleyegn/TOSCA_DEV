@@ -52,28 +52,28 @@ This document describes the threading and concurrency model for TOSCA, including
 
 ### Primary Threads
 
-```
-┌────────────────────────────────────────────────────────────┐
-│                   MAIN GUI THREAD                           │
-│  - PyQt6 QApplication event loop                           │
-│  - All UI updates (widgets, painting)                      │
-│  - Safety watchdog QTimer (500ms heartbeat)                │
-│  - Treatment protocol execution                            │
-│  - Hardware controllers (except camera streaming)          │
-└────────────────────────────────────────────────────────────┘
-                           │
-            ┌──────────────┼──────────────┐
-            │              │              │
+```text
+                                                              
+                    MAIN GUI THREAD                            
+   - PyQt6 QApplication event loop                            
+   - All UI updates (widgets, painting)                       
+   - Safety watchdog QTimer (500ms heartbeat)                 
+   - Treatment protocol execution                             
+   - Hardware controllers (except camera streaming)           
+                                                              
+                            
+                                           
+                                           
             ▼              ▼              ▼
-┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐
-│  Camera Thread   │  │ Database Thread  │  │  Worker Threads  │
-│  (QThread)       │  │  (Future)        │  │  (Future)        │
-├──────────────────┤  ├──────────────────┤  ├──────────────────┤
-│ - Frame capture  │  │ - DB writes      │  │ - Image proc     │
-│ - Frame throttle │  │ - Audit logging  │  │ - Video encoding │
-│ - 60+ FPS stream │  │ - Query heavy    │  │ - Export tasks   │
-│                  │  │   operations     │  │                  │
-└──────────────────┘  └──────────────────┘  └──────────────────┘
+                                                                
+   Camera Thread        Database Thread        Worker Threads   
+   (QThread)             (Future)              (Future)         
+                                                                
+  - Frame capture       - DB writes           - Image proc      
+  - Frame throttle      - Audit logging       - Video encoding  
+  - 60+ FPS stream      - Query heavy         - Export tasks    
+                          operations                            
+                                                                
 ```
 
 ### Thread Breakdown
@@ -159,32 +159,26 @@ This document describes the threading and concurrency model for TOSCA, including
 **Core Mechanism:**
 
 ```python
-# In camera thread
-class CameraStreamThread(QThread):
-    frame_ready = pyqtSignal(np.ndarray)  # Signal definition
-
-    def run(self):
-        """Thread execution (in camera thread)."""
-        while self.running:
-            frame = capture_frame()
-            self.frame_ready.emit(frame)  # ← Emit signal (thread-safe)
-
-
-# In main thread
-class CameraWidget(QWidget):
-    def __init__(self):
-        super().__init__()
-        self.stream_thread = CameraStreamThread(camera)
-
-        # Connect signal to slot (automatic queuing across threads)
-        self.stream_thread.frame_ready.connect(self.update_frame)
-        #                                      ↑
-        #                       Slot runs in MAIN thread (safe)
-
-    def update_frame(self, frame: np.ndarray):
-        """Update UI with frame (runs in main thread)."""
-        pixmap = convert_to_pixmap(frame)
-        self.image_label.setPixmap(pixmap)  # ← UI update (safe)
+1. **# In camera thread**
+2. **class CameraStreamThread(QThread)** - 
+3. **frame_ready = pyqtSignal(np.ndarray)  # Signal definition**
+4. **def run(self)** - 
+5. **"""Thread execution (in camera thread)."""**
+6. **while self.running** - 
+7. **frame = capture_frame()**
+8. **self.frame_ready.emit(frame)  #  Emit signal (thread-safe)**
+9. **# In main thread**
+10. **class CameraWidget(QWidget)** - 
+11. **def __init__(self)** - 
+12. **super().__init__()**
+13. **self.stream_thread = CameraStreamThread(camera)**
+14. **# Connect signal to slot (automatic queuing across threads)**
+15. **self.stream_thread.frame_ready.connect(self.update_frame)**
+16. **#                       Slot runs in MAIN thread (safe)**
+17. **def update_frame(self, frame** - np.ndarray):
+18. **"""Update UI with frame (runs in main thread)."""**
+19. **pixmap = convert_to_pixmap(frame)**
+20. **self.image_label.setPixmap(pixmap)  #  UI update (safe)**
 ```
 
 **What Happens Under the Hood:**
@@ -285,21 +279,21 @@ class CameraController(HardwareControllerBase):
     def __init__(self):
         super().__init__()
         self.stream_thread = CameraStreamThread(camera)
-        self._recording = False  # ← Accessed from main thread only
+        self._recording = False  #  Accessed from main thread only
 
     # Main thread methods
     def start_streaming(self):
         """Called from main thread."""
-        self.stream_thread.start()  # ← Starts camera thread
+        self.stream_thread.start()  #  Starts camera thread
 
     def stop_streaming(self):
         """Called from main thread."""
-        self.stream_thread.running = False  # ← Signal to stop
-        self.stream_thread.wait()  # ← Wait for thread to finish
+        self.stream_thread.running = False  #  Signal to stop
+        self.stream_thread.wait()  #  Wait for thread to finish
 
     # Camera thread emits signals
     # Main thread receives signals in slots
-    # → No shared mutable state, no locking needed
+    #  No shared mutable state, no locking needed
 ```
 
 **Key Insight:** Camera thread is **self-contained** and communicates via signals only.

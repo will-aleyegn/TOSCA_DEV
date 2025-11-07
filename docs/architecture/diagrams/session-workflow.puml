@@ -1,0 +1,56 @@
+@startuml
+skinparam backgroundcolor white
+skinparam shadowing false
+
+start
+
+:Application Launch;
+:Initialize Hardware;
+:Load Configuration;
+:Display Subject Selection;
+
+if (Subject Selected?) then (yes)
+  :Create New Session;
+  :Load Protocol;
+
+  if (Protocol Ready?) then (yes)
+    :System State: READY;
+    :Display Treatment Controls;
+
+    repeat
+      :Wait for User Action;
+
+      if (Arm System?) then (yes)
+        :Check All Interlocks;
+        if (All Pass?) then (yes)
+          :System State: ARMED;
+        else (no)
+          :System State: FAULT;
+        endif
+      endif
+
+      if (Start Treatment?) then (yes)
+        :Depress Footpedal;
+        :System State: TREATING;
+        :Execute Protocol;
+        :Monitor Safety;
+        :TREATMENT_COMPLETE;
+      endif
+
+    repeat while (Session Active?) is (yes)
+
+    :Close Session;
+    :Save Data;
+    stop
+
+  else (no)
+    :Display Error;
+    stop
+  endif
+
+else (no)
+  :Display Error;
+  stop
+endif
+
+@enduml

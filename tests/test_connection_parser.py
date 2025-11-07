@@ -8,7 +8,6 @@ Author: AI Assistant (Task 4.2)
 Created: 2025-11-01
 """
 
-import tempfile
 from pathlib import Path
 
 import pytest

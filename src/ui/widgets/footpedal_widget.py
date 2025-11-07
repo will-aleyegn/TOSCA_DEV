@@ -18,7 +18,6 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from ui.constants import WIDGET_WIDTH_GRID
 from ui.design_tokens import Colors
 
 

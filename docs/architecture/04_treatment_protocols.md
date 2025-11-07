@@ -259,44 +259,44 @@ The Treatment Protocol Engine executes pre-defined or custom treatment plans, co
 ### Engine Architecture
 
 ```
-┌─────────────────────────────────────────────────┐
-│         Treatment Protocol Engine               │
-│                                                 │
-│  ┌───────────────────────────────────────────┐ │
-│  │  Protocol Loader                          │ │
-│  │  - Load from database                     │ │
-│  │  - Validate JSON schema                   │ │
-│  │  - Check safety limits                    │ │
-│  └─────────────────┬─────────────────────────┘ │
-│                    │                            │
-│  ┌─────────────────▼─────────────────────────┐ │
-│  │  Step Sequencer                           │ │
-│  │  - Track current step                     │ │
-│  │  - Calculate step progress                │ │
-│  │  - Trigger step transitions               │ │
-│  └─────────────────┬─────────────────────────┘ │
-│                    │                            │
-│  ┌─────────────────▼─────────────────────────┐ │
-│  │  Power Calculator                         │ │
-│  │  - Interpolate power (constant/ramp)      │ │
-│  │  - Apply ramping curves                   │ │
-│  │  - Enforce power limits                   │ │
-│  └─────────────────┬─────────────────────────┘ │
-│                    │                            │
-│  ┌─────────────────▼─────────────────────────┐ │
-│  │  Actuator Controller                      │ │
-│  │  - Map ring size to actuator position     │ │
-│  │  - Execute position changes               │ │
-│  │  - Smooth transitions                     │ │
-│  └─────────────────┬─────────────────────────┘ │
-│                    │                            │
-│  ┌─────────────────▼─────────────────────────┐ │
-│  │  Event Logger                             │ │
-│  │  - Log all parameter changes              │ │
-│  │  - Record step transitions                │ │
-│  │  - Timestamp everything                   │ │
-│  └───────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────┘
+                                                   
+          Treatment Protocol Engine                
+                                                   
+                                                  
+      Protocol Loader                             
+      - Load from database                        
+      - Validate JSON schema                      
+      - Check safety limits                       
+                                                  
+                                                   
+                     ▼                            
+      Step Sequencer                              
+      - Track current step                        
+      - Calculate step progress                   
+      - Trigger step transitions                  
+                                                  
+                                                   
+                     ▼                            
+      Power Calculator                            
+      - Interpolate power (constant/ramp)         
+      - Apply ramping curves                      
+      - Enforce power limits                      
+                                                  
+                                                   
+                     ▼                            
+      Actuator Controller                         
+      - Map ring size to actuator position        
+      - Execute position changes                  
+      - Smooth transitions                        
+                                                  
+                                                   
+                     ▼                            
+      Event Logger                                
+      - Log all parameter changes                 
+      - Record step transitions                   
+      - Timestamp everything                      
+                                                  
+                                                   
 ```
 
 ### Core Implementation
@@ -718,45 +718,33 @@ calibration_points = [
 ### Example UI Mockup (Conceptual)
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│ Protocol Builder                                     [X]    │
-├─────────────────────────────────────────────────────────────┤
-│ Protocol Name: [Custom Treatment A________]                 │
-│ Description:   [Multi-step therapeutic treatment___]        │
-├─────────────────────────────────────────────────────────────┤
-│ Steps:                                                      │
-│ ┌─────────────────────────────────────────────────────────┐ │
-│ │ Step 1: Warm-up                    [Edit] [Delete] [^][v]│ │
-│ │   Duration: 30s | Power: 1W → 3W | Ring: 4.0mm          │ │
-│ │   Ramp: Linear                                           │ │
-│ ├─────────────────────────────────────────────────────────┤ │
-│ │ Step 2: Treatment                  [Edit] [Delete] [^][v]│ │
-│ │   Duration: 90s | Power: 5W → 5W | Ring: 3.0mm          │ │
-│ │   Ramp: Constant                                         │ │
-│ ├─────────────────────────────────────────────────────────┤ │
-│ │ Step 3: Cool-down                  [Edit] [Delete] [^][v]│ │
-│ │   Duration: 30s | Power: 5W → 2W | Ring: 3.5mm          │ │
-│ │   Ramp: Linear                                           │ │
-│ └─────────────────────────────────────────────────────────┘ │
-│                                              [Add Step]     │
-├─────────────────────────────────────────────────────────────┤
-│ Power Profile:                                              │
-│   5W│                                                      │
-│    8W│           ╱─────────╲                               │
-│    6W│         ╱           ╲                               │
-│    4W│       ╱              ──────                         │
-│    2W│  ───╱                      ╲___                     │
-│    0W└────────────────────────────────────> Time          │
-│       0s    30s   60s   90s  120s  150s                    │
-├─────────────────────────────────────────────────────────────┤
-│ Safety Check:                                               │
-│   [DONE] All steps within power limits (max 5W)                │
-│   [DONE] Total duration 150s (within 300s limit)                │
-│   [DONE] Ring sizes within range (2-5mm)                        │
-│   Total Energy: 675 Joules                                 │
-├─────────────────────────────────────────────────────────────┤
-│  [Cancel]  [Save Protocol]  [Test Run]  [Apply to Session] │
-└─────────────────────────────────────────────────────────────┘
+1. **Protocol Builder                                     [X]**
+2. **Protocol Name** - [Custom Treatment A________]
+3. **Description** - [Multi-step therapeutic treatment___]
+4. **Steps** - 
+5. **Step 1** - Warm-up                    [Edit] [Delete] [^][v]
+6. **Duration** - 30s | Power: 1W  3W | Ring: 4.0mm
+7. **Ramp** - Linear
+8. **Step 2** - Treatment                  [Edit] [Delete] [^][v]
+9. **Duration** - 90s | Power: 5W  5W | Ring: 3.0mm
+10. **Ramp** - Constant
+11. **Step 3** - Cool-down                  [Edit] [Delete] [^][v]
+12. **Duration** - 30s | Power: 5W  2W | Ring: 3.5mm
+13. **Ramp** - Linear
+14. **[Add Step]**
+15. **Power Profile** - 
+16. **8W            ╱         ╲**
+17. **6W          ╱           ╲**
+18. **4W        ╱**
+19. **2W      ╱                      ╲___**
+20. **0W                                     > Time**
+21. **0s    30s   60s   90s  120s  150s**
+22. **Safety Check** - 
+23. **[DONE] All steps within power limits (max 5W)**
+24. **[DONE] Total duration 150s (within 300s limit)**
+25. **[DONE] Ring sizes within range (2-5mm)**
+26. **Total Energy** - 675 Joules
+27. **[Cancel]  [Save Protocol]  [Test Run]  [Apply to Session]**
 ```
 
 ## Treatment Execution Monitoring

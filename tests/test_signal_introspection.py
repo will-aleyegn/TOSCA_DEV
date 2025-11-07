@@ -9,7 +9,7 @@ Created: 2025-11-01
 """
 
 import pytest
-from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot
+from PyQt6.QtCore import pyqtSignal, pyqtSlot
 from PyQt6.QtWidgets import QApplication, QPushButton, QSlider, QWidget
 
 from src.utils.signal_introspection import (

@@ -1,0 +1,73 @@
+@startuml TOSCA Component Diagram - Hardware Abstraction Layer
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_WITH_LEGEND()
+
+title Component Diagram - Hardware Abstraction Layer (HAL)
+
+Container(core, "Application Core", "Session, safety, protocol management")
+
+System_Ext(camera_hw, "Allied Vision Camera", "USB 3.0")
+System_Ext(laser_hw, "Arroyo 6300 Laser", "Serial COM10")
+System_Ext(tec_hw, "Arroyo 5305 TEC", "Serial COM9")
+System_Ext(actuator_hw, "Xeryon Actuator", "Serial COM3")
+System_Ext(gpio_hw, "Arduino Uno", "Serial COM4")
+
+Container_Boundary(hal, "Hardware Abstraction Layer") {
+    Component(hal_base, "HardwareControllerBase", "Abstract Base Class", "QObject with threading.RLock, connect/disconnect interface, signal/slot architecture")
+
+    Component(camera_ctrl, "CameraController", "Python Class", "VmbPy SDK integration, 30 FPS streaming, thread-safe exposure/gain control")
+    Component(laser_ctrl, "LaserController", "Python Class", "Arroyo 6300 serial protocol, power control, safety limits")
+    Component(tec_ctrl, "TECController", "Python Class", "Arroyo 5305 serial protocol, temperature control (15-35°C)")
+    Component(actuator_ctrl, "ActuatorController", "Python Class", "Xeryon API, position control, sequence builder")
+    Component(gpio_ctrl, "GPIOController", "Python Class", "Arduino safety interlocks, watchdog, aiming beam (MCP4725 DAC)")
+}
+
+Rel(camera_ctrl, hal_base, "Inherits from")
+Rel(laser_ctrl, hal_base, "Inherits from")
+Rel(tec_ctrl, hal_base, "Inherits from")
+Rel(actuator_ctrl, hal_base, "Inherits from")
+Rel(gpio_ctrl, hal_base, "Inherits from")
+
+Rel(core, camera_ctrl, "Controls", "PyQt6 signals/slots")
+Rel(core, laser_ctrl, "Controls", "PyQt6 signals/slots")
+Rel(core, tec_ctrl, "Controls", "PyQt6 signals/slots")
+Rel(core, actuator_ctrl, "Controls", "PyQt6 signals/slots")
+Rel(core, gpio_ctrl, "Monitors", "PyQt6 signals/slots")
+
+Rel(camera_ctrl, camera_hw, "VmbPy API", "USB 3.0")
+Rel(laser_ctrl, laser_hw, "pyserial", "38400 baud")
+Rel(tec_ctrl, tec_hw, "pyserial", "38400 baud")
+Rel(actuator_ctrl, actuator_hw, "Xeryon API", "9600 baud")
+Rel(gpio_ctrl, gpio_hw, "pyserial", "115200 baud")
+
+note bottom of hal_base
+  **Thread Safety Pattern:**
+  ```python
+  class HardwareController(QObject):
+      def __init__(self):
+          super().__init__()
+          self._lock = threading.RLock()
+
+      def set_value(self, value):
+          with self._lock:
+              self.hardware.set(value)
+              self.value_changed.emit(value)
+  ```
+end note
+
+note right of gpio_ctrl
+  **GPIO Signals:**
+  - D2: Smoothing motor control (output)
+  - D3: Vibration sensor (input)
+  - A0: Photodiode ADC (0-5V, 10-bit)
+  - A4/A5: I2C for MCP4725 DAC (aiming beam)
+
+  **Safety Interlocks:**
+  - Footpedal deadman switch
+  - Laser spot smoothing health
+  - Photodiode power verification
+  - Hardware watchdog (1000ms timeout)
+end note
+
+@enduml

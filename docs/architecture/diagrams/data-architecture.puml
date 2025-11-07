@@ -1,0 +1,94 @@
+@startuml TOSCA Data Architecture
+!theme plain
+
+title Data Architecture - Two-Tier Logging Strategy
+
+package "Application Core" {
+    [Protocol Engine] as Protocol
+    [Event Logger] as Logger
+    [Session Manager] as Session
+}
+
+package "High-Frequency Data (100Hz+)" {
+    folder "Session Folders" as SessionData {
+        file "photodiode_log.jsonl" as Photodiode
+        file "camera_metadata.jsonl" as CameraLog
+        file "interlock_states.jsonl" as InterlockLog
+        file "video.avi" as Video
+        file "snapshots/" as Snapshots
+        file "metadata.json" as Metadata
+    }
+
+    note right of Photodiode
+        **JSONL Format (100Hz sampling):**
+        {"timestamp": 1635789123.456, "voltage": 3.21, "power_estimate": 4.2}
+        {"timestamp": 1635789123.466, "voltage": 3.19, "power_estimate": 4.15}
+        ...
+
+        **Rationale:** SQLite write performance
+        degrades with >100 inserts/second.
+        JSONL is append-only, no parsing required.
+    end note
+}
+
+package "Event-Based Data (Queryable)" {
+    database "SQLite Database" as DB {
+        [subjects] as Subjects
+        [sessions] as Sessions
+        [treatment_events] as Events
+        [protocols] as Protocols
+        [safety_log] as Safety
+        [calibrations] as Calibrations
+    }
+
+    note right of Events
+        **Event-Based Logging (<10Hz):**
+        - Protocol step changes
+        - Laser power adjustments
+        - Actuator position commands
+        - Operator actions
+        - Safety state transitions
+
+        **Rationale:** Queryable for analytics,
+        relational integrity, transaction support.
+    end note
+}
+
+package "File System Storage" {
+    folder "data/" as DataRoot {
+        folder "sessions/session_20251104_143052_abc123/" as SessionFolder
+        folder "logs/" as AppLogs
+        folder "backups/" as Backups
+        database "tosca.db" as DBFile
+    }
+}
+
+Protocol --> Logger : log_event()
+Session --> Logger : log_session_event()
+
+Logger --> DB : write to treatment_events\n(event-based, <10Hz)
+Logger --> Photodiode : append to photodiode_log.jsonl\n(high-frequency, 100Hz)
+Logger --> CameraLog : append to camera_metadata.jsonl\n(30 FPS)
+Logger --> InterlockLog : append to interlock_states.jsonl\n(100Hz)
+
+Session --> SessionData : create session folder
+Session --> Video : start video recording
+Session --> Metadata : save session metadata
+
+SessionData --> SessionFolder : stored in
+DBFile --> DataRoot : located in
+
+note bottom of DB
+    **WARNING:** Database NOT encrypted (v0.9.12-alpha)
+    **Phase 6 Required:** Migrate to SQLCipher with AES-256-GCM
+    before clinical deployment or PHI storage.
+end note
+
+note bottom of SessionData
+    **Backup Strategy:**
+    - Daily automated backup of tosca.db
+    - Monthly backup of session folders to external drive
+    - Before schema migrations: backup + integrity check
+end note
+
+@enduml

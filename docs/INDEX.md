@@ -1,5 +1,7 @@
 # TOSCA Documentation Index
 
+**Last Updated:** 2025-11-04
+
 **Version:** v0.9.12-alpha
 
 ---
@@ -17,7 +19,7 @@
 ### Root Level
 - **[README.md](../README.md)** - Project overview, installation instructions, hardware configuration
 - **[LESSONS_LEARNED.md](../LESSONS_LEARNED.md)** - Critical bugs, solutions, and prevention strategies
-- **[todos.md](../todos.md)** - Active development task tracking
+- **[CLAUDE.md](../CLAUDE.md)** - AI assistant context and development guidelines
 
 ### Project Status & Reports
 - **[PROJECT_STATUS.md](../presubmit/PROJECT_STATUS.md)** - Current milestones, component status, technical debt
