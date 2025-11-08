@@ -113,13 +113,16 @@ safety_report.json
 # Local analysis reports
 reports/
 
-# AI Development Tools
+# AI Development Tools (removed from repository - prevent re-addition)
 .claude/
 .gemini/
 .taskmaster/
 .mcp.json
 CLAUDE.md
-presubmit/
+GEMINI.md
+.cursor/rules/taskmaster/
+*content_policy*
+.policy-patterns.txt
 
 # AI-related documentation
 COMPONENT_RECOMMENDATIONS.md
@@ -151,9 +154,6 @@ node_modules/
 *.njsproj*
 *.sln
 *.sw?
-
-# Task files
-.cursor/
 
 # Backup and duplicate files
 *.backup
