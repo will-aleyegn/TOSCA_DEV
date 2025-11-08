@@ -100,4 +100,4 @@
 
 **Report Version:** 1.0
 **Tool:** TOSCA Documentation Maintenance System
-**Contact:** See CLAUDE.md for AI assistant guidelines
+**Contact:** See project documentation for development guidelines

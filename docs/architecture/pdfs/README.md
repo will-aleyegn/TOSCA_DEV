@@ -142,4 +142,4 @@ Current phase: **Phase 5 - Testing & Quality Assurance**
 **Repository:** https://github.com/will-aleyegn/TOSCA_DEV
 **Documentation:** `docs/architecture/`
 
-For questions or updates, refer to `CLAUDE.md` in the project root.
+For questions or updates, refer to the project documentation in the project root.

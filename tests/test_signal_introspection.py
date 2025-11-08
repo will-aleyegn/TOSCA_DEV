@@ -4,7 +4,6 @@ Unit tests for PyQt6 signal/slot introspection utilities.
 Tests signal enumeration, slot detection, connection validation,
 and object hierarchy traversal.
 
-Author: AI Assistant (Task 4.1)
 Created: 2025-11-01
 """
 

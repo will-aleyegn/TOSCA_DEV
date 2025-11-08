@@ -36,9 +36,9 @@ This will:
 - Create/update PlantUML diagrams
 - **Automatically generate PDFs** with proper formatting
 
-### Step 2: AI Will Execute
+### Step 2: Automated Execution
 
-The AI assistant will:
+The automation will:
 
 1. **Update Documentation** - Edit markdown files with your new information
 2. **Create Diagrams** - Generate PlantUML `.puml` files and convert to PNG

@@ -19,7 +19,7 @@
 ### Root Level
 - **[README.md](../README.md)** - Project overview, installation instructions, hardware configuration
 - **[LESSONS_LEARNED.md](../LESSONS_LEARNED.md)** - Critical bugs, solutions, and prevention strategies
-- **[CLAUDE.md](../CLAUDE.md)** - AI assistant context and development guidelines
+- **Project Context** - Development context and guidelines (see root directory)
 
 ### Project Status & Reports
 - **[PROJECT_STATUS.md](../presubmit/PROJECT_STATUS.md)** - Current milestones, component status, technical debt

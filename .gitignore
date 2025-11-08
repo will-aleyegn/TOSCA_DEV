@@ -133,6 +133,12 @@ docs/regulatory_archive/
 # Project Archive
 /archive/
 
+# WSL Migration Archive (contains AI tool configs)
+docs/archive/wsl-migration/
+
+# Historical Reports Archive (contains AI attributions)
+docs/archive/2025-11-reports/
+
 # Logs
 logs
 npm-debug.log*

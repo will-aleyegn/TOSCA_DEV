@@ -372,7 +372,7 @@ Create templates for common document types:
 Have documentation reviewed by:
 - Team members unfamiliar with the feature
 - Technical writers (if available)
-- AI assistants (Claude Code)
+- Development tools and automated checks
 
 ### 4. Version Control
 
@@ -406,7 +406,7 @@ Make documentation accessible to all users:
 
 ### Related Documentation
 - **Development Standards:** `docs/DEVELOPMENT_STANDARDS.md`
-- **CLAUDE.md:** Project context for AI assistants
+- **Project Context:** See project root documentation
 - **README.md:** Project overview and setup
 
 ---
@@ -417,7 +417,7 @@ Make documentation accessible to all users:
 
 1. Check this guide for common issues
 2. Review audit reports for specific problems
-3. Consult CLAUDE.md for AI assistant guidance
+3. Consult project documentation for development guidance
 4. Reach out to project maintainers
 
 ### Reporting Issues

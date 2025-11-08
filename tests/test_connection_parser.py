@@ -4,7 +4,6 @@ Unit tests for PyQt6 signal/slot connection parser.
 Tests AST parsing of .connect() calls, connection extraction,
 and report generation.
 
-Author: AI Assistant (Task 4.2)
 Created: 2025-11-01
 """
 
