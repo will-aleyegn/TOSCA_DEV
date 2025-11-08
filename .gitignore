@@ -113,23 +113,6 @@ safety_report.json
 # Local analysis reports
 reports/
 
-# AI Development Tools (removed from repository - prevent re-addition)
-.claude/
-.gemini/
-.taskmaster/
-.mcp.json
-CLAUDE.md
-GEMINI.md
-.cursor/rules/taskmaster/
-*content_policy*
-.policy-patterns.txt
-
-# AI-related documentation
-COMPONENT_RECOMMENDATIONS.md
-install.txt
-docs/TOOL_*.md
-docs/UI_REDESIGN_PLAN.md
-
 # Regulatory/FDA Strategy Documents
 docs/regulatory_archive/
 
