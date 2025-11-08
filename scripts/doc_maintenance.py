@@ -317,7 +317,7 @@ class DocumentationMaintenance:
 
 **Report Version:** 1.0
 **Tool:** TOSCA Documentation Maintenance System
-**Contact:** See CLAUDE.md for AI assistant guidelines
+**Contact:** See project documentation for development guidelines
 """
 
         return report
@@ -356,10 +356,10 @@ def main():
 
     # Auto-detect project root if not specified
     if args.base_path is None:
-        # Try to find project root by looking for CLAUDE.md
+        # Try to find project root by looking for pyproject.toml or .git
         current = Path.cwd()
         while current != current.parent:
-            if (current / 'CLAUDE.md').exists():
+            if (current / 'pyproject.toml').exists() or (current / '.git').exists():
                 args.base_path = str(current)
                 break
             current = current.parent
